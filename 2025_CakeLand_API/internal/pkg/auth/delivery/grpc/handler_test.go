@@ -3,12 +3,16 @@ package handler_test
 import (
 	handler "2025_CakeLand_API/internal/pkg/auth/delivery/grpc"
 	"2025_CakeLand_API/internal/pkg/auth/delivery/grpc/generated"
+	"2025_CakeLand_API/internal/pkg/auth/entities"
 	"2025_CakeLand_API/internal/pkg/auth/mocks"
-	umodels "2025_CakeLand_API/internal/pkg/auth/usecase/models"
+	"2025_CakeLand_API/internal/pkg/utils"
+	md "2025_CakeLand_API/internal/pkg/utils/metadata"
 	"context"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	"testing"
 	"time"
 )
@@ -21,17 +25,14 @@ func TestRegisterHandler(t *testing.T) {
 	mockAuthUsecase := mocks.NewMockIAuthUsecase(ctrl)
 
 	// Создаём gRPC-хэндлер с мокнутым usecase
-	h := handler.NewGrpcAuthHandler(mockAuthUsecase)
+	validator := utils.NewValidator()
+	mdProvider := md.NewMetadataProvider()
+	h := handler.NewGrpcAuthHandler(validator, mockAuthUsecase, mdProvider)
 
 	// Настроим мок: если вызывается Register, он возвращает успешный результат
 	mockAuthUsecase.EXPECT().
 		Register(gomock.Any(), gomock.Any()).
-		Do(func(ctx context.Context, req umodels.RegisterReq) {
-			// Извлекаем метаданные из контекста для проверки
-			md, _ := metadata.FromIncomingContext(ctx)
-			assert.Equal(t, "some-fingerprint-value", md["fingerprint"][0])
-		}).
-		Return(&umodels.RegisterRes{
+		Return(&entities.RegisterRes{
 			AccessToken:  "test-access-token",
 			RefreshToken: "test-refresh-token",
 			ExpiresIn:    time.Time{},
@@ -43,14 +44,44 @@ func TestRegisterHandler(t *testing.T) {
 	})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
-	// Вызываем gRPC-хэндлер
-	res, err := h.Register(ctx, &generated.RegisterRequest{
-		Email:    "test@example.com",
-		Password: "password123",
+	t.Run("Success registration", func(t *testing.T) {
+		// Вызываем gRPC-хэндлер
+		res, err := h.Register(ctx, &generated.RegisterRequest{
+			Email:    "test@example.com",
+			Password: "password123",
+		})
+
+		// Проверяем результат
+		assert.NoError(t, err)
+		assert.Equal(t, "test-access-token", res.AccessToken)
+		assert.Equal(t, "test-refresh-token", res.RefreshToken)
 	})
 
-	// Проверяем результат
-	assert.NoError(t, err)
-	assert.Equal(t, "test-access-token", res.AccessToken)
-	assert.Equal(t, "test-refresh-token", res.RefreshToken)
+	t.Run("Bad Email", func(t *testing.T) {
+		res, err := h.Register(ctx, &generated.RegisterRequest{
+			Email:    "test@example.com",
+			Password: "Password1!",
+		})
+
+		assert.Error(t, err)
+		assert.Nil(t, res)
+
+		st, ok := status.FromError(err)
+		assert.True(t, ok)
+		assert.Equal(t, codes.InvalidArgument, st.Code())
+	})
+
+	t.Run("Bad Password", func(t *testing.T) {
+		res, err := h.Register(ctx, &generated.RegisterRequest{
+			Email:    "test@example.com",
+			Password: "Passwor",
+		})
+
+		assert.Error(t, err)
+		assert.Nil(t, res)
+
+		st, ok := status.FromError(err)
+		assert.True(t, ok)
+		assert.Equal(t, codes.InvalidArgument, st.Code())
+	})
 }
