@@ -1,0 +1,137 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+
+/*
+protoc --go_out=./../internal/pkg/cake/delivery/grpc/generated \
+--go-grpc_out=./../internal/pkg/cake/delivery/grpc/generated \
+--go-grpc_opt=paths=source_relative \
+--go_opt=paths=source_relative \
+cake.proto
+*/
+
+option go_package = "internal/pkg/cake/delivery/grpc/generated";
+
+/* ############### Cake ############### */
+
+message CakeRequest {
+  string cake_id = 1;
+}
+
+message CakeResponse {
+  Cake cake = 1; // Информация о торте
+}
+
+/* ############### CreateCake ############### */
+
+message CreateCakeRequest {
+  string name = 1;                   // Название торта
+  bytes image_data = 2;              // Данные изображения торта
+  double kg_price = 3;               // Цена за кг
+  int32 rating = 4;                  // Рейтинг (0-5)
+  string description = 5;            // Описание торта
+  double mass = 6;                   // Масса торта
+  bool is_open_for_sale = 7;         // Доступен ли для продажи
+  repeated string filling_ids = 8;   // Список ID начинок
+  repeated string category_ids = 9; // Список ID категорий
+}
+
+message CreateCakeResponse {
+  string cake_id = 1; // ID созданного торта
+}
+
+/* ############### CreateFilling ############### */
+
+message CreateFillingRequest {
+  string name = 1;        // Название начинки
+  bytes image_data = 2;   // Данные изображения начинки
+  string content = 3;     // Состав начинки
+  double kg_price = 4;    // Цена за кг
+  string description = 5; // Описание начинки
+}
+
+message CreateFillingResponse {
+  Filling filling = 1; // Созданная начинка
+}
+
+/* ############### CreateCategory ############### */
+
+message CreateCategoryRequest {
+  string name = 1;
+  bytes image_data = 2;
+}
+
+message CreateCategoryResponse {
+  Category category = 1;
+}
+
+/* ############### CategoriesResponse ############### */
+
+message CategoriesResponse {
+  repeated Category categories = 1;
+}
+
+/* ############### FillingsResponse ############### */
+
+message FillingsResponse {
+  repeated Filling fillings = 1;
+}
+
+/* ############### CakesResponse ############### */
+
+message CakesResponse {
+  repeated Cake cakes = 1;
+}
+
+/* ############### CakeService ############### */
+
+service CakeService {
+  rpc Cake (CakeRequest) returns (CakeResponse);
+  rpc CreateCake (CreateCakeRequest) returns (CreateCakeResponse);
+  rpc CreateFilling (CreateFillingRequest) returns (CreateFillingResponse);
+  rpc CreateCategory (CreateCategoryRequest) returns (CreateCategoryResponse);
+  rpc Categories (google.protobuf.Empty) returns (CategoriesResponse);
+  rpc Fillings (google.protobuf.Empty) returns (FillingsResponse);
+  rpc Cakes (google.protobuf.Empty) returns (CakesResponse);
+}
+
+// Информация о торте
+message Cake {
+  string id = 1;                     // ID торта
+  string name = 2;                   // Название торта
+  string image_url = 3;              // URL изображения торта
+  double kg_price = 4;               // Цена за кг
+  int32 rating = 5;                  // Рейтинг (0-5)
+  string description = 6;            // Описание торта
+  double mass = 7;                   // Масса торта
+  bool is_open_for_sale = 8;         // Доступен ли для продажи
+  User owner = 9;                    // Информация о владельце
+  repeated Filling fillings = 10;    // Список начинок
+  repeated Category categories = 11; // Список категорий
+}
+
+// Информация о владельце
+message User {
+  string id = 1;                        // ID пользователя
+  google.protobuf.StringValue fio = 2;  // Полное имя
+  string nickname = 3;                  // Никнейм
+  string mail = 4;                      // Электронная почта
+}
+
+// Информация о начинке
+message Filling {
+  string id = 1;          // ID начинки
+  string name = 2;        // Название начинки
+  string image_url = 3;   // URL изображения начинки
+  string content = 4;     // Состав начинки
+  double kg_price = 5;    // Цена за кг
+  string description = 6; // Описание начинки
+}
+
+// Информация о категории
+message Category {
+  string id = 1;        // ID категории
+  string name = 2;      // Название категории
+  string image_url = 3; // URL изображения категории
+}
