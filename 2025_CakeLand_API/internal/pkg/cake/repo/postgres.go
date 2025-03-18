@@ -10,11 +10,12 @@ import (
 
 const (
 	getCakeByID = `
-        SELECT c.id, c.name, c.image_url, c.kg_price, c.rating, c.description, c.mass, c.is_open_for_sale,
-               u.id AS owner_id, u.fio, u.nickname, u.mail,
-               f.id AS filling_id, f.name AS filling_name, f.image_url AS filling_image,
-               f.content AS filling_content, f.kg_price AS filling_price_per_kg, f.description AS filling_description,
-               cat.id AS category_id, cat.name AS category_name, cat.image_url AS category_image
+        SELECT c.id, c.name, c.image_url, c.kg_price, c.rating, c.description, c.mass, c.is_open_for_sale, 
+               c.date_creation, c.discount_kg_price, c.discount_end_time,
+		   u.id AS owner_id, u.fio, u.nickname, u.mail,
+		   f.id AS filling_id, f.name AS filling_name, f.image_url AS filling_image,
+		   f.content AS filling_content, f.kg_price AS filling_price_per_kg, f.description AS filling_description,
+		   cat.id AS category_id, cat.name AS category_name, cat.image_url AS category_image
         FROM "cake" c
                  LEFT JOIN "user" u ON c.owner_id = u.id
                  LEFT JOIN "cake_filling" cf ON c.id = cf.cake_id
@@ -25,6 +26,7 @@ const (
     `
 	getCakes = `
         SELECT c.id, c.name, c.image_url, c.kg_price, c.rating, c.description, c.mass, c.is_open_for_sale,
+               c.date_creation, c.discount_kg_price, c.discount_end_time,
                u.id AS owner_id, u.fio, u.nickname, u.mail,
                f.id AS filling_id, f.name AS filling_name, f.image_url AS filling_image,
                f.content AS filling_content, f.kg_price AS filling_price_per_kg, f.description AS filling_description,
@@ -272,7 +274,8 @@ func (r *CakeRepository) Cakes(ctx context.Context) (*[]models.Cake, error) {
 		// Чтение данных
 		if err = rows.Scan(
 			&cake.ID, &cake.Name, &cake.ImageURL, &cake.KgPrice, &cake.Rating, &cake.Description, &cake.Mass,
-			&cake.IsOpenForSale, &owner.ID, &owner.FIO, &owner.Nickname, &owner.Mail,
+			&cake.IsOpenForSale, &cake.DateCreation, &cake.DiscountKgPrice, &cake.DiscountEndTime,
+			&owner.ID, &owner.FIO, &owner.Nickname, &owner.Mail,
 			&filling.ID, &filling.Name, &filling.ImageURL, &filling.Content, &filling.KgPrice, &filling.Description,
 			&category.ID, &category.Name, &category.ImageURL,
 		); err != nil {

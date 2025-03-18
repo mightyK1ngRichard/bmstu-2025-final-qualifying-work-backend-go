@@ -24,8 +24,6 @@ func (u *User) ConvertToUserGRPC() *generated.User {
 	var fio *wrapperspb.StringValue
 	if u.FIO.Valid {
 		fio = wrapperspb.String(u.FIO.String)
-	} else {
-		fio = nil
 	}
 
 	return &generated.User{

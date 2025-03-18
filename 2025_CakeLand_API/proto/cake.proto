@@ -2,6 +2,7 @@ syntax = "proto3";
 
 import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
+import "google/protobuf/timestamp.proto";
 
 /*
 protoc --go_out=./../internal/pkg/cake/delivery/grpc/generated \
@@ -34,7 +35,7 @@ message CreateCakeRequest {
   double mass = 6;                   // Масса торта
   bool is_open_for_sale = 7;         // Доступен ли для продажи
   repeated string filling_ids = 8;   // Список ID начинок
-  repeated string category_ids = 9; // Список ID категорий
+  repeated string category_ids = 9;  // Список ID категорий
 }
 
 message CreateCakeResponse {
@@ -66,13 +67,13 @@ message CreateCategoryResponse {
   Category category = 1;
 }
 
-/* ############### CategoriesResponse ############### */
+/* ############### Categories ############### */
 
 message CategoriesResponse {
   repeated Category categories = 1;
 }
 
-/* ############### FillingsResponse ############### */
+/* ############### Fillings ############### */
 
 message FillingsResponse {
   repeated Filling fillings = 1;
@@ -98,17 +99,20 @@ service CakeService {
 
 // Информация о торте
 message Cake {
-  string id = 1;                     // ID торта
-  string name = 2;                   // Название торта
-  string image_url = 3;              // URL изображения торта
-  double kg_price = 4;               // Цена за кг
-  int32 rating = 5;                  // Рейтинг (0-5)
-  string description = 6;            // Описание торта
-  double mass = 7;                   // Масса торта
-  bool is_open_for_sale = 8;         // Доступен ли для продажи
-  User owner = 9;                    // Информация о владельце
-  repeated Filling fillings = 10;    // Список начинок
-  repeated Category categories = 11; // Список категорий
+  string id = 1;                                             // ID торта
+  string name = 2;                                           // Название торта
+  string image_url = 3;                                      // URL изображения торта
+  double kg_price = 4;                                       // Цена за кг
+  int32 rating = 5;                                          // Рейтинг (0-5)
+  string description = 6;                                    // Описание торта
+  double mass = 7;                                           // Масса торта
+  bool is_open_for_sale = 8;                                 // Доступен ли для продажи
+  User owner = 9;                                            // Информация о владельце
+  repeated Filling fillings = 10;                            // Список начинок
+  repeated Category categories = 11;                         // Список категорий
+  optional double discount_kg_price = 12;                    // Скидочная цена за кг
+  optional google.protobuf.Timestamp discount_end_time = 13; // Время окончания акции (ISO 8601)
+  google.protobuf.Timestamp date_creation = 14;              // Дата создания торта (ISO 8601)
 }
 
 // Информация о владельце
