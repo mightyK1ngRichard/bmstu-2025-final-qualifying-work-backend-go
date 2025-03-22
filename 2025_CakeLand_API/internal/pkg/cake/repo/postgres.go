@@ -323,7 +323,9 @@ func (r *CakeRepository) Cakes(ctx context.Context) (*[]models.Cake, error) {
 	for rows.Next() {
 		var cake models.Cake
 		var filling models.Filling
+		var dbFilling models.DBFilling
 		var category models.Category
+		var dbCategory models.DBCategory
 		var owner models.User
 
 		// Чтение данных
@@ -331,10 +333,18 @@ func (r *CakeRepository) Cakes(ctx context.Context) (*[]models.Cake, error) {
 			&cake.ID, &cake.Name, &cake.ImageURL, &cake.KgPrice, &cake.Rating, &cake.Description, &cake.Mass,
 			&cake.IsOpenForSale, &cake.DateCreation, &cake.DiscountKgPrice, &cake.DiscountEndTime,
 			&owner.ID, &owner.FIO, &owner.Nickname, &owner.Mail,
-			&filling.ID, &filling.Name, &filling.ImageURL, &filling.Content, &filling.KgPrice, &filling.Description,
-			&category.ID, &category.Name, &category.ImageURL,
+			&dbFilling.ID, &dbFilling.Name, &dbFilling.ImageURL, &dbFilling.Content, &dbFilling.KgPrice, &dbFilling.Description,
+			&dbCategory.ID, &dbCategory.Name, &dbCategory.ImageURL,
 		); err != nil {
 			return nil, models.NewDataBaseError("Cakes", err)
+		}
+
+		if f := dbFilling.ConvertToFilling(); f != nil {
+			filling = *f
+		}
+
+		if c := dbCategory.ConvertToCategory(); c != nil {
+			category = *c
 		}
 
 		// Достаём торт если он есть или инициализируем отсканированный

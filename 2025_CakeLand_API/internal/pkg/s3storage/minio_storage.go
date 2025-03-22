@@ -56,7 +56,6 @@ func (m *MinioClient) ensureBucketExists(ctx context.Context, bucketName string,
 
 func (m *MinioClient) SaveImage(
 	ctx context.Context,
-	userID string,
 	bucketName string,
 	objectName ImageID,
 	imageData []byte,
@@ -65,12 +64,9 @@ func (m *MinioClient) SaveImage(
 	if err := m.ensureBucketExists(ctx, bucketName, m.conf.Region); err != nil {
 		return "", models.NewImageStorageError(fmt.Sprintf("ошибка при проверке или создании бакета %s", bucketName), err)
 	}
-	//if userID == "" {
-	//	return "", errors.New("UserID cannot be empty")
-	//}
 
-	// Формируем путь: user_{userID}/objectName
-	objectPath := fmt.Sprintf("user_%s/%s", userID, objectName)
+	// Формируем путь
+	objectPath := string(objectName)
 
 	// Загружаем изображение
 	if _, err := m.client.PutObject(ctx, bucketName, objectPath, bytes.NewReader(imageData), int64(len(imageData)), minio.PutObjectOptions{
@@ -87,7 +83,6 @@ func (m *MinioClient) SaveImage(
 // SaveImages сохраняет несколько изображений в MinIO и возвращает карту URL-ов.
 func (m *MinioClient) SaveImages(
 	ctx context.Context,
-	userID string,
 	bucketName string,
 	images map[ImageID][]byte,
 ) (map[ImageID]string, error) {
@@ -102,15 +97,13 @@ func (m *MinioClient) SaveImages(
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 
-	userDir := fmt.Sprintf("user_%s", userID)
-
 	for objectName, imageData := range images {
 		wg.Add(1)
 		go func(objectName ImageID, imageData []byte) {
 			defer wg.Done()
 
-			// Формируем путь: user_{userID}/objectName
-			objectPath := fmt.Sprintf("%s/%s", userDir, objectName)
+			// Формируем путь: objectName
+			objectPath := string(objectName)
 
 			// Загружаем изображение в бакет
 			_, err := m.client.PutObject(ctx, bucketName, objectPath, bytes.NewReader(imageData), int64(len(imageData)), minio.PutObjectOptions{

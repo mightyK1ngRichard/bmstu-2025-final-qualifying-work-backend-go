@@ -70,7 +70,7 @@ func (u *CakeUseсase) CreateCake(ctx context.Context, in en.CreateCakeReq) (*en
 	}
 	previewImageID := ms.ImageID(uuid.New().String())
 	images[previewImageID] = in.PreviewImageData
-	res, err := u.imageStore.SaveImages(ctx, userID, u.bucketName, images)
+	res, err := u.imageStore.SaveImages(ctx, u.bucketName, images)
 
 	// Получаем preview
 	previewImageURL, ok := res[previewImageID]
@@ -93,15 +93,15 @@ func (u *CakeUseсase) CreateCake(ctx context.Context, in en.CreateCakeReq) (*en
 
 func (u *CakeUseсase) CreateFilling(ctx context.Context, in en.CreateFillingReq) (*en.CreateFillingRes, error) {
 	// Достаём userID из токена если он не протух
-	userID, err := u.tokenator.GetUserIDFromToken(in.AccessToken, false)
+	_, err := u.tokenator.GetUserIDFromToken(in.AccessToken, false)
 	if err != nil {
 		u.log.Error(`[Usecase.CreateCake] ошибка получения userID из refresh токена`, sl.Err(err))
-		return nil, status.Error(codes.InvalidArgument, err.Error())
+		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
 
 	fillingID := uuid.New()
 	// Добавляем изображение в хранилище
-	imageURL, err := u.imageStore.SaveImage(ctx, userID, u.bucketName, ms.ImageID(fillingID.String()), in.ImageData)
+	imageURL, err := u.imageStore.SaveImage(ctx, u.bucketName, ms.ImageID(fillingID.String()), in.ImageData)
 	if err != nil {
 		u.log.Error("[Usecase.CreateFilling] ошибка загрузки изображения в хранилище", sl.Err(err))
 		return nil, models.ErrInternal
@@ -127,14 +127,14 @@ func (u *CakeUseсase) CreateFilling(ctx context.Context, in en.CreateFillingReq
 
 func (u *CakeUseсase) CreateCategory(ctx context.Context, in *en.CreateCategoryReq) (*en.CreateCategoryRes, error) {
 	// Достаём userID из токена если он не протух
-	userID, err := u.tokenator.GetUserIDFromToken(in.AccessToken, false)
+	_, err := u.tokenator.GetUserIDFromToken(in.AccessToken, false)
 	if err != nil {
 		u.log.Error(`[Usecase.CreateCake] ошибка получения userID из refresh токена`, sl.Err(err))
-		return nil, status.Error(codes.InvalidArgument, err.Error())
+		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
 
 	categoryUUID := uuid.New()
-	imageURL, err := u.imageStore.SaveImage(ctx, userID, u.bucketName, ms.ImageID(categoryUUID.String()), in.ImageData)
+	imageURL, err := u.imageStore.SaveImage(ctx, u.bucketName, ms.ImageID(categoryUUID.String()), in.ImageData)
 	if err != nil {
 		u.log.Error("[Usecase.CreateCategory] ошибка загрузки изображения в хранилище", sl.Err(err))
 		return nil, models.ErrInternal

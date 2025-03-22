@@ -30,13 +30,11 @@ type ICakeRepository interface {
 type IImageStorage interface {
 	SaveImages(
 		ctx context.Context,
-		userID string,
 		bucketName string,
 		images map[ms.ImageID][]byte,
 	) (map[ms.ImageID]string, error)
 	SaveImage(
 		ctx context.Context,
-		userID string,
 		bucketName string,
 		objectName ms.ImageID,
 		imageData []byte,
