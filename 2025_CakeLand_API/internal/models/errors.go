@@ -10,6 +10,7 @@ import (
 var (
 	ErrUserNotFound         = status.Error(codes.NotFound, "пользователь не найден")
 	ErrInternal             = status.Error(codes.Internal, "ошибка на сервере")
+	ErrPreviewImageNotFound = status.Error(codes.Internal, "ошибка создания preview")
 	ErrNoToken              = status.Error(codes.Unauthenticated, "токен не найден")
 	ErrNoMetadata           = status.Error(codes.InvalidArgument, "отсутствует metadata")
 	ErrMissingFingerprint   = status.Error(codes.InvalidArgument, "отсутствует fingerprint")

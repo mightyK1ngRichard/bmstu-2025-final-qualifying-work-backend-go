@@ -5,7 +5,9 @@ import (
 	en "2025_CakeLand_API/internal/pkg/cake/entities"
 	"context"
 	"database/sql"
+	"fmt"
 	"github.com/google/uuid"
+	"sync"
 )
 
 const (
@@ -15,13 +17,15 @@ const (
 		   u.id AS owner_id, u.fio, u.nickname, u.mail,
 		   f.id AS filling_id, f.name AS filling_name, f.image_url AS filling_image,
 		   f.content AS filling_content, f.kg_price AS filling_price_per_kg, f.description AS filling_description,
-		   cat.id AS category_id, cat.name AS category_name, cat.image_url AS category_image
+		   cat.id AS category_id, cat.name AS category_name, cat.image_url AS category_image,
+		   ci.id, ci.image_url
         FROM "cake" c
-                 LEFT JOIN "user" u ON c.owner_id = u.id
-                 LEFT JOIN "cake_filling" cf ON c.id = cf.cake_id
-                 LEFT JOIN "filling" f ON cf.filling_id = f.id
-                 LEFT JOIN "cake_category" cc ON c.id = cc.cake_id
-                 LEFT JOIN "category" cat ON cc.category_id = cat.id
+			 LEFT JOIN "user" u ON c.owner_id = u.id
+			 LEFT JOIN "cake_filling" cf ON c.id = cf.cake_id
+			 LEFT JOIN "filling" f ON cf.filling_id = f.id
+			 LEFT JOIN "cake_category" cc ON c.id = cc.cake_id
+			 LEFT JOIN "category" cat ON cc.category_id = cat.id
+			 LEFT JOIN "cake_images" ci ON ci.cake_id = c.id
         WHERE c.id = $1;
     `
 	getCakes = `
@@ -50,6 +54,7 @@ const (
 		INSERT INTO "cake" (id, name, image_url, kg_price, rating, description, mass, is_open_for_sale, owner_id)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
 	`
+	addCakeImages   = `INSERT INTO "cake_images" (id, cake_id, image_url) VALUES ($1, $2, $3);`
 	addCateCategory = `
 		INSERT INTO "cake_category" (id, category_id, cake_id)
 		VALUES ($1, $2, $3);
@@ -82,24 +87,39 @@ func (r *CakeRepository) CakeByID(ctx context.Context, in en.GetCakeReq) (*en.Ge
 	var cake models.Cake
 	cake.Fillings = []models.Filling{}
 	cake.Categories = []models.Category{}
+	cake.Images = []models.CakeImage{}
+
 	// Map for unique fillings and categories to avoid duplicates
 	fillingMap := make(map[uuid.UUID]bool)
 	categoryMap := make(map[uuid.UUID]bool)
+	cakeImagesMap := make(map[uuid.UUID]bool)
 
 	for rows.Next() {
 		var filling models.Filling
+		var dbFilling models.DBFilling
 		var category models.Category
+		var dbCategory models.DBCategory
 		var owner models.User
+		var cakeImage models.CakeImage
 
 		// Read data
-		err = rows.Scan(
+		if err = rows.Scan(
 			&cake.ID, &cake.Name, &cake.ImageURL, &cake.KgPrice, &cake.Rating, &cake.Description, &cake.Mass,
-			&cake.IsOpenForSale, &owner.ID, &owner.FIO, &owner.Nickname, &owner.Mail,
-			&filling.ID, &filling.Name, &filling.ImageURL, &filling.Content, &filling.KgPrice, &filling.Description,
-			&category.ID, &category.Name, &category.ImageURL,
-		)
-		if err != nil {
+			&cake.IsOpenForSale, &cake.DateCreation, &cake.DiscountKgPrice, &cake.DiscountEndTime,
+			&owner.ID, &owner.FIO, &owner.Nickname, &owner.Mail,
+			&dbFilling.ID, &dbFilling.Name, &dbFilling.ImageURL, &dbFilling.Content, &dbFilling.KgPrice, &dbFilling.Description,
+			&dbCategory.ID, &dbCategory.Name, &dbCategory.ImageURL,
+			&cakeImage.ID, &cakeImage.ImageURL,
+		); err != nil {
 			return nil, models.NewDataBaseError("CakeByID", err)
+		}
+
+		if f := dbFilling.ConvertToFilling(); f != nil {
+			filling = *f
+		}
+
+		if c := dbCategory.ConvertToCategory(); c != nil {
+			category = *c
 		}
 
 		// Set owner (only once, since it's the same for all rows)
@@ -117,6 +137,12 @@ func (r *CakeRepository) CakeByID(ctx context.Context, in en.GetCakeReq) (*en.Ge
 		if category.ID != uuid.Nil && !categoryMap[category.ID] {
 			categoryMap[category.ID] = true
 			cake.Categories = append(cake.Categories, category)
+		}
+
+		// Add unique cake image
+		if cakeImage.ID != uuid.Nil && !cakeImagesMap[cakeImage.ID] {
+			cakeImagesMap[cakeImage.ID] = true
+			cake.Images = append(cake.Images, cakeImage)
 		}
 	}
 
@@ -137,39 +163,68 @@ func (r *CakeRepository) CreateCake(ctx context.Context, in en.CreateCakeDBReq) 
 
 	// Создаём торт
 	_, err = tx.ExecContext(ctx, createCake,
-		in.ID, in.Name, in.ImageURL, in.KgPrice, in.Rating,
+		in.ID, in.Name, in.PreviewImageURL, in.KgPrice, in.Rating,
 		in.Description, in.Mass, in.IsOpenForSale, in.OwnerID,
 	)
 	if err != nil {
-		tx.Rollback()
-		return models.NewDataBaseError("CreateCake 1", err)
+		_ = tx.Rollback()
+		return models.NewDataBaseError("[CreateCake]: sqlCommand: createCake", err)
+	}
+
+	var wg sync.WaitGroup
+	errChan := make(chan error, 1)
+	cancelableCtx, cancel := context.WithCancel(ctx)
+
+	// Обёртка для запуска SQL-запросов в горутине
+	execInGoroutine := func(query string, args ...interface{}) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			_, dbErr := tx.ExecContext(cancelableCtx, query, args...)
+			if dbErr != nil {
+				select {
+				case errChan <- models.NewDataBaseError(fmt.Sprintf("[CreateCake]: %s", query), dbErr):
+					cancel()
+				default:
+				}
+			}
+		}()
 	}
 
 	// Добавляем категории к торту
 	for _, categoryID := range in.CategoryIDs {
-		_, err = tx.ExecContext(ctx, addCateCategory,
-			uuid.New(), categoryID, in.ID,
-		)
-		if err != nil {
-			tx.Rollback()
-			return models.NewDataBaseError("CreateCake 2", err)
-		}
+		execInGoroutine(addCateCategory, uuid.New(), categoryID, in.ID)
 	}
 
 	// Добавляем начинки к торту
 	for _, fillingID := range in.FillingIDs {
-		_, err = tx.ExecContext(ctx, addFillingCategory,
-			uuid.New(), in.ID, fillingID,
-		)
-		if err != nil {
-			tx.Rollback()
-			return models.NewDataBaseError("CreateCake 3", err)
-		}
+		execInGoroutine(addFillingCategory, uuid.New(), in.ID, fillingID)
+	}
+
+	// Добавляем изображения торта
+	for imageID, imageURL := range in.Images {
+		execInGoroutine(addCakeImages, imageID, in.ID, imageURL)
+	}
+
+	// Ожидаем ошибку или завершение всех горутин
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+		close(errChan)
+	}()
+
+	select {
+	case dbErr := <-errChan:
+		_ = tx.Rollback()
+		return dbErr
+	case <-done:
 	}
 
 	// Фиксируем транзакцию
 	if err = tx.Commit(); err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return models.NewDataBaseError("CreateCake 4", err)
 	}
 

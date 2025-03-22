@@ -63,8 +63,8 @@ struct CreateCakeRequest: @unchecked Sendable {
   /// Название торта
   var name: String = String()
 
-  /// Данные изображения торта
-  var imageData: Data = Data()
+  /// Данные preview изображения торта
+  var previewImageData: Data = Data()
 
   /// Цена за кг
   var kgPrice: Double = 0
@@ -86,6 +86,9 @@ struct CreateCakeRequest: @unchecked Sendable {
 
   /// Список ID категорий
   var categoryIds: [String] = []
+
+  /// Все фотографии торта
+  var images: [Data] = []
 
   var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -329,7 +332,27 @@ struct Cake: @unchecked Sendable {
   /// Clears the value of `dateCreation`. Subsequent reads from it will return its default value.
   mutating func clearDateCreation() {_uniqueStorage()._dateCreation = nil}
 
+  /// Фотографии торта
+  var images: [Cake.CakeImage] {
+    get {return _storage._images}
+    set {_uniqueStorage()._images = newValue}
+  }
+
   var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  struct CakeImage: Sendable {
+    // SwiftProtobuf.Message conformance is added in an extension below. See the
+    // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+    // methods supported on all messages.
+
+    var id: String = String()
+
+    var imageURL: String = String()
+
+    var unknownFields = SwiftProtobuf.UnknownStorage()
+
+    init() {}
+  }
 
   init() {}
 
@@ -491,7 +514,7 @@ extension CreateCakeRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplem
   static let protoMessageName: String = "CreateCakeRequest"
   static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
     1: .same(proto: "name"),
-    2: .standard(proto: "image_data"),
+    2: .standard(proto: "preview_image_data"),
     3: .standard(proto: "kg_price"),
     4: .same(proto: "rating"),
     5: .same(proto: "description"),
@@ -499,6 +522,7 @@ extension CreateCakeRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplem
     7: .standard(proto: "is_open_for_sale"),
     8: .standard(proto: "filling_ids"),
     9: .standard(proto: "category_ids"),
+    10: .same(proto: "images"),
   ]
 
   mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
@@ -508,7 +532,7 @@ extension CreateCakeRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplem
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularStringField(value: &self.name) }()
-      case 2: try { try decoder.decodeSingularBytesField(value: &self.imageData) }()
+      case 2: try { try decoder.decodeSingularBytesField(value: &self.previewImageData) }()
       case 3: try { try decoder.decodeSingularDoubleField(value: &self.kgPrice) }()
       case 4: try { try decoder.decodeSingularInt32Field(value: &self.rating) }()
       case 5: try { try decoder.decodeSingularStringField(value: &self.description_p) }()
@@ -516,6 +540,7 @@ extension CreateCakeRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplem
       case 7: try { try decoder.decodeSingularBoolField(value: &self.isOpenForSale) }()
       case 8: try { try decoder.decodeRepeatedStringField(value: &self.fillingIds) }()
       case 9: try { try decoder.decodeRepeatedStringField(value: &self.categoryIds) }()
+      case 10: try { try decoder.decodeRepeatedBytesField(value: &self.images) }()
       default: break
       }
     }
@@ -525,8 +550,8 @@ extension CreateCakeRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplem
     if !self.name.isEmpty {
       try visitor.visitSingularStringField(value: self.name, fieldNumber: 1)
     }
-    if !self.imageData.isEmpty {
-      try visitor.visitSingularBytesField(value: self.imageData, fieldNumber: 2)
+    if !self.previewImageData.isEmpty {
+      try visitor.visitSingularBytesField(value: self.previewImageData, fieldNumber: 2)
     }
     if self.kgPrice.bitPattern != 0 {
       try visitor.visitSingularDoubleField(value: self.kgPrice, fieldNumber: 3)
@@ -549,12 +574,15 @@ extension CreateCakeRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplem
     if !self.categoryIds.isEmpty {
       try visitor.visitRepeatedStringField(value: self.categoryIds, fieldNumber: 9)
     }
+    if !self.images.isEmpty {
+      try visitor.visitRepeatedBytesField(value: self.images, fieldNumber: 10)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   static func ==(lhs: CreateCakeRequest, rhs: CreateCakeRequest) -> Bool {
     if lhs.name != rhs.name {return false}
-    if lhs.imageData != rhs.imageData {return false}
+    if lhs.previewImageData != rhs.previewImageData {return false}
     if lhs.kgPrice != rhs.kgPrice {return false}
     if lhs.rating != rhs.rating {return false}
     if lhs.description_p != rhs.description_p {return false}
@@ -562,6 +590,7 @@ extension CreateCakeRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplem
     if lhs.isOpenForSale != rhs.isOpenForSale {return false}
     if lhs.fillingIds != rhs.fillingIds {return false}
     if lhs.categoryIds != rhs.categoryIds {return false}
+    if lhs.images != rhs.images {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -878,6 +907,7 @@ extension Cake: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase,
     12: .standard(proto: "discount_kg_price"),
     13: .standard(proto: "discount_end_time"),
     14: .standard(proto: "date_creation"),
+    15: .same(proto: "images"),
   ]
 
   fileprivate class _StorageClass {
@@ -895,6 +925,7 @@ extension Cake: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase,
     var _discountKgPrice: Double? = nil
     var _discountEndTime: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
     var _dateCreation: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+    var _images: [Cake.CakeImage] = []
 
     #if swift(>=5.10)
       // This property is used as the initial default value for new instances of the type.
@@ -923,6 +954,7 @@ extension Cake: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase,
       _discountKgPrice = source._discountKgPrice
       _discountEndTime = source._discountEndTime
       _dateCreation = source._dateCreation
+      _images = source._images
     }
   }
 
@@ -955,6 +987,7 @@ extension Cake: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase,
         case 12: try { try decoder.decodeSingularDoubleField(value: &_storage._discountKgPrice) }()
         case 13: try { try decoder.decodeSingularMessageField(value: &_storage._discountEndTime) }()
         case 14: try { try decoder.decodeSingularMessageField(value: &_storage._dateCreation) }()
+        case 15: try { try decoder.decodeRepeatedMessageField(value: &_storage._images) }()
         default: break
         }
       }
@@ -1009,6 +1042,9 @@ extension Cake: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase,
       try { if let v = _storage._dateCreation {
         try visitor.visitSingularMessageField(value: v, fieldNumber: 14)
       } }()
+      if !_storage._images.isEmpty {
+        try visitor.visitRepeatedMessageField(value: _storage._images, fieldNumber: 15)
+      }
     }
     try unknownFields.traverse(visitor: &visitor)
   }
@@ -1032,10 +1068,49 @@ extension Cake: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase,
         if _storage._discountKgPrice != rhs_storage._discountKgPrice {return false}
         if _storage._discountEndTime != rhs_storage._discountEndTime {return false}
         if _storage._dateCreation != rhs_storage._dateCreation {return false}
+        if _storage._images != rhs_storage._images {return false}
         return true
       }
       if !storagesAreEqual {return false}
     }
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Cake.CakeImage: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  static let protoMessageName: String = Cake.protoMessageName + ".CakeImage"
+  static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
+    1: .same(proto: "id"),
+    2: .standard(proto: "image_url"),
+  ]
+
+  mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.id) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.imageURL) }()
+      default: break
+      }
+    }
+  }
+
+  func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.id.isEmpty {
+      try visitor.visitSingularStringField(value: self.id, fieldNumber: 1)
+    }
+    if !self.imageURL.isEmpty {
+      try visitor.visitSingularStringField(value: self.imageURL, fieldNumber: 2)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  static func ==(lhs: Cake.CakeImage, rhs: Cake.CakeImage) -> Bool {
+    if lhs.id != rhs.id {return false}
+    if lhs.imageURL != rhs.imageURL {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

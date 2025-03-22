@@ -57,8 +57,8 @@ func run() error {
 	}
 
 	grpcServer := grpc.NewServer(
-		grpc.MaxRecvMsgSize(10*1024*1024), // 10MB для входящих сообщений
-		grpc.MaxSendMsgSize(10*1024*1024), // 10MB для исходящих сообщений
+		grpc.MaxRecvMsgSize(200*1024*1024), // 10MB для входящих сообщений
+		grpc.MaxSendMsgSize(200*1024*1024), // 10MB для исходящих сообщений
 	)
 	repository := repo.NewCakeRepository(db)
 	tokenator := jwt.NewTokenator()

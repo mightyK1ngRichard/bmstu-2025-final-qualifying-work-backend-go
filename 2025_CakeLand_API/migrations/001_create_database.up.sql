@@ -1,5 +1,5 @@
 -- Пользователь
-CREATE TABLE "user"
+CREATE TABLE IF NOT EXISTS "user"
 (
     id                 UUID PRIMARY KEY,
     fio                VARCHAR(150),
@@ -14,7 +14,7 @@ CREATE TABLE "user"
 );
 
 -- Торт
-CREATE TABLE "cake"
+CREATE TABLE IF NOT EXISTS "cake"
 (
     id               UUID PRIMARY KEY,
     name             VARCHAR(150)     NOT NULL,
@@ -29,7 +29,7 @@ CREATE TABLE "cake"
 );
 
 -- Отзыв
-CREATE TABLE "feedback"
+CREATE TABLE IF NOT EXISTS "feedback"
 (
     id            UUID PRIMARY KEY,
     text          TEXT,
@@ -42,7 +42,7 @@ CREATE TABLE "feedback"
 );
 
 -- Категория
-CREATE TABLE "category"
+CREATE TABLE IF NOT EXISTS "category"
 (
     id        UUID PRIMARY KEY,
     name      VARCHAR(150) NOT NULL,
@@ -50,7 +50,7 @@ CREATE TABLE "category"
 );
 
 -- Категории торта (М-М)
-CREATE TABLE "cake_category"
+CREATE TABLE IF NOT EXISTS "cake_category"
 (
     id            UUID PRIMARY KEY,
     date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -61,7 +61,7 @@ CREATE TABLE "cake_category"
 );
 
 -- Начинка
-CREATE TABLE "filling"
+CREATE TABLE IF NOT EXISTS "filling"
 (
     id          UUID PRIMARY KEY,
     name        VARCHAR(150)     NOT NULL,
@@ -71,8 +71,8 @@ CREATE TABLE "filling"
     description TEXT
 );
 
--- Начиники торта (М-М)
-CREATE TABLE "cake_filling"
+-- Начинки торта (М-М)
+CREATE TABLE IF NOT EXISTS "cake_filling"
 (
     id         uuid PRIMARY KEY,
     cake_id    UUID NOT NULL,
@@ -82,7 +82,7 @@ CREATE TABLE "cake_filling"
 );
 
 -- Сообщение
-CREATE TABLE "message"
+CREATE TABLE IF NOT EXISTS "message"
 (
     id            uuid PRIMARY KEY,
     text          TEXT,
@@ -102,7 +102,7 @@ CREATE TYPE order_status AS ENUM (
     );
 
 -- Заказ
-CREATE TABLE "order"
+CREATE TABLE IF NOT EXISTS "order"
 (
     id               uuid PRIMARY KEY,
     price            DOUBLE PRECISION CHECK (price > 0),

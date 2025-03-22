@@ -10,20 +10,33 @@ import (
 
 // Cake Модель торта
 type Cake struct {
-	ID              uuid.UUID  // Код
-	Name            string     // Название
-	ImageURL        string     // Картинка
-	KgPrice         float64    // Цена за кг
-	Rating          int        // Рейтинг (от 0 до 5)
-	Description     string     // Описание
-	Mass            float64    // Масса торта
-	IsOpenForSale   bool       // Флаг возможности продажи торта
-	DateCreation    time.Time  // Дата создания торта
-	DiscountKgPrice null.Float // Скидочная цена за кг
-	DiscountEndTime null.Time  // Дата окончания скидки
-	Owner           User       // Владелец
-	Fillings        []Filling  // Слои торта
-	Categories      []Category // Категории торта
+	ID              uuid.UUID   // Код
+	Name            string      // Название
+	ImageURL        string      // Картинка
+	KgPrice         float64     // Цена за кг
+	Rating          int         // Рейтинг (от 0 до 5)
+	Description     string      // Описание
+	Mass            float64     // Масса торта
+	IsOpenForSale   bool        // Флаг возможности продажи торта
+	DateCreation    time.Time   // Дата создания торта
+	DiscountKgPrice null.Float  // Скидочная цена за кг
+	DiscountEndTime null.Time   // Дата окончания скидки
+	Owner           User        // Владелец
+	Fillings        []Filling   // Слои торта
+	Categories      []Category  // Категории торта
+	Images          []CakeImage // Фотографии торта
+}
+
+type CakeImage struct {
+	ID       uuid.UUID
+	ImageURL string
+}
+
+func (c *CakeImage) ConvertToCakeImageGRPC() *gen.Cake_CakeImage {
+	return &gen.Cake_CakeImage{
+		Id:       c.ID.String(),
+		ImageUrl: c.ImageURL,
+	}
 }
 
 func (c *Cake) ConvertToCakeGRPC() *gen.Cake {
@@ -47,6 +60,11 @@ func (c *Cake) ConvertToCakeGRPC() *gen.Cake {
 		discountEndTime = timestamppb.New(c.DiscountEndTime.Time)
 	}
 
+	cakeImages := make([]*gen.Cake_CakeImage, len(c.Images))
+	for i, it := range c.Images {
+		cakeImages[i] = it.ConvertToCakeImageGRPC()
+	}
+
 	return &gen.Cake{
 		Id:              c.ID.String(),
 		Name:            c.Name,
@@ -62,5 +80,6 @@ func (c *Cake) ConvertToCakeGRPC() *gen.Cake {
 		DiscountKgPrice: discountKgPrice,
 		DiscountEndTime: discountEndTime,
 		DateCreation:    timestamppb.New(c.DateCreation),
+		Images:          cakeImages,
 	}
 }

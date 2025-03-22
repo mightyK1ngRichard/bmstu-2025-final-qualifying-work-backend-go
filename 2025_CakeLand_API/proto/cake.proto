@@ -28,7 +28,7 @@ message CakeResponse {
 
 message CreateCakeRequest {
   string name = 1;                   // Название торта
-  bytes image_data = 2;              // Данные изображения торта
+  bytes preview_image_data = 2;      // Данные preview изображения торта
   double kg_price = 3;               // Цена за кг
   int32 rating = 4;                  // Рейтинг (0-5)
   string description = 5;            // Описание торта
@@ -36,6 +36,7 @@ message CreateCakeRequest {
   bool is_open_for_sale = 7;         // Доступен ли для продажи
   repeated string filling_ids = 8;   // Список ID начинок
   repeated string category_ids = 9;  // Список ID категорий
+  repeated bytes images = 10;        // Все фотографии торта
 }
 
 message CreateCakeResponse {
@@ -113,6 +114,12 @@ message Cake {
   optional double discount_kg_price = 12;                    // Скидочная цена за кг
   optional google.protobuf.Timestamp discount_end_time = 13; // Время окончания акции (ISO 8601)
   google.protobuf.Timestamp date_creation = 14;              // Дата создания торта (ISO 8601)
+  repeated CakeImage images = 15;                            // Фотографии торта
+
+  message CakeImage {
+    string id = 1;
+    string image_url = 2;
+  }
 }
 
 // Информация о владельце

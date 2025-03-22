@@ -3,6 +3,7 @@ package cake
 import (
 	"2025_CakeLand_API/internal/models"
 	"2025_CakeLand_API/internal/pkg/cake/entities"
+	ms "2025_CakeLand_API/internal/pkg/s3storage"
 	"context"
 )
 
@@ -27,5 +28,17 @@ type ICakeRepository interface {
 }
 
 type IImageStorage interface {
-	SaveImage(context.Context, string, string, []byte) (string, error)
+	SaveImages(
+		ctx context.Context,
+		userID string,
+		bucketName string,
+		images map[ms.ImageID][]byte,
+	) (map[ms.ImageID]string, error)
+	SaveImage(
+		ctx context.Context,
+		userID string,
+		bucketName string,
+		objectName ms.ImageID,
+		imageData []byte,
+	) (string, error)
 }

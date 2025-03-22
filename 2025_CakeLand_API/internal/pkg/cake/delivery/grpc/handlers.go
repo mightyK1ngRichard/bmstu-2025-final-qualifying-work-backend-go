@@ -57,24 +57,14 @@ func (h *GrpcCakeHandler) Cake(ctx context.Context, in *gen.CakeRequest) (*gen.C
 }
 
 func (h *GrpcCakeHandler) CreateCake(ctx context.Context, in *gen.CreateCakeRequest) (*gen.CreateCakeResponse, error) {
+	// Получаем токен из метаданных
 	accessToken, err := h.mdProvider.GetValue(ctx, md.KeyAuthorization)
 	if err != nil {
 		h.log.Error(err.Error())
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	res, err := h.usecase.CreateCake(ctx, en.CreateCakeReq{
-		Name:          in.Name,
-		ImageData:     in.ImageData,
-		KgPrice:       in.KgPrice,
-		Rating:        in.Rating,
-		Description:   in.Description,
-		Mass:          in.Mass,
-		IsOpenForSale: in.IsOpenForSale,
-		FillingIDs:    in.FillingIds,
-		CategoryIDs:   in.CategoryIds,
-		AccessToken:   accessToken,
-	})
+	res, err := h.usecase.CreateCake(ctx, en.NewCreateCakeReq(in, accessToken))
 	if err = models.HandleError(err); err != nil {
 		return nil, err
 	}
@@ -85,12 +75,20 @@ func (h *GrpcCakeHandler) CreateCake(ctx context.Context, in *gen.CreateCakeRequ
 }
 
 func (h *GrpcCakeHandler) CreateFilling(ctx context.Context, in *gen.CreateFillingRequest) (*gen.CreateFillingResponse, error) {
+	// Получаем токен из метаданных
+	accessToken, err := h.mdProvider.GetValue(ctx, md.KeyAuthorization)
+	if err != nil {
+		h.log.Error(err.Error())
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
 	res, err := h.usecase.CreateFilling(ctx, en.CreateFillingReq{
 		Name:        in.Name,
 		ImageData:   in.ImageData,
 		Content:     in.Content,
 		KgPrice:     in.KgPrice,
 		Description: in.Description,
+		AccessToken: accessToken,
 	})
 	if err = models.HandleError(err); err != nil {
 		return nil, err
@@ -102,9 +100,17 @@ func (h *GrpcCakeHandler) CreateFilling(ctx context.Context, in *gen.CreateFilli
 }
 
 func (h *GrpcCakeHandler) CreateCategory(ctx context.Context, in *gen.CreateCategoryRequest) (*gen.CreateCategoryResponse, error) {
+	// Получаем токен из метаданных
+	accessToken, err := h.mdProvider.GetValue(ctx, md.KeyAuthorization)
+	if err != nil {
+		h.log.Error(err.Error())
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
 	res, err := h.usecase.CreateCategory(ctx, &en.CreateCategoryReq{
-		Name:      in.Name,
-		ImageData: in.ImageData,
+		Name:        in.Name,
+		ImageData:   in.ImageData,
+		AccessToken: accessToken,
 	})
 	if err = models.HandleError(err); err != nil {
 		return nil, err
