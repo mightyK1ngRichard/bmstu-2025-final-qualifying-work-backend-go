@@ -1,6 +1,7 @@
 package config
 
 import (
+	"2025_CakeLand_API/internal/pkg/utils/logger"
 	"flag"
 	"fmt"
 	"os"
@@ -12,7 +13,7 @@ import (
 )
 
 type Config struct {
-	Env   string         `yaml:"env" env-default:"local"`
+	Env   logger.EnvKind `yaml:"env" env-default:"local"`
 	GRPC  GRPCConfig     `yaml:"grpc"`
 	DB    DatabaseConfig `yaml:"database"`
 	MinIO MinioConfig    `yaml:"minio"`
@@ -94,5 +95,6 @@ func fetchConfigPath() string {
 	if res == "" {
 		res = "./config/config.yaml"
 	}
+
 	return res
 }

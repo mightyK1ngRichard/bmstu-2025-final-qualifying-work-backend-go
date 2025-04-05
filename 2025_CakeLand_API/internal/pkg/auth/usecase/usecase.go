@@ -3,7 +3,7 @@ package usecase
 import (
 	"2025_CakeLand_API/internal/models"
 	"2025_CakeLand_API/internal/pkg/auth"
-	"2025_CakeLand_API/internal/pkg/auth/entities"
+	"2025_CakeLand_API/internal/pkg/auth/dto"
 	"2025_CakeLand_API/internal/pkg/utils/jwt"
 	"2025_CakeLand_API/internal/pkg/utils/sl"
 	"context"
@@ -32,9 +32,9 @@ func NewAuthUsecase(
 	}
 }
 
-func (u *AuthUseсase) Login(ctx context.Context, in entities.LoginReq) (*entities.LoginRes, error) {
+func (u *AuthUseсase) Login(ctx context.Context, in dto.LoginReq) (*dto.LoginRes, error) {
 	// Получаем данные пользователя
-	res, err := u.repo.GetUserByEmail(ctx, entities.GetUserByEmailReq{
+	res, err := u.repo.GetUserByEmail(ctx, dto.GetUserByEmailReq{
 		Email: in.Email,
 	})
 	if err != nil {
@@ -67,7 +67,7 @@ func (u *AuthUseсase) Login(ctx context.Context, in entities.LoginReq) (*entiti
 		} else if !isExpired {
 			// Если токен не устарел, создаём только access токен
 			u.log.Debug("[Usecase.Login] сгенерирован только новый access token. refresh остаётся старым")
-			return &entities.LoginRes{
+			return &dto.LoginRes{
 				AccessToken:  accessToken.Token,
 				RefreshToken: oldRefreshToken,
 				ExpiresIn:    accessToken.ExpiresIn,
@@ -84,7 +84,7 @@ func (u *AuthUseсase) Login(ctx context.Context, in entities.LoginReq) (*entiti
 
 	// Сохраняем или обновляем токены в бд
 	res.RefreshTokensMap[in.Fingerprint] = newRefreshToken.Token
-	err = u.repo.UpdateUserRefreshTokens(ctx, entities.UpdateUserRefreshTokensReq{
+	err = u.repo.UpdateUserRefreshTokens(ctx, dto.UpdateUserRefreshTokensReq{
 		UserID:           res.ID.String(),
 		RefreshTokensMap: res.RefreshTokensMap,
 	})
@@ -93,14 +93,14 @@ func (u *AuthUseсase) Login(ctx context.Context, in entities.LoginReq) (*entiti
 		return nil, errors.Wrap(err, "ошибка перезаписи рефреш токена в базе данных")
 	}
 
-	return &entities.LoginRes{
+	return &dto.LoginRes{
 		AccessToken:  accessToken.Token,
 		RefreshToken: newRefreshToken.Token,
 		ExpiresIn:    accessToken.ExpiresIn,
 	}, nil
 }
 
-func (u *AuthUseсase) Register(ctx context.Context, in entities.RegisterReq) (*entities.RegisterRes, error) {
+func (u *AuthUseсase) Register(ctx context.Context, in dto.RegisterReq) (*dto.RegisterRes, error) {
 	hashedPassword, err := generatePasswordHash(in.Password)
 	if err != nil {
 		u.log.Error(`[Usecase.Register] ошибка хэширования пароля`, sl.Err(err))
@@ -120,7 +120,7 @@ func (u *AuthUseсase) Register(ctx context.Context, in entities.RegisterReq) (*
 	}
 
 	// Создаём пользователя
-	if err = u.repo.CreateUser(ctx, entities.CreateUserReq{
+	if err = u.repo.CreateUser(ctx, dto.CreateUserReq{
 		UUID:         userID,
 		Email:        in.Email,
 		PasswordHash: hashedPassword,
@@ -132,14 +132,14 @@ func (u *AuthUseсase) Register(ctx context.Context, in entities.RegisterReq) (*
 		return nil, err
 	}
 
-	return &entities.RegisterRes{
+	return &dto.RegisterRes{
 		AccessToken:  accessToken.Token,
 		RefreshToken: refreshToken.Token,
 		ExpiresIn:    accessToken.ExpiresIn,
 	}, nil
 }
 
-func (u *AuthUseсase) UpdateAccessToken(ctx context.Context, in entities.UpdateAccessTokenReq) (*entities.UpdateAccessTokenRes, error) {
+func (u *AuthUseсase) UpdateAccessToken(ctx context.Context, in dto.UpdateAccessTokenReq) (*dto.UpdateAccessTokenRes, error) {
 	// Получаем userID пользователя из refresh токена
 	userID, err := u.tokenator.GetUserIDFromToken(in.RefreshToken, true)
 	if err != nil {
@@ -148,7 +148,7 @@ func (u *AuthUseсase) UpdateAccessToken(ctx context.Context, in entities.Update
 	}
 
 	// Получаем все refresh токены пользователя
-	res, err := u.repo.GetUserRefreshTokens(ctx, entities.GetUserRefreshTokensReq{
+	res, err := u.repo.GetUserRefreshTokens(ctx, dto.GetUserRefreshTokensReq{
 		UserID: userID,
 	})
 	if err != nil {
@@ -176,13 +176,13 @@ func (u *AuthUseсase) UpdateAccessToken(ctx context.Context, in entities.Update
 		return nil, err
 	}
 
-	return &entities.UpdateAccessTokenRes{
+	return &dto.UpdateAccessTokenRes{
 		AccessToken: accessToken.Token,
 		ExpiresIn:   accessToken.ExpiresIn,
 	}, nil
 }
 
-func (u *AuthUseсase) Logout(ctx context.Context, in entities.LogoutReq) (*entities.LogoutRes, error) {
+func (u *AuthUseсase) Logout(ctx context.Context, in dto.LogoutReq) (*dto.LogoutRes, error) {
 	// Получение userID из refresh токена
 	userID, err := u.tokenator.GetUserIDFromToken(in.RefreshToken, true)
 	if err != nil {
@@ -191,7 +191,7 @@ func (u *AuthUseсase) Logout(ctx context.Context, in entities.LogoutReq) (*enti
 	}
 
 	// Получаем токены пользователя
-	res, err := u.repo.GetUserRefreshTokens(ctx, entities.GetUserRefreshTokensReq{
+	res, err := u.repo.GetUserRefreshTokens(ctx, dto.GetUserRefreshTokensReq{
 		UserID: userID,
 	})
 	if err != nil {
@@ -206,7 +206,7 @@ func (u *AuthUseсase) Logout(ctx context.Context, in entities.LogoutReq) (*enti
 	}
 
 	delete(res.RefreshTokensMap, in.Fingerprint)
-	err = u.repo.UpdateUserRefreshTokens(ctx, entities.UpdateUserRefreshTokensReq{
+	err = u.repo.UpdateUserRefreshTokens(ctx, dto.UpdateUserRefreshTokensReq{
 		UserID:           userID,
 		RefreshTokensMap: res.RefreshTokensMap,
 	})
@@ -215,7 +215,7 @@ func (u *AuthUseсase) Logout(ctx context.Context, in entities.LogoutReq) (*enti
 		return nil, err
 	}
 
-	return &entities.LogoutRes{
+	return &dto.LogoutRes{
 		Message: "Logged out successfully",
 	}, nil
 }

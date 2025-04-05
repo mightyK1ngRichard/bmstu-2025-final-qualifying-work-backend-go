@@ -6,7 +6,7 @@ import (
 	"2025_CakeLand_API/internal/pkg/cake/repo"
 	"2025_CakeLand_API/internal/pkg/cake/usecase"
 	"2025_CakeLand_API/internal/pkg/config"
-	minioStorage "2025_CakeLand_API/internal/pkg/s3storage"
+	"2025_CakeLand_API/internal/pkg/minio"
 	"2025_CakeLand_API/internal/pkg/utils"
 	"2025_CakeLand_API/internal/pkg/utils/jwt"
 	"2025_CakeLand_API/internal/pkg/utils/logger"
@@ -36,7 +36,7 @@ func run() error {
 	}
 
 	// Создаём S3 хранилище
-	minioClient, err := minioStorage.NewMinioClient(&conf.MinIO)
+	minioProvider, err := minio.NewMinioProvider(&conf.MinIO)
 	if err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func run() error {
 	)
 	repository := repo.NewCakeRepository(db)
 	tokenator := jwt.NewTokenator()
-	useCase := usecase.NewCakeUsecase(l, tokenator, repository, minioClient, conf.MinIO.Bucket)
+	useCase := usecase.NewCakeUsecase(l, tokenator, repository, minioProvider, conf.MinIO.Bucket)
 	mdProvider := md.NewMetadataProvider()
 	handler := cake.NewCakeHandler(l, useCase, mdProvider)
 	generated.RegisterCakeServiceServer(grpcServer, handler)

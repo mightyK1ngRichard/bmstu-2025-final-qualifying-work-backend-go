@@ -2,7 +2,7 @@ package repo
 
 import (
 	"2025_CakeLand_API/internal/models"
-	"2025_CakeLand_API/internal/pkg/auth/entities"
+	"2025_CakeLand_API/internal/pkg/auth/dto"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -27,7 +27,7 @@ func NewAuthRepository(db *sql.DB) *AuthRepository {
 	}
 }
 
-func (r *AuthRepository) CreateUser(ctx context.Context, in entities.CreateUserReq) error {
+func (r *AuthRepository) CreateUser(ctx context.Context, in dto.CreateUserReq) error {
 	// Проверка существования пользователя с таким email
 	var exists bool
 	err := r.db.QueryRowContext(ctx, isUserExistsCommand, in.Email).Scan(&exists)
@@ -59,9 +59,9 @@ func (r *AuthRepository) CreateUser(ctx context.Context, in entities.CreateUserR
 	return nil
 }
 
-func (r *AuthRepository) GetUserByEmail(ctx context.Context, in entities.GetUserByEmailReq) (*entities.GetUserByEmailRes, error) {
+func (r *AuthRepository) GetUserByEmail(ctx context.Context, in dto.GetUserByEmailReq) (*dto.GetUserByEmailRes, error) {
 	row := r.db.QueryRowContext(ctx, getUserByEmailCommand, in.Email)
-	var res entities.GetUserByEmailRes
+	var res dto.GetUserByEmailRes
 	var refreshTokensMap []byte
 	if err := row.Scan(&res.ID, &res.Email, &refreshTokensMap, &res.PasswordHash); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -76,7 +76,7 @@ func (r *AuthRepository) GetUserByEmail(ctx context.Context, in entities.GetUser
 	return &res, nil
 }
 
-func (r *AuthRepository) UpdateUserRefreshTokens(ctx context.Context, in entities.UpdateUserRefreshTokensReq) error {
+func (r *AuthRepository) UpdateUserRefreshTokens(ctx context.Context, in dto.UpdateUserRefreshTokensReq) error {
 	// Сериализация RefreshTokensMap в JSON
 	refreshTokensJSON, err := json.Marshal(in.RefreshTokensMap)
 	if err != nil {
@@ -91,7 +91,7 @@ func (r *AuthRepository) UpdateUserRefreshTokens(ctx context.Context, in entitie
 	return nil
 }
 
-func (r *AuthRepository) GetUserRefreshTokens(ctx context.Context, in entities.GetUserRefreshTokensReq) (*entities.GetUserRefreshTokensRes, error) {
+func (r *AuthRepository) GetUserRefreshTokens(ctx context.Context, in dto.GetUserRefreshTokensReq) (*dto.GetUserRefreshTokensRes, error) {
 	var refreshTokens []byte
 	row := r.db.QueryRowContext(ctx, getUserRefreshTokensCommand, in.UserID)
 	if err := row.Scan(&refreshTokens); err != nil {
@@ -101,7 +101,7 @@ func (r *AuthRepository) GetUserRefreshTokens(ctx context.Context, in entities.G
 	if err := json.Unmarshal(refreshTokens, &refreshTokensMap); err != nil {
 		return nil, errors.Wrapf(err, `ошибка декодирования JSON refreshTokensMap`)
 	}
-	return &entities.GetUserRefreshTokensRes{
+	return &dto.GetUserRefreshTokensRes{
 		RefreshTokensMap: refreshTokensMap,
 	}, nil
 }

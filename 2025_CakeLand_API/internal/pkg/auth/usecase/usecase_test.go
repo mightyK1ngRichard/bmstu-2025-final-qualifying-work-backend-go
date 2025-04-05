@@ -1,7 +1,7 @@
 package usecase
 
 import (
-	"2025_CakeLand_API/internal/pkg/auth/entities"
+	"2025_CakeLand_API/internal/pkg/auth/dto"
 	"2025_CakeLand_API/internal/pkg/auth/mocks"
 	"2025_CakeLand_API/internal/pkg/utils/jwt"
 	"2025_CakeLand_API/internal/pkg/utils/logger"
@@ -25,7 +25,7 @@ func TestAuthUsecase_Register(t *testing.T) {
 		Return(nil)
 
 	t.Run("Success case", func(t *testing.T) {
-		res, err := uc.Register(context.Background(), entities.RegisterReq{
+		res, err := uc.Register(context.Background(), dto.RegisterReq{
 			Email:       "test@example.com",
 			Password:    "Password1",
 			Fingerprint: "some-fingerprint",

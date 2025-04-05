@@ -4,7 +4,7 @@ import (
 	"2025_CakeLand_API/internal/models"
 	"2025_CakeLand_API/internal/pkg/auth"
 	gen "2025_CakeLand_API/internal/pkg/auth/delivery/grpc/generated"
-	"2025_CakeLand_API/internal/pkg/auth/entities"
+	"2025_CakeLand_API/internal/pkg/auth/dto"
 	"2025_CakeLand_API/internal/pkg/utils"
 	md "2025_CakeLand_API/internal/pkg/utils/metadata"
 	"context"
@@ -50,7 +50,7 @@ func (h *GrpcAuthHandler) Register(ctx context.Context, req *gen.RegisterRequest
 	}
 
 	// Сохраняем пользователя в бд
-	res, err := h.usecase.Register(ctx, entities.RegisterReq{
+	res, err := h.usecase.Register(ctx, dto.RegisterReq{
 		Email:       req.Email,
 		Password:    req.Password,
 		Fingerprint: fingerprint,
@@ -84,7 +84,7 @@ func (h *GrpcAuthHandler) Login(ctx context.Context, req *gen.LoginRequest) (*ge
 	}
 
 	// Сохраняем пользователя в бд
-	res, loginErr := h.usecase.Login(ctx, entities.LoginReq{
+	res, loginErr := h.usecase.Login(ctx, dto.LoginReq{
 		Email:       req.Email,
 		Password:    req.Password,
 		Fingerprint: fingerprint,
@@ -120,7 +120,7 @@ func (h *GrpcAuthHandler) Logout(ctx context.Context, _ *emptypb.Empty) (*gen.Lo
 	}
 
 	// Бизнес логика
-	res, err := h.usecase.Logout(ctx, entities.LogoutReq{
+	res, err := h.usecase.Logout(ctx, dto.LogoutReq{
 		Fingerprint:  fingerprint,
 		RefreshToken: refreshToken,
 	})
@@ -152,7 +152,7 @@ func (h *GrpcAuthHandler) UpdateAccessToken(ctx context.Context, _ *emptypb.Empt
 	}
 
 	// Бизнес логика
-	res, err := h.usecase.UpdateAccessToken(ctx, entities.UpdateAccessTokenReq{
+	res, err := h.usecase.UpdateAccessToken(ctx, dto.UpdateAccessTokenReq{
 		RefreshToken: refreshToken,
 		Fingerprint:  fingerprint,
 	})

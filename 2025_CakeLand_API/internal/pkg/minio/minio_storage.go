@@ -1,4 +1,4 @@
-package minio_storage
+package minio
 
 import (
 	"2025_CakeLand_API/internal/models"
@@ -12,15 +12,15 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
-type MinioClient struct {
+type MinioProvider struct {
 	client *minio.Client
 	conf   *config.MinioConfig
 }
 
 type ImageID string
 
-// NewMinioClient создает новый MinioClient и инициализирует клиента MinIO
-func NewMinioClient(conf *config.MinioConfig) (*MinioClient, error) {
+// NewMinioProvider создает новый MinioProvider и инициализирует клиента MinIO
+func NewMinioProvider(conf *config.MinioConfig) (*MinioProvider, error) {
 	// Создаем нового клиента MinIO
 	client, err := minio.New(conf.Host, &minio.Options{
 		Creds:  credentials.NewStaticV4(conf.AccessKey, conf.SecretKey, ""),
@@ -30,14 +30,14 @@ func NewMinioClient(conf *config.MinioConfig) (*MinioClient, error) {
 		return nil, fmt.Errorf("ошибка создания клиента MinIO: %w", err)
 	}
 
-	return &MinioClient{
+	return &MinioProvider{
 		client: client,
 		conf:   conf,
 	}, nil
 }
 
 // ensureBucketExists проверяет, существует ли бакет, и создает его, если нет
-func (m *MinioClient) ensureBucketExists(ctx context.Context, bucketName string, region string) error {
+func (m *MinioProvider) ensureBucketExists(ctx context.Context, bucketName string, region string) error {
 	exists, err := m.client.BucketExists(ctx, bucketName)
 	if err != nil {
 		return fmt.Errorf("ошибка при проверке существования бакета: %w", err)
@@ -54,7 +54,7 @@ func (m *MinioClient) ensureBucketExists(ctx context.Context, bucketName string,
 	return nil
 }
 
-func (m *MinioClient) SaveImage(
+func (m *MinioProvider) SaveImage(
 	ctx context.Context,
 	bucketName string,
 	objectName ImageID,
@@ -81,7 +81,7 @@ func (m *MinioClient) SaveImage(
 }
 
 // SaveImages сохраняет несколько изображений в MinIO и возвращает карту URL-ов.
-func (m *MinioClient) SaveImages(
+func (m *MinioProvider) SaveImages(
 	ctx context.Context,
 	bucketName string,
 	images map[ImageID][]byte,

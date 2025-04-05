@@ -3,7 +3,7 @@ package cake
 import (
 	"2025_CakeLand_API/internal/models"
 	"2025_CakeLand_API/internal/pkg/cake/entities"
-	ms "2025_CakeLand_API/internal/pkg/s3storage"
+	ms "2025_CakeLand_API/internal/pkg/minio"
 	"context"
 )
 
