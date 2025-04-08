@@ -4,7 +4,7 @@ import (
 	"2025_CakeLand_API/internal/models"
 	"2025_CakeLand_API/internal/pkg/cake"
 	gen "2025_CakeLand_API/internal/pkg/cake/delivery/grpc/generated"
-	en "2025_CakeLand_API/internal/pkg/cake/entities"
+	en "2025_CakeLand_API/internal/pkg/cake/dto"
 	md "2025_CakeLand_API/internal/pkg/utils/metadata"
 	"context"
 	"fmt"
@@ -166,5 +166,22 @@ func (h *GrpcCakeHandler) Cakes(ctx context.Context, _ *emptypb.Empty) (*gen.Cak
 
 	return &gen.CakesResponse{
 		Cakes: cakesGRPC,
+	}, nil
+}
+
+func (h *GrpcCakeHandler) GetCategoryIDsByGender(ctx context.Context, in *gen.GetCategoryIDsByGenderReq) (*gen.GetCategoryIDsByGenderRes, error) {
+	catGen := models.ConvertToCategoryGenderFromGrpc(in.CategoryGender)
+	categories, err := h.usecase.CategoryIDsByGenderName(ctx, catGen)
+	if err != nil {
+		return nil, models.HandleError(err)
+	}
+
+	res := make([]*gen.Category, len(categories))
+	for i, it := range categories {
+		res[i] = it.ConvertToCategoryGRPC()
+	}
+
+	return &gen.GetCategoryIDsByGenderRes{
+		Categories: res,
 	}, nil
 }

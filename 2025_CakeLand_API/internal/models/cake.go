@@ -29,13 +29,13 @@ type Cake struct {
 
 type CakeImage struct {
 	ID       uuid.UUID
-	ImageURL string
+	ImageURL null.String
 }
 
 func (c *CakeImage) ConvertToCakeImageGRPC() *gen.Cake_CakeImage {
 	return &gen.Cake_CakeImage{
 		Id:       c.ID.String(),
-		ImageUrl: c.ImageURL,
+		ImageUrl: c.ImageURL.String,
 	}
 }
 

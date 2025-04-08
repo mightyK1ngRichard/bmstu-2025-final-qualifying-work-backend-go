@@ -2,16 +2,17 @@ package repo
 
 import (
 	"2025_CakeLand_API/internal/models"
-	en "2025_CakeLand_API/internal/pkg/cake/entities"
+	"2025_CakeLand_API/internal/pkg/cake/dto"
 	"context"
 	"database/sql"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"sync"
 )
 
 const (
-	getCakeByID = `
+	queryGetCakeByID = `
         SELECT c.id, c.name, c.image_url, c.kg_price, c.rating, c.description, c.mass, c.is_open_for_sale, 
                c.date_creation, c.discount_kg_price, c.discount_end_time,
 		   u.id AS owner_id, u.fio, u.nickname, u.mail,
@@ -28,7 +29,7 @@ const (
 			 LEFT JOIN "cake_images" ci ON ci.cake_id = c.id
         WHERE c.id = $1;
     `
-	getCakes = `
+	queryGetCakes = `
         SELECT c.id, c.name, c.image_url, c.kg_price, c.rating, c.description, c.mass, c.is_open_for_sale,
                c.date_creation, c.discount_kg_price, c.discount_end_time,
                u.id AS owner_id, u.fio, u.nickname, u.mail,
@@ -42,29 +43,30 @@ const (
                  LEFT JOIN "cake_category" cc ON c.id = cc.cake_id
                  LEFT JOIN "category" cat ON cc.category_id = cat.id
     `
-	createFilling = `
+	queryCreateFilling = `
 		INSERT INTO "filling" (id, name, image_url, content, kg_price, description)
 		VALUES ($1, $2, $3, $4, $5, $6);
 	`
-	createCategory = `
+	queryCreateCategory = `
 		INSERT INTO "category" (id, name, image_url)
 		VALUES ($1, $2, $3);
 	`
-	createCake = `
+	queryCreateCake = `
 		INSERT INTO "cake" (id, name, image_url, kg_price, rating, description, mass, is_open_for_sale, owner_id)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
 	`
-	addCakeImages   = `INSERT INTO "cake_images" (id, cake_id, image_url) VALUES ($1, $2, $3);`
-	addCateCategory = `
+	queryAddCakeImages   = `INSERT INTO "cake_images" (id, cake_id, image_url) VALUES ($1, $2, $3);`
+	queryAddCateCategory = `
 		INSERT INTO "cake_category" (id, category_id, cake_id)
 		VALUES ($1, $2, $3);
     `
-	addFillingCategory = `
+	queryAddFillingCategory = `
 		INSERT INTO "cake_filling" (id, cake_id, filling_id)
 		VALUES ($1, $2, $3);
     `
-	categories = `SELECT id, name, image_url FROM "category";`
-	fillings   = `SELECT id, name, image_url, content, kg_price, description FROM "filling";`
+	queryCategories       = `SELECT id, name, image_url, gender_tags FROM "category";`
+	queryFillings         = `SELECT id, name, image_url, content, kg_price, description FROM "filling";`
+	queryCakesByGenderTag = `SELECT id, name, image_url, gender_tags FROM category WHERE $1 = ANY(gender_tags);`
 )
 
 type CakeRepository struct {
@@ -77,8 +79,8 @@ func NewCakeRepository(db *sql.DB) *CakeRepository {
 	}
 }
 
-func (r *CakeRepository) CakeByID(ctx context.Context, in en.GetCakeReq) (*en.GetCakeRes, error) {
-	rows, err := r.db.QueryContext(ctx, getCakeByID, in.CakeID)
+func (r *CakeRepository) CakeByID(ctx context.Context, in dto.GetCakeReq) (*dto.GetCakeRes, error) {
+	rows, err := r.db.QueryContext(ctx, queryGetCakeByID, in.CakeID)
 	if err != nil {
 		return nil, models.NewDataBaseError("CakeByID", err)
 	}
@@ -96,9 +98,9 @@ func (r *CakeRepository) CakeByID(ctx context.Context, in en.GetCakeReq) (*en.Ge
 
 	for rows.Next() {
 		var filling models.Filling
-		var dbFilling models.DBFilling
+		var dbFilling dto.DBFilling
 		var category models.Category
-		var dbCategory models.DBCategory
+		var dbCategory dto.DBCategory
 		var owner models.User
 		var cakeImage models.CakeImage
 
@@ -108,19 +110,14 @@ func (r *CakeRepository) CakeByID(ctx context.Context, in en.GetCakeReq) (*en.Ge
 			&cake.IsOpenForSale, &cake.DateCreation, &cake.DiscountKgPrice, &cake.DiscountEndTime,
 			&owner.ID, &owner.FIO, &owner.Nickname, &owner.Mail,
 			&dbFilling.ID, &dbFilling.Name, &dbFilling.ImageURL, &dbFilling.Content, &dbFilling.KgPrice, &dbFilling.Description,
-			&dbCategory.ID, &dbCategory.Name, &dbCategory.ImageURL,
+			&dbCategory.ID, &dbCategory.Name, &dbCategory.ImageURL, &dbCategory.CategoryGenders,
 			&cakeImage.ID, &cakeImage.ImageURL,
 		); err != nil {
 			return nil, models.NewDataBaseError("CakeByID", err)
 		}
 
-		if f := dbFilling.ConvertToFilling(); f != nil {
-			filling = *f
-		}
-
-		if c := dbCategory.ConvertToCategory(); c != nil {
-			category = *c
-		}
+		filling = dbFilling.ConvertToFilling()
+		category = dbCategory.ConvertToCategory()
 
 		// Set owner (only once, since it's the same for all rows)
 		if cake.Owner.ID == uuid.Nil {
@@ -150,25 +147,25 @@ func (r *CakeRepository) CakeByID(ctx context.Context, in en.GetCakeReq) (*en.Ge
 		return nil, models.NewDataBaseError("CakeByID", err)
 	}
 
-	return &en.GetCakeRes{
+	return &dto.GetCakeRes{
 		Cake: cake,
 	}, nil
 }
 
-func (r *CakeRepository) CreateCake(ctx context.Context, in en.CreateCakeDBReq) error {
+func (r *CakeRepository) CreateCake(ctx context.Context, in dto.CreateCakeDBReq) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return models.NewDataBaseError("CreateCake", err)
 	}
 
 	// Создаём торт
-	_, err = tx.ExecContext(ctx, createCake,
+	_, err = tx.ExecContext(ctx, queryCreateCake,
 		in.ID, in.Name, in.PreviewImageURL, in.KgPrice, in.Rating,
 		in.Description, in.Mass, in.IsOpenForSale, in.OwnerID,
 	)
 	if err != nil {
 		_ = tx.Rollback()
-		return models.NewDataBaseError("[CreateCake]: sqlCommand: createCake", err)
+		return models.NewDataBaseError("[CreateCake]: sqlCommand: queryCreateCake", err)
 	}
 
 	var wg sync.WaitGroup
@@ -194,17 +191,17 @@ func (r *CakeRepository) CreateCake(ctx context.Context, in en.CreateCakeDBReq) 
 
 	// Добавляем категории к торту
 	for _, categoryID := range in.CategoryIDs {
-		execInGoroutine(addCateCategory, uuid.New(), categoryID, in.ID)
+		execInGoroutine(queryAddCateCategory, uuid.New(), categoryID, in.ID)
 	}
 
 	// Добавляем начинки к торту
 	for _, fillingID := range in.FillingIDs {
-		execInGoroutine(addFillingCategory, uuid.New(), in.ID, fillingID)
+		execInGoroutine(queryAddFillingCategory, uuid.New(), in.ID, fillingID)
 	}
 
 	// Добавляем изображения торта
 	for imageID, imageURL := range in.Images {
-		execInGoroutine(addCakeImages, imageID, in.ID, imageURL)
+		execInGoroutine(queryAddCakeImages, imageID, in.ID, imageURL)
 	}
 
 	// Ожидаем ошибку или завершение всех горутин
@@ -232,7 +229,7 @@ func (r *CakeRepository) CreateCake(ctx context.Context, in en.CreateCakeDBReq) 
 }
 
 func (r *CakeRepository) CreateFilling(ctx context.Context, in models.Filling) error {
-	if _, err := r.db.ExecContext(ctx, createFilling,
+	if _, err := r.db.ExecContext(ctx, queryCreateFilling,
 		in.ID,
 		in.Name,
 		in.ImageURL,
@@ -247,7 +244,7 @@ func (r *CakeRepository) CreateFilling(ctx context.Context, in models.Filling) e
 }
 
 func (r *CakeRepository) CreateCategory(ctx context.Context, in *models.Category) error {
-	if _, err := r.db.ExecContext(ctx, createCategory, in.ID, in.Name, in.ImageURL); err != nil {
+	if _, err := r.db.ExecContext(ctx, queryCreateCategory, in.ID, in.Name, in.ImageURL); err != nil {
 		return models.NewDataBaseError("CreateCategory", err)
 	}
 
@@ -255,7 +252,7 @@ func (r *CakeRepository) CreateCategory(ctx context.Context, in *models.Category
 }
 
 func (r *CakeRepository) Categories(ctx context.Context) (*[]models.Category, error) {
-	rows, err := r.db.QueryContext(ctx, categories)
+	rows, err := r.db.QueryContext(ctx, queryCategories)
 	defer rows.Close()
 	if err != nil {
 		return nil, models.NewDataBaseError("Categories", err)
@@ -264,10 +261,26 @@ func (r *CakeRepository) Categories(ctx context.Context) (*[]models.Category, er
 	// Чтение результатов
 	var categories []models.Category
 	for rows.Next() {
-		var category models.Category
-		if err = rows.Scan(&category.ID, &category.Name, &category.ImageURL); err != nil {
+		var (
+			category        models.Category
+			categoryGenders []string
+		)
+
+		if err = rows.Scan(
+			&category.ID,
+			&category.Name,
+			&category.ImageURL,
+			pq.Array(&categoryGenders),
+		); err != nil {
 			return nil, models.NewDataBaseError("Categories", err)
 		}
+
+		// Преобразуем []string в []CategoryGender
+		category.CategoryGenders = make([]models.CategoryGender, 0, len(categoryGenders))
+		for _, g := range categoryGenders {
+			category.CategoryGenders = append(category.CategoryGenders, models.CategoryGender(g))
+		}
+
 		categories = append(categories, category)
 	}
 
@@ -280,7 +293,7 @@ func (r *CakeRepository) Categories(ctx context.Context) (*[]models.Category, er
 }
 
 func (r *CakeRepository) Fillings(ctx context.Context) (*[]models.Filling, error) {
-	rows, err := r.db.QueryContext(ctx, fillings)
+	rows, err := r.db.QueryContext(ctx, queryFillings)
 	defer rows.Close()
 	if err != nil {
 		return nil, models.NewDataBaseError("Fillings", err)
@@ -308,7 +321,7 @@ func (r *CakeRepository) Fillings(ctx context.Context) (*[]models.Filling, error
 }
 
 func (r *CakeRepository) Cakes(ctx context.Context) (*[]models.Cake, error) {
-	rows, err := r.db.QueryContext(ctx, getCakes)
+	rows, err := r.db.QueryContext(ctx, queryGetCakes)
 	if err != nil {
 		return nil, models.NewDataBaseError("Cakes", err)
 	}
@@ -323,9 +336,9 @@ func (r *CakeRepository) Cakes(ctx context.Context) (*[]models.Cake, error) {
 	for rows.Next() {
 		var cake models.Cake
 		var filling models.Filling
-		var dbFilling models.DBFilling
+		var dbFilling dto.DBFilling
 		var category models.Category
-		var dbCategory models.DBCategory
+		var dbCategory dto.DBCategory
 		var owner models.User
 
 		// Чтение данных
@@ -339,13 +352,8 @@ func (r *CakeRepository) Cakes(ctx context.Context) (*[]models.Cake, error) {
 			return nil, models.NewDataBaseError("Cakes", err)
 		}
 
-		if f := dbFilling.ConvertToFilling(); f != nil {
-			filling = *f
-		}
-
-		if c := dbCategory.ConvertToCategory(); c != nil {
-			category = *c
-		}
+		filling = dbFilling.ConvertToFilling()
+		category = dbCategory.ConvertToCategory()
 
 		// Достаём торт если он есть или инициализируем отсканированный
 		savedCake, ok := cakes[cake.ID]
@@ -383,6 +391,35 @@ func (r *CakeRepository) Cakes(ctx context.Context) (*[]models.Cake, error) {
 
 	cakeSlice := mapToSlice(cakes)
 	return &cakeSlice, nil
+}
+
+func (r *CakeRepository) CategoryIDsByGenderName(ctx context.Context, genderTag models.CategoryGender) ([]dto.DBCategory, error) {
+	rows, err := r.db.QueryContext(ctx, queryCakesByGenderTag, genderTag)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	var categories []dto.DBCategory
+	for rows.Next() {
+		var category dto.DBCategory
+		if err = rows.Scan(
+			&category.ID,
+			&category.Name,
+			&category.ImageURL,
+			pq.Array(&category.CategoryGenders),
+		); err != nil {
+			return nil, err
+		}
+
+		categories = append(categories, category)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return categories, nil
 }
 
 // Функция для преобразования map[uuid.UUID]Cake в []Cake

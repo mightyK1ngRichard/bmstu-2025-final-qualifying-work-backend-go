@@ -1,4 +1,4 @@
-package entities
+package dto
 
 import (
 	"2025_CakeLand_API/internal/models"

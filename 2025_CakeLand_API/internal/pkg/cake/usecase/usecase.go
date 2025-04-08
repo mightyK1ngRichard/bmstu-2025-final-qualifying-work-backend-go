@@ -3,7 +3,7 @@ package usecase
 import (
 	"2025_CakeLand_API/internal/models"
 	"2025_CakeLand_API/internal/pkg/cake"
-	en "2025_CakeLand_API/internal/pkg/cake/entities"
+	en "2025_CakeLand_API/internal/pkg/cake/dto"
 	ms "2025_CakeLand_API/internal/pkg/minio"
 	"2025_CakeLand_API/internal/pkg/utils/jwt"
 	"2025_CakeLand_API/internal/pkg/utils/sl"
@@ -145,7 +145,7 @@ func (u *CakeUseсase) CreateCategory(ctx context.Context, in *en.CreateCategory
 		Name:     in.Name,
 		ImageURL: imageURL,
 	}
-	if err := u.repo.CreateCategory(ctx, &newCategory); err != nil {
+	if err = u.repo.CreateCategory(ctx, &newCategory); err != nil {
 		return nil, err
 	}
 
@@ -164,4 +164,17 @@ func (u *CakeUseсase) Fillings(ctx context.Context) (*[]models.Filling, error) 
 
 func (u *CakeUseсase) Cakes(ctx context.Context) (*[]models.Cake, error) {
 	return u.repo.Cakes(ctx)
+}
+
+func (u *CakeUseсase) CategoryIDsByGenderName(ctx context.Context, genTag models.CategoryGender) ([]models.Category, error) {
+	dbCategories, err := u.repo.CategoryIDsByGenderName(ctx, genTag)
+	if err != nil {
+		return nil, err
+	}
+
+	categories := make([]models.Category, len(dbCategories))
+	for i, category := range dbCategories {
+		categories[i] = category.ConvertToCategory()
+	}
+	return categories, nil
 }
