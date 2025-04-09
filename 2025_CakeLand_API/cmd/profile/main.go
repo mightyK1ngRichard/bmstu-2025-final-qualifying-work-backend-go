@@ -1,0 +1,71 @@
+package main
+
+import (
+	"2025_CakeLand_API/internal/pkg/config"
+	"2025_CakeLand_API/internal/pkg/minio"
+	handler2 "2025_CakeLand_API/internal/pkg/profile/delivery/grpc"
+	"2025_CakeLand_API/internal/pkg/profile/delivery/grpc/generated"
+	"2025_CakeLand_API/internal/pkg/profile/repo"
+	"2025_CakeLand_API/internal/pkg/profile/usecase"
+	"2025_CakeLand_API/internal/pkg/utils"
+	"2025_CakeLand_API/internal/pkg/utils/jwt"
+	"2025_CakeLand_API/internal/pkg/utils/logger"
+	md "2025_CakeLand_API/internal/pkg/utils/metadata"
+	"fmt"
+	"log/slog"
+	"net"
+	"os"
+
+	_ "github.com/lib/pq"
+	"google.golang.org/grpc"
+)
+
+// go run cmd/profile/main.go --config=./config/config.yaml
+func main() {
+	if err := run(); err != nil {
+		fmt.Print(err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
+	// Создаём Configuration
+	conf, err := config.NewConfig()
+	if err != nil {
+		return err
+	}
+
+	// Создаём S3 хранилище
+	minioProvider, err := minio.NewMinioProvider(&conf.MinIO)
+	if err != nil {
+		return err
+	}
+
+	// Создаём Logger
+	l := logger.NewLogger(conf.Env)
+
+	// Подключаем базу данных
+	db, err := utils.ConnectPostgres(&conf.DB)
+	if err != nil {
+		return err
+	}
+
+	// Создаём grpc сервис
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.GRPC.Port))
+	if err != nil {
+		return err
+	}
+
+	grpcServer := grpc.NewServer(
+		grpc.MaxRecvMsgSize(200*1024*1024), // 10MB для входящих сообщений
+		grpc.MaxSendMsgSize(200*1024*1024), // 10MB для исходящих сообщений
+	)
+	repository := repo.NewProfileRepository(db)
+	tokenator := jwt.NewTokenator()
+	usecase := usecase.NewProfileUsecase(l, tokenator, repository, minioProvider)
+	mdProvider := md.NewMetadataProvider()
+	handler := handler2.NewProfileHandler(l, usecase, mdProvider)
+	generated.RegisterProfileServiceServer(grpcServer, handler)
+	l.Info("Starting gRPC profile service", slog.String("port", fmt.Sprintf(":%d", conf.GRPC.Port)))
+	return grpcServer.Serve(listener)
+}

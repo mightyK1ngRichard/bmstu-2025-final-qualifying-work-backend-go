@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS "user"
     address            TEXT,
     nickname           VARCHAR(50) UNIQUE  NOT NULL,
     image_url          VARCHAR(200),
+    header_image_url   VARCHAR(200),
     mail               VARCHAR(200) UNIQUE NOT NULL,
     password_hash      VARCHAR(100) UNIQUE NOT NULL,
     phone              VARCHAR(11),

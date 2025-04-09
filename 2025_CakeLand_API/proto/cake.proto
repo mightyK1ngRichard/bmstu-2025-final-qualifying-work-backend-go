@@ -12,7 +12,8 @@ protoc --go_out=./../internal/pkg/cake/delivery/grpc/generated \
 cake.proto
 */
 
-option go_package = "internal/pkg/cake/delivery/grpc/generated";
+package cake;
+option go_package = "2025_CakeLand_API/internal/pkg/cake/delivery/grpc/generated";
 
 /* ############### Cake ############### */
 

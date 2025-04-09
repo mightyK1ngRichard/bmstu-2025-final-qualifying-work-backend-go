@@ -30,3 +30,14 @@ cake_proto:
 	protoc --swift_out=../internal/pkg/cake/delivery/grpc/generated \
 	       --grpc-swift_out=../internal/pkg/cake/delivery/grpc/generated \
 	       cake.proto
+
+profile_proto:
+	cd proto && \
+	protoc --go_out=../internal/pkg/profile/delivery/grpc/generated \
+	       --go-grpc_out=../internal/pkg/profile/delivery/grpc/generated \
+	       --go_opt=paths=source_relative \
+	       --go-grpc_opt=paths=source_relative \
+	       profile.proto && \
+	protoc --swift_out=../internal/pkg/profile/delivery/grpc/generated \
+	       --grpc-swift_out=../internal/pkg/profile/delivery/grpc/generated \
+	       profile.proto

@@ -69,20 +69,20 @@ const (
 	queryCakesByGenderTag = `SELECT id, name, image_url, gender_tags FROM category WHERE $1 = ANY(gender_tags);`
 	queryCategoryCakesIDs = `SELECT cake_id FROM cake_category WHERE category_id = $1;`
 	queryPreviewCakeByID  = `
-	SELECT id,
-		   name,
-		   image_url,
-		   kg_price,
-		   rating,
-		   description,
-		   mass,
-		   discount_kg_price,
-		   discount_end_time,
-		   date_creation,
-		   is_open_for_sale,
-		   owner_id
-	FROM cake
-	WHERE id = $1;
+		SELECT id,
+			   name,
+			   image_url,
+			   kg_price,
+			   rating,
+			   description,
+			   mass,
+			   discount_kg_price,
+			   discount_end_time,
+			   date_creation,
+			   is_open_for_sale,
+			   owner_id
+		FROM cake
+		WHERE id = $1;
 	`
 )
 
