@@ -292,6 +292,30 @@ struct GetCategoryIDsByGenderRes: Sendable {
   init() {}
 }
 
+struct CategoryPreviewCakesReq: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  var categoryID: String = String()
+
+  var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  init() {}
+}
+
+struct CategoryPreviewCakesRes: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  var previewCakes: [PreviewCake] = []
+
+  var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  init() {}
+}
+
 /// Информация о торте
 struct Cake: @unchecked Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
@@ -507,6 +531,85 @@ struct Category: Sendable {
   var unknownFields = SwiftProtobuf.UnknownStorage()
 
   init() {}
+}
+
+struct PreviewCake: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  /// UUID
+  var id: String = String()
+
+  /// Название
+  var name: String = String()
+
+  /// URL изображения
+  var previewImageURL: String = String()
+
+  /// Цена за килограмм
+  var kgPrice: Double = 0
+
+  /// Рейтинг
+  var rating: UInt32 = 0
+
+  /// Описание (nullable)
+  var description_p: SwiftProtobuf.Google_Protobuf_StringValue {
+    get {return _description_p ?? SwiftProtobuf.Google_Protobuf_StringValue()}
+    set {_description_p = newValue}
+  }
+  /// Returns true if `description_p` has been explicitly set.
+  var hasDescription_p: Bool {return self._description_p != nil}
+  /// Clears the value of `description_p`. Subsequent reads from it will return its default value.
+  mutating func clearDescription_p() {self._description_p = nil}
+
+  /// Масса
+  var mass: Double = 0
+
+  /// Скидочная цена за кг (nullable)
+  var discountKgPrice: SwiftProtobuf.Google_Protobuf_DoubleValue {
+    get {return _discountKgPrice ?? SwiftProtobuf.Google_Protobuf_DoubleValue()}
+    set {_discountKgPrice = newValue}
+  }
+  /// Returns true if `discountKgPrice` has been explicitly set.
+  var hasDiscountKgPrice: Bool {return self._discountKgPrice != nil}
+  /// Clears the value of `discountKgPrice`. Subsequent reads from it will return its default value.
+  mutating func clearDiscountKgPrice() {self._discountKgPrice = nil}
+
+  /// Время окончания скидки (nullable)
+  var discountEndTime: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _discountEndTime ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_discountEndTime = newValue}
+  }
+  /// Returns true if `discountEndTime` has been explicitly set.
+  var hasDiscountEndTime: Bool {return self._discountEndTime != nil}
+  /// Clears the value of `discountEndTime`. Subsequent reads from it will return its default value.
+  mutating func clearDiscountEndTime() {self._discountEndTime = nil}
+
+  /// Время создания
+  var dateCreation: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _dateCreation ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_dateCreation = newValue}
+  }
+  /// Returns true if `dateCreation` has been explicitly set.
+  var hasDateCreation: Bool {return self._dateCreation != nil}
+  /// Clears the value of `dateCreation`. Subsequent reads from it will return its default value.
+  mutating func clearDateCreation() {self._dateCreation = nil}
+
+  /// Продается ли
+  var isOpenForSale: Bool = false
+
+  /// ID владельца (UUID)
+  var ownerID: String = String()
+
+  var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  init() {}
+
+  fileprivate var _description_p: SwiftProtobuf.Google_Protobuf_StringValue? = nil
+  fileprivate var _discountKgPrice: SwiftProtobuf.Google_Protobuf_DoubleValue? = nil
+  fileprivate var _discountEndTime: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+  fileprivate var _dateCreation: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
 }
 
 // MARK: - Code below here is support for the SwiftProtobuf runtime.
@@ -1032,6 +1135,70 @@ extension GetCategoryIDsByGenderRes: SwiftProtobuf.Message, SwiftProtobuf._Messa
   }
 }
 
+extension CategoryPreviewCakesReq: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  static let protoMessageName: String = "CategoryPreviewCakesReq"
+  static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
+    1: .same(proto: "categoryID"),
+  ]
+
+  mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.categoryID) }()
+      default: break
+      }
+    }
+  }
+
+  func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.categoryID.isEmpty {
+      try visitor.visitSingularStringField(value: self.categoryID, fieldNumber: 1)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  static func ==(lhs: CategoryPreviewCakesReq, rhs: CategoryPreviewCakesReq) -> Bool {
+    if lhs.categoryID != rhs.categoryID {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension CategoryPreviewCakesRes: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  static let protoMessageName: String = "CategoryPreviewCakesRes"
+  static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
+    1: .same(proto: "previewCakes"),
+  ]
+
+  mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeRepeatedMessageField(value: &self.previewCakes) }()
+      default: break
+      }
+    }
+  }
+
+  func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.previewCakes.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.previewCakes, fieldNumber: 1)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  static func ==(lhs: CategoryPreviewCakesRes, rhs: CategoryPreviewCakesRes) -> Bool {
+    if lhs.previewCakes != rhs.previewCakes {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
 extension Cake: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   static let protoMessageName: String = "Cake"
   static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
@@ -1419,6 +1586,108 @@ extension Category: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationB
     if lhs.name != rhs.name {return false}
     if lhs.imageURL != rhs.imageURL {return false}
     if lhs.genderTags != rhs.genderTags {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension PreviewCake: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  static let protoMessageName: String = "PreviewCake"
+  static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
+    1: .same(proto: "id"),
+    2: .same(proto: "name"),
+    3: .standard(proto: "preview_image_url"),
+    4: .standard(proto: "kg_price"),
+    5: .same(proto: "rating"),
+    6: .same(proto: "description"),
+    7: .same(proto: "mass"),
+    8: .standard(proto: "discount_kg_price"),
+    9: .standard(proto: "discount_end_time"),
+    10: .standard(proto: "date_creation"),
+    11: .standard(proto: "is_open_for_sale"),
+    12: .standard(proto: "owner_id"),
+  ]
+
+  mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.id) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.name) }()
+      case 3: try { try decoder.decodeSingularStringField(value: &self.previewImageURL) }()
+      case 4: try { try decoder.decodeSingularDoubleField(value: &self.kgPrice) }()
+      case 5: try { try decoder.decodeSingularUInt32Field(value: &self.rating) }()
+      case 6: try { try decoder.decodeSingularMessageField(value: &self._description_p) }()
+      case 7: try { try decoder.decodeSingularDoubleField(value: &self.mass) }()
+      case 8: try { try decoder.decodeSingularMessageField(value: &self._discountKgPrice) }()
+      case 9: try { try decoder.decodeSingularMessageField(value: &self._discountEndTime) }()
+      case 10: try { try decoder.decodeSingularMessageField(value: &self._dateCreation) }()
+      case 11: try { try decoder.decodeSingularBoolField(value: &self.isOpenForSale) }()
+      case 12: try { try decoder.decodeSingularStringField(value: &self.ownerID) }()
+      default: break
+      }
+    }
+  }
+
+  func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    if !self.id.isEmpty {
+      try visitor.visitSingularStringField(value: self.id, fieldNumber: 1)
+    }
+    if !self.name.isEmpty {
+      try visitor.visitSingularStringField(value: self.name, fieldNumber: 2)
+    }
+    if !self.previewImageURL.isEmpty {
+      try visitor.visitSingularStringField(value: self.previewImageURL, fieldNumber: 3)
+    }
+    if self.kgPrice.bitPattern != 0 {
+      try visitor.visitSingularDoubleField(value: self.kgPrice, fieldNumber: 4)
+    }
+    if self.rating != 0 {
+      try visitor.visitSingularUInt32Field(value: self.rating, fieldNumber: 5)
+    }
+    try { if let v = self._description_p {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 6)
+    } }()
+    if self.mass.bitPattern != 0 {
+      try visitor.visitSingularDoubleField(value: self.mass, fieldNumber: 7)
+    }
+    try { if let v = self._discountKgPrice {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 8)
+    } }()
+    try { if let v = self._discountEndTime {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 9)
+    } }()
+    try { if let v = self._dateCreation {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 10)
+    } }()
+    if self.isOpenForSale != false {
+      try visitor.visitSingularBoolField(value: self.isOpenForSale, fieldNumber: 11)
+    }
+    if !self.ownerID.isEmpty {
+      try visitor.visitSingularStringField(value: self.ownerID, fieldNumber: 12)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  static func ==(lhs: PreviewCake, rhs: PreviewCake) -> Bool {
+    if lhs.id != rhs.id {return false}
+    if lhs.name != rhs.name {return false}
+    if lhs.previewImageURL != rhs.previewImageURL {return false}
+    if lhs.kgPrice != rhs.kgPrice {return false}
+    if lhs.rating != rhs.rating {return false}
+    if lhs._description_p != rhs._description_p {return false}
+    if lhs.mass != rhs.mass {return false}
+    if lhs._discountKgPrice != rhs._discountKgPrice {return false}
+    if lhs._discountEndTime != rhs._discountEndTime {return false}
+    if lhs._dateCreation != rhs._dateCreation {return false}
+    if lhs.isOpenForSale != rhs.isOpenForSale {return false}
+    if lhs.ownerID != rhs.ownerID {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

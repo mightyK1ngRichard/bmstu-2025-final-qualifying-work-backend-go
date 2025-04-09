@@ -1,10 +1,13 @@
 package models
 
 import (
+	"2025_CakeLand_API/internal/models/errs"
+	"context"
 	"errors"
 	"fmt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"log/slog"
 )
 
 var (
@@ -73,24 +76,40 @@ func NewImageStorageError(message string, err error) *ImageStorageError {
 }
 
 // HandleError обрабатывает ошибку и возвращает соответствующую gRPC ошибку с нужным кодом и сообщением.
-func HandleError(err error) error {
+func HandleError(ctx context.Context, log *slog.Logger, err error, description string) error {
 	if err != nil {
 		// Обработка ошибки базы данных
 		var dbErr *DataBaseError
 		if errors.As(err, &dbErr) {
+			// Логируем ошибку с уровнем предупреждения
+			log.Log(ctx, slog.LevelWarn, "Database error", slog.String("description", description), slog.String("error", err.Error()))
 			return status.Error(codes.Internal, dbErr.Error())
 		}
 
 		// Обработка ошибки хранилища изображений
 		var imgErr *ImageStorageError
 		if errors.As(err, &imgErr) {
+			// Логируем ошибку с уровнем предупреждения
+			log.Log(ctx, slog.LevelWarn, "Image store error", slog.String("description", description), slog.String("error", err.Error()))
 			return status.Error(codes.Internal, imgErr.Error())
+		}
+
+		switch {
+		case errors.Is(err, errs.ErrNotFound):
+			log.Log(ctx, slog.LevelWarn, "Not found error", slog.String("description", description), slog.String("error", err.Error()))
+			return status.Error(codes.NotFound, err.Error())
+		case errors.Is(err, errs.ErrInvalidUUIDFormat):
+			log.Log(ctx, slog.LevelWarn, "Invalid UUID format", slog.String("description", description), slog.String("error", err.Error()))
+			return status.Error(codes.InvalidArgument, err.Error())
 		}
 
 		// Проверка на стандартные ошибки
 		if st, ok := status.FromError(err); ok {
 			return st.Err()
 		}
+
+		// Логируем неизвестную ошибку
+		log.Log(ctx, slog.LevelWarn, "Unknown error", slog.String("description", description), slog.String("error", err.Error()))
 		return status.Errorf(codes.Unknown, "Неизвестная ошибка: %v", err.Error())
 	}
 

@@ -5,6 +5,7 @@ import (
 	"2025_CakeLand_API/internal/pkg/cake/dto"
 	ms "2025_CakeLand_API/internal/pkg/minio"
 	"context"
+	"github.com/google/uuid"
 )
 
 type ICakeUsecase interface {
@@ -16,6 +17,7 @@ type ICakeUsecase interface {
 	Fillings(context.Context) (*[]models.Filling, error)
 	Cakes(context.Context) (*[]models.Cake, error)
 	CategoryIDsByGenderName(context.Context, models.CategoryGender) ([]models.Category, error)
+	CategoryPreviewCakes(context.Context, uuid.UUID) ([]dto.PreviewCake, error)
 }
 
 type ICakeRepository interface {
@@ -27,6 +29,8 @@ type ICakeRepository interface {
 	Fillings(context.Context) (*[]models.Filling, error)
 	Cakes(context.Context) (*[]models.Cake, error)
 	CategoryIDsByGenderName(context.Context, models.CategoryGender) ([]dto.DBCategory, error)
+	CategoryCakesIDs(context.Context, uuid.UUID) ([]uuid.UUID, error)
+	PreviewCakeByID(context.Context, uuid.UUID) (*dto.PreviewCake, error)
 }
 
 type IImageStorage interface {

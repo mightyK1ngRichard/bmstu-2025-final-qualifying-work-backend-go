@@ -3,7 +3,7 @@ package usecase
 import (
 	"2025_CakeLand_API/internal/models"
 	"2025_CakeLand_API/internal/pkg/cake"
-	en "2025_CakeLand_API/internal/pkg/cake/dto"
+	"2025_CakeLand_API/internal/pkg/cake/dto"
 	ms "2025_CakeLand_API/internal/pkg/minio"
 	"2025_CakeLand_API/internal/pkg/utils/jwt"
 	"2025_CakeLand_API/internal/pkg/utils/sl"
@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"log/slog"
+	"sync"
 
 	"github.com/google/uuid"
 )
@@ -39,7 +40,7 @@ func NewCakeUsecase(
 	}
 }
 
-func (u *CakeUseсase) Cake(ctx context.Context, in en.GetCakeReq) (*en.GetCakeRes, error) {
+func (u *CakeUseсase) Cake(ctx context.Context, in dto.GetCakeReq) (*dto.GetCakeRes, error) {
 	res, err := u.repo.CakeByID(ctx, in)
 	if err != nil {
 		u.log.Error("[Usecase.Cake] ошибка получения торта по id из бд",
@@ -49,12 +50,12 @@ func (u *CakeUseсase) Cake(ctx context.Context, in en.GetCakeReq) (*en.GetCakeR
 		return nil, err
 	}
 
-	return &en.GetCakeRes{
+	return &dto.GetCakeRes{
 		Cake: res.Cake,
 	}, nil
 }
 
-func (u *CakeUseсase) CreateCake(ctx context.Context, in en.CreateCakeReq) (*en.CreateCakeRes, error) {
+func (u *CakeUseсase) CreateCake(ctx context.Context, in dto.CreateCakeReq) (*dto.CreateCakeRes, error) {
 	// Достаём userID из токена если он не протух
 	userID, err := u.tokenator.GetUserIDFromToken(in.AccessToken, false)
 	if err != nil {
@@ -86,12 +87,12 @@ func (u *CakeUseсase) CreateCake(ctx context.Context, in en.CreateCakeReq) (*en
 		return nil, err
 	}
 
-	return &en.CreateCakeRes{
+	return &dto.CreateCakeRes{
 		CakeID: cakeID.String(),
 	}, nil
 }
 
-func (u *CakeUseсase) CreateFilling(ctx context.Context, in en.CreateFillingReq) (*en.CreateFillingRes, error) {
+func (u *CakeUseсase) CreateFilling(ctx context.Context, in dto.CreateFillingReq) (*dto.CreateFillingRes, error) {
 	// Достаём userID из токена если он не протух
 	_, err := u.tokenator.GetUserIDFromToken(in.AccessToken, false)
 	if err != nil {
@@ -120,12 +121,12 @@ func (u *CakeUseсase) CreateFilling(ctx context.Context, in en.CreateFillingReq
 		return nil, err
 	}
 
-	return &en.CreateFillingRes{
+	return &dto.CreateFillingRes{
 		Filling: filling,
 	}, nil
 }
 
-func (u *CakeUseсase) CreateCategory(ctx context.Context, in *en.CreateCategoryReq) (*en.CreateCategoryRes, error) {
+func (u *CakeUseсase) CreateCategory(ctx context.Context, in *dto.CreateCategoryReq) (*dto.CreateCategoryRes, error) {
 	// Достаём userID из токена если он не протух
 	_, err := u.tokenator.GetUserIDFromToken(in.AccessToken, false)
 	if err != nil {
@@ -149,7 +150,7 @@ func (u *CakeUseсase) CreateCategory(ctx context.Context, in *en.CreateCategory
 		return nil, err
 	}
 
-	return &en.CreateCategoryRes{
+	return &dto.CreateCategoryRes{
 		Category: newCategory,
 	}, nil
 }
@@ -177,4 +178,65 @@ func (u *CakeUseсase) CategoryIDsByGenderName(ctx context.Context, genTag model
 		categories[i] = category.ConvertToCategory()
 	}
 	return categories, nil
+}
+
+func (u *CakeUseсase) CategoryPreviewCakes(ctx context.Context, categoryID uuid.UUID) ([]dto.PreviewCake, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// Получаем id тортов категории
+	cakeIDs, err := u.repo.CategoryCakesIDs(ctx, categoryID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Получаем данные тортов по id
+	previewCakes := make([]dto.PreviewCake, len(cakeIDs))
+	mu := &sync.Mutex{}
+	wg := &sync.WaitGroup{}
+	errCh := make(chan error, 1)
+	for i, cakeID := range cakeIDs {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if ctx.Err() != nil {
+				return
+			}
+
+			previewCake, prevErr := u.repo.PreviewCakeByID(ctx, cakeID)
+			if prevErr != nil {
+				trySendError(prevErr, errCh, cancel)
+				return
+			}
+
+			if ctx.Err() != nil {
+				return
+			}
+
+			mu.Lock()
+			previewCakes[i] = *previewCake
+			mu.Unlock()
+		}()
+	}
+
+	go func() {
+		wg.Wait()
+		close(errCh)
+	}()
+
+	if err = <-errCh; err != nil {
+		return nil, err
+	}
+
+	return previewCakes, nil
+}
+
+// trySendError Вспомогательная функция для безопасной отправки ошибки
+func trySendError(err error, errCh chan<- error, cancel context.CancelFunc) {
+	select {
+	case errCh <- err:
+		cancel()
+	default:
+		// Если ошибка уже есть - игнорируем (сохраняем первую)
+	}
 }

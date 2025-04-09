@@ -67,6 +67,23 @@ const (
 	queryCategories       = `SELECT id, name, image_url, gender_tags FROM "category";`
 	queryFillings         = `SELECT id, name, image_url, content, kg_price, description FROM "filling";`
 	queryCakesByGenderTag = `SELECT id, name, image_url, gender_tags FROM category WHERE $1 = ANY(gender_tags);`
+	queryCategoryCakesIDs = `SELECT cake_id FROM cake_category WHERE category_id = $1;`
+	queryPreviewCakeByID  = `
+	SELECT id,
+		   name,
+		   image_url,
+		   kg_price,
+		   rating,
+		   description,
+		   mass,
+		   discount_kg_price,
+		   discount_end_time,
+		   date_creation,
+		   is_open_for_sale,
+		   owner_id
+	FROM cake
+	WHERE id = $1;
+	`
 )
 
 type CakeRepository struct {
@@ -244,6 +261,7 @@ func (r *CakeRepository) CreateFilling(ctx context.Context, in models.Filling) e
 }
 
 func (r *CakeRepository) CreateCategory(ctx context.Context, in *models.Category) error {
+	// TODO: Сделать добавление тегов
 	if _, err := r.db.ExecContext(ctx, queryCreateCategory, in.ID, in.Name, in.ImageURL); err != nil {
 		return models.NewDataBaseError("CreateCategory", err)
 	}
@@ -420,6 +438,52 @@ func (r *CakeRepository) CategoryIDsByGenderName(ctx context.Context, genderTag 
 	}
 
 	return categories, nil
+}
+
+func (r *CakeRepository) CategoryCakesIDs(ctx context.Context, categoryID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := r.db.QueryContext(ctx, queryCategoryCakesIDs, categoryID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	var ids []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err = rows.Scan(&id); err != nil {
+			return nil, err
+		}
+
+		ids = append(ids, id)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return ids, nil
+}
+
+func (r *CakeRepository) PreviewCakeByID(ctx context.Context, cakeID uuid.UUID) (*dto.PreviewCake, error) {
+	var dbPreviewCake dto.PreviewCake
+	if err := r.db.QueryRowContext(ctx, queryPreviewCakeByID, cakeID).Scan(
+		&dbPreviewCake.ID,
+		&dbPreviewCake.Name,
+		&dbPreviewCake.PreviewImageURL,
+		&dbPreviewCake.KgPrice,
+		&dbPreviewCake.Rating,
+		&dbPreviewCake.Description,
+		&dbPreviewCake.Mass,
+		&dbPreviewCake.DiscountKgPrice,
+		&dbPreviewCake.DiscountEndTime,
+		&dbPreviewCake.DateCreation,
+		&dbPreviewCake.IsOpenForSale,
+		&dbPreviewCake.OwnerID,
+	); err != nil {
+		return nil, err
+	}
+
+	return &dbPreviewCake, nil
 }
 
 // Функция для преобразования map[uuid.UUID]Cake в []Cake

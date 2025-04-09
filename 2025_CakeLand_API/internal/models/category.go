@@ -67,14 +67,7 @@ func (c *Category) ConvertToCategoryGRPC() *generated.Category {
 
 	// Заполняем слайс genderTags значениями из CategoryGenders
 	for _, gender := range c.CategoryGenders {
-		switch gender {
-		case GenderMale:
-			genderTags = append(genderTags, generated.CategoryGender_MALE)
-		case GenderFemale:
-			genderTags = append(genderTags, generated.CategoryGender_FEMALE)
-		case GenderChild:
-			genderTags = append(genderTags, generated.CategoryGender_CHILD)
-		}
+		genderTags = append(genderTags, gender.ConvertToGRPCCategoryGender())
 	}
 
 	return &generated.Category{

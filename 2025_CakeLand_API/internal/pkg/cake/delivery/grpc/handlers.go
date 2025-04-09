@@ -46,8 +46,8 @@ func (h *GrpcCakeHandler) Cake(ctx context.Context, in *gen.CakeRequest) (*gen.C
 	res, err := h.usecase.Cake(ctx, en.GetCakeReq{
 		CakeID: cakeID,
 	})
-	if err = models.HandleError(err); err != nil {
-		return nil, err
+	if err != nil {
+		return nil, models.HandleError(ctx, h.log, err, "")
 	}
 
 	// Формируем CakeResponse
@@ -65,8 +65,8 @@ func (h *GrpcCakeHandler) CreateCake(ctx context.Context, in *gen.CreateCakeRequ
 	}
 
 	res, err := h.usecase.CreateCake(ctx, en.NewCreateCakeReq(in, accessToken))
-	if err = models.HandleError(err); err != nil {
-		return nil, err
+	if err != nil {
+		return nil, models.HandleError(ctx, h.log, err, "")
 	}
 
 	return &gen.CreateCakeResponse{
@@ -90,8 +90,8 @@ func (h *GrpcCakeHandler) CreateFilling(ctx context.Context, in *gen.CreateFilli
 		Description: in.Description,
 		AccessToken: accessToken,
 	})
-	if err = models.HandleError(err); err != nil {
-		return nil, err
+	if err != nil {
+		return nil, models.HandleError(ctx, h.log, err, "")
 	}
 
 	return &gen.CreateFillingResponse{
@@ -112,8 +112,8 @@ func (h *GrpcCakeHandler) CreateCategory(ctx context.Context, in *gen.CreateCate
 		ImageData:   in.ImageData,
 		AccessToken: accessToken,
 	})
-	if err = models.HandleError(err); err != nil {
-		return nil, err
+	if err != nil {
+		return nil, models.HandleError(ctx, h.log, err, "")
 	}
 
 	return &gen.CreateCategoryResponse{
@@ -123,8 +123,8 @@ func (h *GrpcCakeHandler) CreateCategory(ctx context.Context, in *gen.CreateCate
 
 func (h *GrpcCakeHandler) Categories(ctx context.Context, _ *emptypb.Empty) (*gen.CategoriesResponse, error) {
 	categories, err := h.usecase.Categories(ctx)
-	if err = models.HandleError(err); err != nil {
-		return nil, err
+	if err != nil {
+		return nil, models.HandleError(ctx, h.log, err, "")
 	}
 
 	categoriesGRPC := make([]*gen.Category, len(*categories))
@@ -139,8 +139,8 @@ func (h *GrpcCakeHandler) Categories(ctx context.Context, _ *emptypb.Empty) (*ge
 
 func (h *GrpcCakeHandler) Fillings(ctx context.Context, _ *emptypb.Empty) (*gen.FillingsResponse, error) {
 	fillings, err := h.usecase.Fillings(ctx)
-	if err = models.HandleError(err); err != nil {
-		return nil, err
+	if err != nil {
+		return nil, models.HandleError(ctx, h.log, err, "")
 	}
 
 	fillingsGRPC := make([]*gen.Filling, len(*fillings))
@@ -155,8 +155,8 @@ func (h *GrpcCakeHandler) Fillings(ctx context.Context, _ *emptypb.Empty) (*gen.
 
 func (h *GrpcCakeHandler) Cakes(ctx context.Context, _ *emptypb.Empty) (*gen.CakesResponse, error) {
 	cakes, err := h.usecase.Cakes(ctx)
-	if err = models.HandleError(err); err != nil {
-		return nil, err
+	if err != nil {
+		return nil, models.HandleError(ctx, h.log, err, "")
 	}
 
 	cakesGRPC := make([]*gen.Cake, len(*cakes))
@@ -173,7 +173,7 @@ func (h *GrpcCakeHandler) GetCategoryIDsByGender(ctx context.Context, in *gen.Ge
 	catGen := models.ConvertToCategoryGenderFromGrpc(in.CategoryGender)
 	categories, err := h.usecase.CategoryIDsByGenderName(ctx, catGen)
 	if err != nil {
-		return nil, models.HandleError(err)
+		return nil, models.HandleError(ctx, h.log, err, "")
 	}
 
 	res := make([]*gen.Category, len(categories))
@@ -183,5 +183,26 @@ func (h *GrpcCakeHandler) GetCategoryIDsByGender(ctx context.Context, in *gen.Ge
 
 	return &gen.GetCategoryIDsByGenderRes{
 		Categories: res,
+	}, nil
+}
+
+func (h *GrpcCakeHandler) CategoryPreviewCakes(ctx context.Context, in *gen.CategoryPreviewCakesReq) (*gen.CategoryPreviewCakesRes, error) {
+	categoryID, err := uuid.Parse(in.CategoryID)
+	if err != nil {
+		return nil, models.HandleError(ctx, h.log, err, "invalid category id")
+	}
+
+	previewCakes, err := h.usecase.CategoryPreviewCakes(ctx, categoryID)
+	if err != nil {
+		return nil, models.HandleError(ctx, h.log, err, "inner error")
+	}
+
+	res := make([]*gen.PreviewCake, len(previewCakes))
+	for i, it := range previewCakes {
+		res[i] = it.ConvertToGrpcModel()
+	}
+
+	return &gen.CategoryPreviewCakesRes{
+		PreviewCakes: res,
 	}, nil
 }

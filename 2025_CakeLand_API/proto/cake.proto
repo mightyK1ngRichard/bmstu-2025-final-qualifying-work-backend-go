@@ -96,12 +96,23 @@ message GetCategoryIDsByGenderRes {
   repeated Category categories = 1;
 }
 
+/* ############### CategoryPreviewCakes ############### */
+
+message CategoryPreviewCakesReq {
+  string categoryID = 1;
+}
+
+message CategoryPreviewCakesRes {
+  repeated PreviewCake previewCakes = 1;
+}
+
 /* ############### CakeService ############### */
 
 service CakeService {
   rpc CreateCake (CreateCakeRequest) returns (CreateCakeResponse);
   rpc Cake (CakeRequest) returns (CakeResponse);
   rpc Cakes (google.protobuf.Empty) returns (CakesResponse);
+  rpc CategoryPreviewCakes (CategoryPreviewCakesReq) returns (CategoryPreviewCakesRes);
 
   rpc CreateFilling (CreateFillingRequest) returns (CreateFillingResponse);
   rpc Fillings (google.protobuf.Empty) returns (FillingsResponse);
@@ -166,4 +177,19 @@ enum CategoryGender {
   MALE = 1;
   FEMALE = 2;
   CHILD = 3;
+}
+
+message PreviewCake {
+  string id = 1;                    // UUID
+  string name = 2;                  // Название
+  string preview_image_url = 3;     // URL изображения
+  double kg_price = 4;              // Цена за килограмм
+  uint32 rating = 5;                // Рейтинг
+  google.protobuf.StringValue description = 6;  // Описание (nullable)
+  double mass = 7;                  // Масса
+  google.protobuf.DoubleValue discount_kg_price = 8; // Скидочная цена за кг (nullable)
+  google.protobuf.Timestamp discount_end_time = 9;  // Время окончания скидки (nullable)
+  google.protobuf.Timestamp date_creation = 10;      // Время создания
+  bool is_open_for_sale = 11;      // Продается ли
+  string owner_id = 12;            // ID владельца (UUID)
 }

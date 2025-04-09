@@ -31,6 +31,11 @@ internal protocol CakeServiceClientProtocol: GRPCClient {
     callOptions: CallOptions?
   ) -> UnaryCall<SwiftProtobuf.Google_Protobuf_Empty, CakesResponse>
 
+  func categoryPreviewCakes(
+    _ request: CategoryPreviewCakesReq,
+    callOptions: CallOptions?
+  ) -> UnaryCall<CategoryPreviewCakesReq, CategoryPreviewCakesRes>
+
   func createFilling(
     _ request: CreateFillingRequest,
     callOptions: CallOptions?
@@ -113,6 +118,24 @@ extension CakeServiceClientProtocol {
       request: request,
       callOptions: callOptions ?? self.defaultCallOptions,
       interceptors: self.interceptors?.makeCakesInterceptors() ?? []
+    )
+  }
+
+  /// Unary call to CategoryPreviewCakes
+  ///
+  /// - Parameters:
+  ///   - request: Request to send to CategoryPreviewCakes.
+  ///   - callOptions: Call options.
+  /// - Returns: A `UnaryCall` with futures for the metadata, status and response.
+  internal func categoryPreviewCakes(
+    _ request: CategoryPreviewCakesReq,
+    callOptions: CallOptions? = nil
+  ) -> UnaryCall<CategoryPreviewCakesReq, CategoryPreviewCakesRes> {
+    return self.makeUnaryCall(
+      path: CakeServiceClientMetadata.Methods.categoryPreviewCakes.path,
+      request: request,
+      callOptions: callOptions ?? self.defaultCallOptions,
+      interceptors: self.interceptors?.makeCategoryPreviewCakesInterceptors() ?? []
     )
   }
 
@@ -284,6 +307,11 @@ internal protocol CakeServiceAsyncClientProtocol: GRPCClient {
     callOptions: CallOptions?
   ) -> GRPCAsyncUnaryCall<SwiftProtobuf.Google_Protobuf_Empty, CakesResponse>
 
+  func makeCategoryPreviewCakesCall(
+    _ request: CategoryPreviewCakesReq,
+    callOptions: CallOptions?
+  ) -> GRPCAsyncUnaryCall<CategoryPreviewCakesReq, CategoryPreviewCakesRes>
+
   func makeCreateFillingCall(
     _ request: CreateFillingRequest,
     callOptions: CallOptions?
@@ -353,6 +381,18 @@ extension CakeServiceAsyncClientProtocol {
       request: request,
       callOptions: callOptions ?? self.defaultCallOptions,
       interceptors: self.interceptors?.makeCakesInterceptors() ?? []
+    )
+  }
+
+  internal func makeCategoryPreviewCakesCall(
+    _ request: CategoryPreviewCakesReq,
+    callOptions: CallOptions? = nil
+  ) -> GRPCAsyncUnaryCall<CategoryPreviewCakesReq, CategoryPreviewCakesRes> {
+    return self.makeAsyncUnaryCall(
+      path: CakeServiceClientMetadata.Methods.categoryPreviewCakes.path,
+      request: request,
+      callOptions: callOptions ?? self.defaultCallOptions,
+      interceptors: self.interceptors?.makeCategoryPreviewCakesInterceptors() ?? []
     )
   }
 
@@ -455,6 +495,18 @@ extension CakeServiceAsyncClientProtocol {
     )
   }
 
+  internal func categoryPreviewCakes(
+    _ request: CategoryPreviewCakesReq,
+    callOptions: CallOptions? = nil
+  ) async throws -> CategoryPreviewCakesRes {
+    return try await self.performAsyncUnaryCall(
+      path: CakeServiceClientMetadata.Methods.categoryPreviewCakes.path,
+      request: request,
+      callOptions: callOptions ?? self.defaultCallOptions,
+      interceptors: self.interceptors?.makeCategoryPreviewCakesInterceptors() ?? []
+    )
+  }
+
   internal func createFilling(
     _ request: CreateFillingRequest,
     callOptions: CallOptions? = nil
@@ -544,6 +596,9 @@ internal protocol CakeServiceClientInterceptorFactoryProtocol: Sendable {
   /// - Returns: Interceptors to use when invoking 'cakes'.
   func makeCakesInterceptors() -> [ClientInterceptor<SwiftProtobuf.Google_Protobuf_Empty, CakesResponse>]
 
+  /// - Returns: Interceptors to use when invoking 'categoryPreviewCakes'.
+  func makeCategoryPreviewCakesInterceptors() -> [ClientInterceptor<CategoryPreviewCakesReq, CategoryPreviewCakesRes>]
+
   /// - Returns: Interceptors to use when invoking 'createFilling'.
   func makeCreateFillingInterceptors() -> [ClientInterceptor<CreateFillingRequest, CreateFillingResponse>]
 
@@ -568,6 +623,7 @@ internal enum CakeServiceClientMetadata {
       CakeServiceClientMetadata.Methods.createCake,
       CakeServiceClientMetadata.Methods.cake,
       CakeServiceClientMetadata.Methods.cakes,
+      CakeServiceClientMetadata.Methods.categoryPreviewCakes,
       CakeServiceClientMetadata.Methods.createFilling,
       CakeServiceClientMetadata.Methods.fillings,
       CakeServiceClientMetadata.Methods.createCategory,
@@ -592,6 +648,12 @@ internal enum CakeServiceClientMetadata {
     internal static let cakes = GRPCMethodDescriptor(
       name: "Cakes",
       path: "/CakeService/Cakes",
+      type: GRPCCallType.unary
+    )
+
+    internal static let categoryPreviewCakes = GRPCMethodDescriptor(
+      name: "CategoryPreviewCakes",
+      path: "/CakeService/CategoryPreviewCakes",
       type: GRPCCallType.unary
     )
 
@@ -636,6 +698,8 @@ internal protocol CakeServiceProvider: CallHandlerProvider {
   func cake(request: CakeRequest, context: StatusOnlyCallContext) -> EventLoopFuture<CakeResponse>
 
   func cakes(request: SwiftProtobuf.Google_Protobuf_Empty, context: StatusOnlyCallContext) -> EventLoopFuture<CakesResponse>
+
+  func categoryPreviewCakes(request: CategoryPreviewCakesReq, context: StatusOnlyCallContext) -> EventLoopFuture<CategoryPreviewCakesRes>
 
   func createFilling(request: CreateFillingRequest, context: StatusOnlyCallContext) -> EventLoopFuture<CreateFillingResponse>
 
@@ -685,6 +749,15 @@ extension CakeServiceProvider {
         responseSerializer: ProtobufSerializer<CakesResponse>(),
         interceptors: self.interceptors?.makeCakesInterceptors() ?? [],
         userFunction: self.cakes(request:context:)
+      )
+
+    case "CategoryPreviewCakes":
+      return UnaryServerHandler(
+        context: context,
+        requestDeserializer: ProtobufDeserializer<CategoryPreviewCakesReq>(),
+        responseSerializer: ProtobufSerializer<CategoryPreviewCakesRes>(),
+        interceptors: self.interceptors?.makeCategoryPreviewCakesInterceptors() ?? [],
+        userFunction: self.categoryPreviewCakes(request:context:)
       )
 
     case "CreateFilling":
@@ -759,6 +832,11 @@ internal protocol CakeServiceAsyncProvider: CallHandlerProvider, Sendable {
     context: GRPCAsyncServerCallContext
   ) async throws -> CakesResponse
 
+  func categoryPreviewCakes(
+    request: CategoryPreviewCakesReq,
+    context: GRPCAsyncServerCallContext
+  ) async throws -> CategoryPreviewCakesRes
+
   func createFilling(
     request: CreateFillingRequest,
     context: GRPCAsyncServerCallContext
@@ -831,6 +909,15 @@ extension CakeServiceAsyncProvider {
         wrapping: { try await self.cakes(request: $0, context: $1) }
       )
 
+    case "CategoryPreviewCakes":
+      return GRPCAsyncServerHandler(
+        context: context,
+        requestDeserializer: ProtobufDeserializer<CategoryPreviewCakesReq>(),
+        responseSerializer: ProtobufSerializer<CategoryPreviewCakesRes>(),
+        interceptors: self.interceptors?.makeCategoryPreviewCakesInterceptors() ?? [],
+        wrapping: { try await self.categoryPreviewCakes(request: $0, context: $1) }
+      )
+
     case "CreateFilling":
       return GRPCAsyncServerHandler(
         context: context,
@@ -896,6 +983,10 @@ internal protocol CakeServiceServerInterceptorFactoryProtocol: Sendable {
   ///   Defaults to calling `self.makeInterceptors()`.
   func makeCakesInterceptors() -> [ServerInterceptor<SwiftProtobuf.Google_Protobuf_Empty, CakesResponse>]
 
+  /// - Returns: Interceptors to use when handling 'categoryPreviewCakes'.
+  ///   Defaults to calling `self.makeInterceptors()`.
+  func makeCategoryPreviewCakesInterceptors() -> [ServerInterceptor<CategoryPreviewCakesReq, CategoryPreviewCakesRes>]
+
   /// - Returns: Interceptors to use when handling 'createFilling'.
   ///   Defaults to calling `self.makeInterceptors()`.
   func makeCreateFillingInterceptors() -> [ServerInterceptor<CreateFillingRequest, CreateFillingResponse>]
@@ -925,6 +1016,7 @@ internal enum CakeServiceServerMetadata {
       CakeServiceServerMetadata.Methods.createCake,
       CakeServiceServerMetadata.Methods.cake,
       CakeServiceServerMetadata.Methods.cakes,
+      CakeServiceServerMetadata.Methods.categoryPreviewCakes,
       CakeServiceServerMetadata.Methods.createFilling,
       CakeServiceServerMetadata.Methods.fillings,
       CakeServiceServerMetadata.Methods.createCategory,
@@ -949,6 +1041,12 @@ internal enum CakeServiceServerMetadata {
     internal static let cakes = GRPCMethodDescriptor(
       name: "Cakes",
       path: "/CakeService/Cakes",
+      type: GRPCCallType.unary
+    )
+
+    internal static let categoryPreviewCakes = GRPCMethodDescriptor(
+      name: "CategoryPreviewCakes",
+      path: "/CakeService/CategoryPreviewCakes",
       type: GRPCCallType.unary
     )
 
