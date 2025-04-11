@@ -2,18 +2,15 @@ package jwt
 
 import (
 	"2025_CakeLand_API/internal/models"
+	"2025_CakeLand_API/internal/models/errs"
+	"2025_CakeLand_API/internal/pkg/domains"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/pkg/errors"
 	"os"
 	"time"
 )
 
-type JWTClaimsKeys string
-
 const (
-	KeyUserIDClaim JWTClaimsKeys = "userID"
-	KeyEpxClaim    JWTClaimsKeys = "exp"
-
 	refreshTokenLifeSpan = 7 * 24 * time.Hour // Срок действия 7 дней
 	accessTokenLifeSpan  = 15 * time.Minute   // Срок действия 15 минут
 )
@@ -55,7 +52,7 @@ func (t *Tokenator) IsTokenExpired(tokenString string, isRefresh bool) (bool, er
 		return false, err
 	}
 
-	if exp, ok := claims[string(KeyEpxClaim)].(float64); ok {
+	if exp, ok := claims[string(domains.KeyEpxClaim)].(float64); ok {
 		expirationTime := time.Unix(int64(exp), 0)
 		// Проверяем, истёк ли токен
 		if time.Now().After(expirationTime) {
@@ -83,7 +80,7 @@ func (t *Tokenator) GetUserIDFromToken(tokenString string, isRefresh bool) (stri
 	}
 
 	// Получает exp
-	exp, ok := claims[string(KeyEpxClaim)].(float64)
+	exp, ok := claims[domains.KeyEpxClaim.String()].(float64)
 	if !ok {
 		return "", models.ErrExpMissingInToken
 	}
@@ -95,7 +92,7 @@ func (t *Tokenator) GetUserIDFromToken(tokenString string, isRefresh bool) (stri
 	}
 
 	// Достаём userID если токен не протух
-	userID, ok := claims[string(KeyUserIDClaim)].(string)
+	userID, ok := claims[domains.KeyUserIDClaim.String()].(string)
 	if !ok {
 		return "", models.ErrUserIDMissingInToken
 	}
@@ -106,8 +103,8 @@ func (t *Tokenator) GetUserIDFromToken(tokenString string, isRefresh bool) (stri
 func generateToken(userUID string, duration time.Duration, sign []byte) (*models.JWTTokenPayload, error) {
 	tokenExpiryTime := time.Now().Add(duration)
 	claims := jwt.MapClaims{
-		string(KeyUserIDClaim): userUID,
-		string(KeyEpxClaim):    tokenExpiryTime.Unix(),
+		domains.KeyUserIDClaim.String(): userUID,
+		domains.KeyEpxClaim.String():    tokenExpiryTime.Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(sign)
@@ -126,18 +123,18 @@ func getTokenClaims(tokenString string, secret []byte) (jwt.MapClaims, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		// Проверка метода подписи
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.Errorf("unexpected signing method: %v", token.Header["alg"])
+			return nil, errs.ErrUnexpectedSignInMethod
 		}
 		return secret, nil
 	})
 	if err != nil {
-		return nil, errors.Errorf("error parsing token: %v", err)
+		return nil, errors.Wrap(errs.ErrParsingToken, err.Error())
 	}
 
 	// Извлечение claims и валидация токена
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok || !token.Valid {
-		return nil, errors.New("invalid token or claims")
+		return nil, errs.ErrInvalidTokenOrClaims
 	}
 
 	return claims, nil

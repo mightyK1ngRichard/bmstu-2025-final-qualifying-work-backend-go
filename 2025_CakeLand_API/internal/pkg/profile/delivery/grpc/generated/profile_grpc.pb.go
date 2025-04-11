@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -26,7 +27,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ProfileServiceClient interface {
-	GetUserInfo(ctx context.Context, in *GetUserInfoReq, opts ...grpc.CallOption) (*GetUserInfoRes, error)
+	GetUserInfo(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetUserInfoRes, error)
 }
 
 type profileServiceClient struct {
@@ -37,7 +38,7 @@ func NewProfileServiceClient(cc grpc.ClientConnInterface) ProfileServiceClient {
 	return &profileServiceClient{cc}
 }
 
-func (c *profileServiceClient) GetUserInfo(ctx context.Context, in *GetUserInfoReq, opts ...grpc.CallOption) (*GetUserInfoRes, error) {
+func (c *profileServiceClient) GetUserInfo(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetUserInfoRes, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetUserInfoRes)
 	err := c.cc.Invoke(ctx, ProfileService_GetUserInfo_FullMethodName, in, out, cOpts...)
@@ -51,7 +52,7 @@ func (c *profileServiceClient) GetUserInfo(ctx context.Context, in *GetUserInfoR
 // All implementations must embed UnimplementedProfileServiceServer
 // for forward compatibility.
 type ProfileServiceServer interface {
-	GetUserInfo(context.Context, *GetUserInfoReq) (*GetUserInfoRes, error)
+	GetUserInfo(context.Context, *emptypb.Empty) (*GetUserInfoRes, error)
 	mustEmbedUnimplementedProfileServiceServer()
 }
 
@@ -62,7 +63,7 @@ type ProfileServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedProfileServiceServer struct{}
 
-func (UnimplementedProfileServiceServer) GetUserInfo(context.Context, *GetUserInfoReq) (*GetUserInfoRes, error) {
+func (UnimplementedProfileServiceServer) GetUserInfo(context.Context, *emptypb.Empty) (*GetUserInfoRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserInfo not implemented")
 }
 func (UnimplementedProfileServiceServer) mustEmbedUnimplementedProfileServiceServer() {}
@@ -87,7 +88,7 @@ func RegisterProfileServiceServer(s grpc.ServiceRegistrar, srv ProfileServiceSer
 }
 
 func _ProfileService_GetUserInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetUserInfoReq)
+	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -99,7 +100,7 @@ func _ProfileService_GetUserInfo_Handler(srv interface{}, ctx context.Context, d
 		FullMethod: ProfileService_GetUserInfo_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ProfileServiceServer).GetUserInfo(ctx, req.(*GetUserInfoReq))
+		return srv.(ProfileServiceServer).GetUserInfo(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }

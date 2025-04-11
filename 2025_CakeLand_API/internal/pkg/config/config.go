@@ -20,8 +20,10 @@ type Config struct {
 }
 
 type GRPCConfig struct {
-	Port    int           `yaml:"port"`
-	Timeout time.Duration `yaml:"timeout"`
+	CakePort    int           `yaml:"cakePort"`
+	AuthPort    int           `yaml:"authPort"`
+	ProfilePort int           `yaml:"profilePort"`
+	Timeout     time.Duration `yaml:"timeout"`
 }
 
 type DatabaseConfig struct {

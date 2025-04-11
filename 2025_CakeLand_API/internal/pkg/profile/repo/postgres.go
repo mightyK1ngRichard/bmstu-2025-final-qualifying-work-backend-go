@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	querySelectProfileByID   = `SELECT id, fio, address, nickname, header_image_url, image_url, mail, password_hash, phone, card_number, refresh_tokens_map FROM "user" WHERE id = $1 LIMIT 1`
+	querySelectProfileByID   = `SELECT id, fio, address, nickname, header_image_url, image_url, mail, phone, card_number FROM "user" WHERE id = $1 LIMIT 1`
 	querySelectCakesByUserID = `
 		SELECT id,
 			   name,
@@ -48,10 +48,8 @@ func (r *ProfileRepository) UserInfo(ctx context.Context, userID uuid.UUID) (*dt
 		&user.HeaderImageURL,
 		&user.ImageURL,
 		&user.Mail,
-		&user.PasswordHash,
 		&user.Phone,
 		&user.CardNumber,
-		&user.RefreshTokensMap,
 	); err != nil {
 		return nil, err
 	}
@@ -59,16 +57,16 @@ func (r *ProfileRepository) UserInfo(ctx context.Context, userID uuid.UUID) (*dt
 	return &user, nil
 }
 
-func (r *ProfileRepository) CakesByUserID(ctx context.Context, userID uuid.UUID) ([]cakeDto.PreviewCake, error) {
+func (r *ProfileRepository) CakesByUserID(ctx context.Context, userID uuid.UUID) ([]cakeDto.PreviewCakeDB, error) {
 	rows, err := r.db.QueryContext(ctx, querySelectCakesByUserID, userID)
 	if err != nil {
 		return nil, err
 	}
 
 	defer rows.Close()
-	var cakes []cakeDto.PreviewCake
+	var cakes []cakeDto.PreviewCakeDB
 	for rows.Next() {
-		var previewCake cakeDto.PreviewCake
+		var previewCake cakeDto.PreviewCakeDB
 		if err = rows.Scan(
 			&previewCake.ID,
 			&previewCake.Name,

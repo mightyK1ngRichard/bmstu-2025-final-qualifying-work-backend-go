@@ -51,7 +51,7 @@ func run() error {
 	}
 
 	// Создаём grpc сервис
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.GRPC.Port))
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.GRPC.CakePort))
 	if err != nil {
 		return err
 	}
@@ -66,6 +66,6 @@ func run() error {
 	mdProvider := md.NewMetadataProvider()
 	handler := cake.NewCakeHandler(l, useCase, mdProvider)
 	generated.RegisterCakeServiceServer(grpcServer, handler)
-	l.Info("Starting gRPC cake service", slog.String("port", fmt.Sprintf(":%d", conf.GRPC.Port)))
+	l.Info("Starting gRPC cake service", slog.String("port", fmt.Sprintf(":%d", conf.GRPC.CakePort)))
 	return grpcServer.Serve(listener)
 }

@@ -1,5 +1,8 @@
 run:
-	go run cmd/cake/main.go
+	go run cmd/cake/main.go & \
+    	go run cmd/profile/main.go & \
+    	go run cmd/auth/main.go & \
+    	wait
 
 tests:
 	go test -v -p 2 \

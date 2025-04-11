@@ -11,18 +11,18 @@ import (
 )
 
 type PreviewCake struct {
-	ID              uuid.UUID   `db:"id"`
-	Name            string      `db:"name"`
-	PreviewImageURL string      `db:"image_url"`
-	KgPrice         float64     `db:"kg_price"`
-	Rating          uint        `db:"rating"`
-	Description     null.String `db:"description"`
-	Mass            float64     `db:"mass"`
-	DiscountKgPrice null.Float  `db:"discount_kg_price"`
-	DiscountEndTime null.Time   `db:"discount_end_time"`
-	DateCreation    time.Time   `db:"date_creation"`
-	IsOpenForSale   bool        `db:"is_open_for_sale"`
-	OwnerID         uuid.UUID   `db:"owner_id"`
+	ID              uuid.UUID
+	Name            string
+	PreviewImageURL string
+	KgPrice         float64
+	Rating          uint
+	Description     null.String
+	Mass            float64
+	DiscountKgPrice null.Float
+	DiscountEndTime null.Time
+	DateCreation    time.Time
+	IsOpenForSale   bool
+	Owner           Owner
 }
 
 func (pc PreviewCake) ConvertToGrpcModel() *generated.PreviewCake {
@@ -53,6 +53,38 @@ func (pc PreviewCake) ConvertToGrpcModel() *generated.PreviewCake {
 		DiscountEndTime: discountEndTime,
 		DateCreation:    timestamppb.New(pc.DateCreation),
 		IsOpenForSale:   pc.IsOpenForSale,
-		OwnerId:         pc.OwnerID.String(),
+		Owner:           pc.Owner.ConvertToGrpcUser(),
+	}
+}
+
+type PreviewCakeDB struct {
+	ID              uuid.UUID
+	Name            string
+	PreviewImageURL string
+	KgPrice         float64
+	Rating          uint
+	Description     null.String
+	Mass            float64
+	DiscountKgPrice null.Float
+	DiscountEndTime null.Time
+	DateCreation    time.Time
+	IsOpenForSale   bool
+	OwnerID         uuid.UUID
+}
+
+func (pc *PreviewCakeDB) ConvertToPreviewCake(owner Owner) PreviewCake {
+	return PreviewCake{
+		ID:              pc.ID,
+		Name:            pc.Name,
+		PreviewImageURL: pc.PreviewImageURL,
+		KgPrice:         pc.KgPrice,
+		Rating:          pc.Rating,
+		Description:     pc.Description,
+		Mass:            pc.Mass,
+		DiscountKgPrice: pc.DiscountKgPrice,
+		DiscountEndTime: pc.DiscountEndTime,
+		DateCreation:    pc.DateCreation,
+		IsOpenForSale:   pc.IsOpenForSale,
+		Owner:           owner,
 	}
 }

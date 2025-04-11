@@ -180,7 +180,7 @@ func (u *CakeUseсase) CategoryIDsByGenderName(ctx context.Context, genTag model
 	return categories, nil
 }
 
-func (u *CakeUseсase) CategoryPreviewCakes(ctx context.Context, categoryID uuid.UUID) ([]dto.PreviewCake, error) {
+func (u *CakeUseсase) CategoryPreviewCakes(ctx context.Context, categoryID uuid.UUID) ([]*dto.PreviewCake, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -191,7 +191,7 @@ func (u *CakeUseсase) CategoryPreviewCakes(ctx context.Context, categoryID uuid
 	}
 
 	// Получаем данные тортов по id
-	previewCakes := make([]dto.PreviewCake, len(cakeIDs))
+	previewCakes := make([]*dto.PreviewCake, len(cakeIDs))
 	mu := &sync.Mutex{}
 	wg := &sync.WaitGroup{}
 	errCh := make(chan error, 1)
@@ -214,7 +214,7 @@ func (u *CakeUseсase) CategoryPreviewCakes(ctx context.Context, categoryID uuid
 			}
 
 			mu.Lock()
-			previewCakes[i] = *previewCake
+			previewCakes[i] = previewCake
 			mu.Unlock()
 		}()
 	}

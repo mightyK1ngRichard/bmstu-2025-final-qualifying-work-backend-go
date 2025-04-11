@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	dto2 "2025_CakeLand_API/internal/pkg/cake/dto"
 	"2025_CakeLand_API/internal/pkg/minio"
 	"2025_CakeLand_API/internal/pkg/profile"
 	"2025_CakeLand_API/internal/pkg/profile/dto"
@@ -47,8 +48,11 @@ func (u *ProfileUseсase) UserInfo(ctx context.Context, accessToken string) (*dt
 		return nil, err
 	}
 
-	var userInfo dto.UserInfo
-	mu := sync.Mutex{}
+	//var userInfo dto.UserInfo
+	var (
+		dbCakes []dto2.PreviewCakeDB
+		user    *dto.Profile
+	)
 	wg := sync.WaitGroup{}
 	errChan := make(chan error, 1)
 	wg.Add(2)
@@ -70,9 +74,7 @@ func (u *ProfileUseсase) UserInfo(ctx context.Context, accessToken string) (*dt
 			return
 		}
 
-		mu.Lock()
-		userInfo.User = *profileDB
-		mu.Unlock()
+		user = profileDB
 	}()
 
 	// Получаем тортики пользователя
@@ -82,7 +84,7 @@ func (u *ProfileUseсase) UserInfo(ctx context.Context, accessToken string) (*dt
 			return
 		}
 
-		previewCakes, err := u.repo.CakesByUserID(ctx, userID)
+		dbPreviewCakes, err := u.repo.CakesByUserID(ctx, userID)
 		if err != nil {
 			trySendError(err, errChan, cancel)
 			return
@@ -92,9 +94,7 @@ func (u *ProfileUseсase) UserInfo(ctx context.Context, accessToken string) (*dt
 			return
 		}
 
-		mu.Lock()
-		userInfo.Cakes = previewCakes
-		mu.Unlock()
+		dbCakes = dbPreviewCakes
 	}()
 
 	go func() {
@@ -106,6 +106,15 @@ func (u *ProfileUseсase) UserInfo(ctx context.Context, accessToken string) (*dt
 		return nil, err
 	}
 
+	cakes := make([]dto2.PreviewCake, len(dbCakes))
+	owner := user.ConvertToOwner()
+	for i, cake := range dbCakes {
+		cakes[i] = cake.ConvertToPreviewCake(owner)
+	}
+	userInfo := dto.UserInfo{
+		User:  *user,
+		Cakes: cakes,
+	}
 	return &userInfo, nil
 }
 

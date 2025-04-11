@@ -75,43 +75,70 @@ func NewImageStorageError(message string, err error) *ImageStorageError {
 	}
 }
 
-// HandleError обрабатывает ошибку и возвращает соответствующую gRPC ошибку с нужным кодом и сообщением.
+// HandleError обрабатывает ошибку и возвращает gRPC-статус с подходящим кодом и логированием.
 func HandleError(ctx context.Context, log *slog.Logger, err error, description string) error {
-	if err != nil {
-		// Обработка ошибки базы данных
-		var dbErr *DataBaseError
-		if errors.As(err, &dbErr) {
-			// Логируем ошибку с уровнем предупреждения
-			log.Log(ctx, slog.LevelWarn, "Database error", slog.String("description", description), slog.String("error", err.Error()))
-			return status.Error(codes.Internal, dbErr.Error())
-		}
-
-		// Обработка ошибки хранилища изображений
-		var imgErr *ImageStorageError
-		if errors.As(err, &imgErr) {
-			// Логируем ошибку с уровнем предупреждения
-			log.Log(ctx, slog.LevelWarn, "Image store error", slog.String("description", description), slog.String("error", err.Error()))
-			return status.Error(codes.Internal, imgErr.Error())
-		}
-
-		switch {
-		case errors.Is(err, errs.ErrNotFound):
-			log.Log(ctx, slog.LevelWarn, "Not found error", slog.String("description", description), slog.String("error", err.Error()))
-			return status.Error(codes.NotFound, err.Error())
-		case errors.Is(err, errs.ErrInvalidUUIDFormat):
-			log.Log(ctx, slog.LevelWarn, "Invalid UUID format", slog.String("description", description), slog.String("error", err.Error()))
-			return status.Error(codes.InvalidArgument, err.Error())
-		}
-
-		// Проверка на стандартные ошибки
-		if st, ok := status.FromError(err); ok {
-			return st.Err()
-		}
-
-		// Логируем неизвестную ошибку
-		log.Log(ctx, slog.LevelWarn, "Unknown error", slog.String("description", description), slog.String("error", err.Error()))
-		return status.Errorf(codes.Unknown, "Неизвестная ошибка: %v", err.Error())
+	if err == nil {
+		return nil
 	}
 
-	return nil
+	switch {
+	case isDatabaseError(err):
+		logGRPCError(ctx, log, "database_error", err, description)
+		return status.Error(codes.Internal, err.Error())
+
+	case isImageStorageError(err):
+		logGRPCError(ctx, log, "image_storage_error", err, description)
+		return status.Error(codes.Internal, err.Error())
+
+	case errors.Is(err, errs.ErrNotFound):
+		logGRPCError(ctx, log, "not_found", err, description)
+		return status.Error(codes.NotFound, err.Error())
+
+	case errors.Is(err, errs.ErrInvalidUUIDFormat):
+		logGRPCError(ctx, log, "invalid_uuid_format", err, description)
+		return status.Error(codes.InvalidArgument, err.Error())
+
+	case errors.Is(err, errs.ErrUnexpectedSignInMethod):
+		logGRPCError(ctx, log, "unexpected_signing_method", err, description)
+		return status.Error(codes.Unauthenticated, err.Error())
+
+	case errors.Is(err, errs.ErrInvalidTokenOrClaims):
+		logGRPCError(ctx, log, "invalid_token_or_claims", err, description)
+		return status.Error(codes.Unauthenticated, err.Error())
+
+	case errors.Is(err, errs.ErrParsingToken):
+		logGRPCError(ctx, log, "token_parsing", err, description)
+		return status.Error(codes.Unauthenticated, err.Error())
+	}
+
+	// Если это уже gRPC-ошибка — вернём как есть
+	if st, ok := status.FromError(err); ok {
+		return st.Err()
+	}
+
+	// Иначе — неизвестная ошибка
+	logGRPCError(ctx, log, "unknown_error", err, description)
+	return status.Errorf(codes.Unknown, "Неизвестная ошибка: %v", err.Error())
+}
+
+func isDatabaseError(err error) bool {
+	var dbErr *DataBaseError
+	return errors.As(err, &dbErr)
+}
+
+func isImageStorageError(err error) bool {
+	var imgErr *ImageStorageError
+	return errors.As(err, &imgErr)
+}
+
+// logGRPCError логирует gRPC-ошибку с единообразным форматом.
+func logGRPCError(ctx context.Context, log *slog.Logger, kind string, err error, description string) {
+	log.Log(
+		ctx,
+		slog.LevelWarn,
+		"grpc error",
+		slog.String("type", kind),
+		slog.String("description", description),
+		slog.String("error", err.Error()),
+	)
 }

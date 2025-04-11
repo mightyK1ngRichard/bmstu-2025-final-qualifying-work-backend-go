@@ -4,6 +4,13 @@
 // - protoc             v5.29.3
 // source: cake.proto
 
+//
+//protoc --go_out=./../internal/pkg/cake/delivery/grpc/generated \
+//--go-grpc_out=./../internal/pkg/cake/delivery/grpc/generated \
+//--go-grpc_opt=paths=source_relative \
+//--go_opt=paths=source_relative \
+//cake.proto
+
 package generated
 
 import (
@@ -20,15 +27,15 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CakeService_CreateCake_FullMethodName             = "/CakeService/CreateCake"
-	CakeService_Cake_FullMethodName                   = "/CakeService/Cake"
-	CakeService_Cakes_FullMethodName                  = "/CakeService/Cakes"
-	CakeService_CategoryPreviewCakes_FullMethodName   = "/CakeService/CategoryPreviewCakes"
-	CakeService_CreateFilling_FullMethodName          = "/CakeService/CreateFilling"
-	CakeService_Fillings_FullMethodName               = "/CakeService/Fillings"
-	CakeService_CreateCategory_FullMethodName         = "/CakeService/CreateCategory"
-	CakeService_Categories_FullMethodName             = "/CakeService/Categories"
-	CakeService_GetCategoryIDsByGender_FullMethodName = "/CakeService/GetCategoryIDsByGender"
+	CakeService_CreateCake_FullMethodName             = "/cake.CakeService/CreateCake"
+	CakeService_Cake_FullMethodName                   = "/cake.CakeService/Cake"
+	CakeService_Cakes_FullMethodName                  = "/cake.CakeService/Cakes"
+	CakeService_CategoryPreviewCakes_FullMethodName   = "/cake.CakeService/CategoryPreviewCakes"
+	CakeService_CreateFilling_FullMethodName          = "/cake.CakeService/CreateFilling"
+	CakeService_Fillings_FullMethodName               = "/cake.CakeService/Fillings"
+	CakeService_CreateCategory_FullMethodName         = "/cake.CakeService/CreateCategory"
+	CakeService_Categories_FullMethodName             = "/cake.CakeService/Categories"
+	CakeService_GetCategoryIDsByGender_FullMethodName = "/cake.CakeService/GetCategoryIDsByGender"
 )
 
 // CakeServiceClient is the client API for CakeService service.
@@ -381,7 +388,7 @@ func _CakeService_GetCategoryIDsByGender_Handler(srv interface{}, ctx context.Co
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var CakeService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "CakeService",
+	ServiceName: "cake.CakeService",
 	HandlerType: (*CakeServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

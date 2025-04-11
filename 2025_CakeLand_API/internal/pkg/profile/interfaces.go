@@ -13,5 +13,5 @@ type IProfileUsecase interface {
 
 type IProfileRepository interface {
 	UserInfo(context.Context, uuid.UUID) (*dto.Profile, error)
-	CakesByUserID(ctx context.Context, userID uuid.UUID) ([]cakeDto.PreviewCake, error)
+	CakesByUserID(ctx context.Context, userID uuid.UUID) ([]cakeDto.PreviewCakeDB, error)
 }

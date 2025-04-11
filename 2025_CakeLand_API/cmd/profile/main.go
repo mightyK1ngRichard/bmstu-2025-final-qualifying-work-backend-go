@@ -51,7 +51,7 @@ func run() error {
 	}
 
 	// Создаём grpc сервис
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.GRPC.Port))
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.GRPC.ProfilePort))
 	if err != nil {
 		return err
 	}
@@ -66,6 +66,6 @@ func run() error {
 	mdProvider := md.NewMetadataProvider()
 	handler := handler2.NewProfileHandler(l, usecase, mdProvider)
 	generated.RegisterProfileServiceServer(grpcServer, handler)
-	l.Info("Starting gRPC profile service", slog.String("port", fmt.Sprintf(":%d", conf.GRPC.Port)))
+	l.Info("Starting gRPC profile service", slog.String("port", fmt.Sprintf(":%d", conf.GRPC.ProfilePort)))
 	return grpcServer.Serve(listener)
 }

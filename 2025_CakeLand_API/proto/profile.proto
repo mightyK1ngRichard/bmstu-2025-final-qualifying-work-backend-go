@@ -1,5 +1,6 @@
 syntax = "proto3";
 
+import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
 import "cake.proto";
 
@@ -8,10 +9,6 @@ option go_package = "internal/pkg/profile/delivery/grpc/generated";
 
 /* ############### GetUserInfo ############### */
 
-message GetUserInfoReq {
-  string userID = 1;
-}
-
 message GetUserInfoRes {
   UserInfo userInfo = 1;
 }
@@ -19,7 +16,7 @@ message GetUserInfoRes {
 /* ############### ProfileService ############### */
 
 service ProfileService {
-  rpc GetUserInfo(GetUserInfoReq) returns (GetUserInfoRes);
+  rpc GetUserInfo(google.protobuf.Empty) returns (GetUserInfoRes);
 }
 
 message Profile {
@@ -30,10 +27,8 @@ message Profile {
   google.protobuf.StringValue image_url = 5;
   google.protobuf.StringValue header_image_url = 6;
   string mail = 7;
-  string password_hash = 8;
-  google.protobuf.StringValue phone = 9;
-  google.protobuf.StringValue card_number = 10;
-  map<string, string> refresh_tokens_map = 11;
+  google.protobuf.StringValue phone = 8;
+  google.protobuf.StringValue card_number = 9;
 }
 
 message UserInfo {

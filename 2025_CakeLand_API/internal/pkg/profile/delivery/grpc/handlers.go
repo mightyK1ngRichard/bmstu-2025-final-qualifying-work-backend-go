@@ -8,6 +8,7 @@ import (
 	"context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"log/slog"
 )
 
@@ -31,7 +32,7 @@ func NewProfileHandler(
 	}
 }
 
-func (h *GrpcProfileHandler) GetUserInfo(ctx context.Context, in *gen.GetUserInfoReq) (*gen.GetUserInfoRes, error) {
+func (h *GrpcProfileHandler) GetUserInfo(ctx context.Context, _ *emptypb.Empty) (*gen.GetUserInfoRes, error) {
 	// Получаем токен из метаданных
 	accessToken, err := h.mdProvider.GetValue(ctx, md.KeyAuthorization)
 	if err != nil {

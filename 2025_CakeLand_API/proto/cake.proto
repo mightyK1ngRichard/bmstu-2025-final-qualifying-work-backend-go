@@ -149,10 +149,14 @@ message Cake {
 
 // Информация о владельце
 message User {
-  string id = 1;                        // ID пользователя
-  google.protobuf.StringValue fio = 2;  // Полное имя
-  string nickname = 3;                  // Никнейм
-  string mail = 4;                      // Электронная почта
+  string id = 1;                                   // ID пользователя
+  google.protobuf.StringValue fio = 2;             // Полное имя
+  string nickname = 3;                             // Никнейм
+  string mail = 4;                                 // Электронная почта
+  google.protobuf.StringValue address = 5;         // Адрес
+  google.protobuf.StringValue phone = 6;           // Телефон
+  google.protobuf.StringValue imageURL = 7;        // Аватарка
+  google.protobuf.StringValue headerImageURL = 8;  // Шапка профиля
 }
 
 // Информация о начинке
@@ -192,5 +196,5 @@ message PreviewCake {
   google.protobuf.Timestamp discount_end_time = 9;  // Время окончания скидки (nullable)
   google.protobuf.Timestamp date_creation = 10;      // Время создания
   bool is_open_for_sale = 11;      // Продается ли
-  string owner_id = 12;            // ID владельца (UUID)
+  User owner = 12;                 // Владелец
 }

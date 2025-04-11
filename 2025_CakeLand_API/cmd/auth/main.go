@@ -42,7 +42,7 @@ func run() error {
 	}
 
 	// Создаём grpc сервис
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.GRPC.Port))
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.GRPC.AuthPort))
 	if err != nil {
 		return err
 	}
@@ -56,6 +56,6 @@ func run() error {
 	grpcAuthHandler := auth.NewGrpcAuthHandler(validator, authUsecase, mdProvider)
 
 	generated.RegisterAuthServer(grpcServer, grpcAuthHandler)
-	log.Info("Starting gRPC server", slog.String("port", fmt.Sprintf(":%d", conf.GRPC.Port)))
+	log.Info("Starting gRPC server", slog.String("port", fmt.Sprintf(":%d", conf.GRPC.AuthPort)))
 	return grpcServer.Serve(listener)
 }

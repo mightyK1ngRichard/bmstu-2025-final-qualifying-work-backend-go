@@ -62,15 +62,11 @@ func (r *AuthRepository) CreateUser(ctx context.Context, in dto.CreateUserReq) e
 func (r *AuthRepository) GetUserByEmail(ctx context.Context, in dto.GetUserByEmailReq) (*dto.GetUserByEmailRes, error) {
 	row := r.db.QueryRowContext(ctx, getUserByEmailCommand, in.Email)
 	var res dto.GetUserByEmailRes
-	var refreshTokensMap []byte
-	if err := row.Scan(&res.ID, &res.Email, &refreshTokensMap, &res.PasswordHash); err != nil {
+	if err := row.Scan(&res.ID, &res.Email, &res.RefreshTokensMap, &res.PasswordHash); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, models.ErrUserNotFound
 		}
 		return nil, errors.Wrap(err, "ошибка получения данных пользователя из базы данных")
-	}
-	if err := json.Unmarshal(refreshTokensMap, &res.RefreshTokensMap); err != nil {
-		return nil, errors.Wrapf(err, "ошибка декодирования JSON refreshTokensMap для пользователя с email %s", in.Email)
 	}
 
 	return &res, nil

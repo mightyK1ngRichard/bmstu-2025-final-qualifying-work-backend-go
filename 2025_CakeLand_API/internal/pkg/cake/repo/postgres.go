@@ -69,20 +69,28 @@ const (
 	queryCakesByGenderTag = `SELECT id, name, image_url, gender_tags FROM category WHERE $1 = ANY(gender_tags);`
 	queryCategoryCakesIDs = `SELECT cake_id FROM cake_category WHERE category_id = $1;`
 	queryPreviewCakeByID  = `
-		SELECT id,
-			   name,
-			   image_url,
-			   kg_price,
-			   rating,
-			   description,
-			   mass,
-			   discount_kg_price,
-			   discount_end_time,
-			   date_creation,
-			   is_open_for_sale,
-			   owner_id
-		FROM cake
-		WHERE id = $1;
+		SELECT c.id,
+			   c.name,
+			   c.image_url,
+			   c.kg_price,
+			   c.rating,
+			   c.description,
+			   c.mass,
+			   c.discount_kg_price,
+			   c.discount_end_time,
+			   c.date_creation,
+			   c.is_open_for_sale,
+			   u.id,
+			   u.fio,
+			   u.address,
+			   u.nickname,
+			   u.image_url,
+			   u.mail,
+			   u.phone,
+			   u.header_image_url
+		FROM cake c
+				 LEFT JOIN "user" u ON u.id = c.owner_id
+		WHERE c.id = $1
 	`
 )
 
@@ -465,25 +473,31 @@ func (r *CakeRepository) CategoryCakesIDs(ctx context.Context, categoryID uuid.U
 }
 
 func (r *CakeRepository) PreviewCakeByID(ctx context.Context, cakeID uuid.UUID) (*dto.PreviewCake, error) {
-	var dbPreviewCake dto.PreviewCake
+	var previewCake dto.PreviewCake
 	if err := r.db.QueryRowContext(ctx, queryPreviewCakeByID, cakeID).Scan(
-		&dbPreviewCake.ID,
-		&dbPreviewCake.Name,
-		&dbPreviewCake.PreviewImageURL,
-		&dbPreviewCake.KgPrice,
-		&dbPreviewCake.Rating,
-		&dbPreviewCake.Description,
-		&dbPreviewCake.Mass,
-		&dbPreviewCake.DiscountKgPrice,
-		&dbPreviewCake.DiscountEndTime,
-		&dbPreviewCake.DateCreation,
-		&dbPreviewCake.IsOpenForSale,
-		&dbPreviewCake.OwnerID,
+		&previewCake.ID,
+		&previewCake.Name,
+		&previewCake.PreviewImageURL,
+		&previewCake.KgPrice,
+		&previewCake.Rating,
+		&previewCake.Description,
+		&previewCake.Mass,
+		&previewCake.DiscountKgPrice,
+		&previewCake.DiscountEndTime,
+		&previewCake.DateCreation,
+		&previewCake.IsOpenForSale,
+		&previewCake.Owner.ID,
+		&previewCake.Owner.Address,
+		&previewCake.Owner.Nickname,
+		&previewCake.Owner.ImageURL,
+		&previewCake.Owner.Mail,
+		&previewCake.Owner.Phone,
+		&previewCake.Owner.HeaderImageURL,
 	); err != nil {
 		return nil, err
 	}
 
-	return &dbPreviewCake, nil
+	return &previewCake, nil
 }
 
 // Функция для преобразования map[uuid.UUID]Cake в []Cake

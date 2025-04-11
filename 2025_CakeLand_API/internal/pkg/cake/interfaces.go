@@ -17,7 +17,7 @@ type ICakeUsecase interface {
 	Fillings(context.Context) (*[]models.Filling, error)
 	Cakes(context.Context) (*[]models.Cake, error)
 	CategoryIDsByGenderName(context.Context, models.CategoryGender) ([]models.Category, error)
-	CategoryPreviewCakes(context.Context, uuid.UUID) ([]dto.PreviewCake, error)
+	CategoryPreviewCakes(context.Context, uuid.UUID) ([]*dto.PreviewCake, error)
 }
 
 type ICakeRepository interface {
