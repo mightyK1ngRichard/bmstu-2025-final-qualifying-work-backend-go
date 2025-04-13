@@ -6,15 +6,19 @@ import (
 	"2025_CakeLand_API/internal/pkg/cake/dto"
 	"context"
 	"database/sql"
-	"errors"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
+	"github.com/pkg/errors"
 	"sync"
 )
 
 const (
-	queryGetCakeCategories = `SELECT id, date_creation, category_id FROM cake_category WHERE cake_id = $1`
-	queryGetCakeByID       = `
+	queryGetCakeCategoriesIDs = `SELECT category_id FROM cake_category WHERE cake_id = $1`
+	queryGetCakeFillingsIDs   = `SELECT filling_id FROM cake_filling WHERE cake_id = $1`
+	queryGetFillingByID       = `SELECT id, name, image_url, content, kg_price, description FROM filling WHERE id = $1`
+	queryGetCategoryByID      = `SELECT id, name, image_url, gender_tags FROM category WHERE id = $1`
+	queryGetCakeImages        = `SELECT id, image_url FROM cake_images WHERE cake_id = $1`
+	queryGetCakeByID          = `
 		SELECT c.id,
 			   c.name,
 			   c.image_url,
@@ -116,7 +120,7 @@ func NewCakeRepository(db *sql.DB) *CakeRepository {
 func (r *CakeRepository) CakeByID(ctx context.Context, in dto.GetCakeReq) (*dto.GetCakeRes, error) {
 	var cake models.Cake
 	if err := r.db.QueryRowContext(ctx, queryGetCakeByID, in.CakeID).Scan(
-		&cake.ID, &cake.Name, &cake.KgPrice, &cake.Rating, &cake.Description,
+		&cake.ID, &cake.Name, &cake.PreviewImageURL, &cake.KgPrice, &cake.Rating, &cake.Description,
 		&cake.Mass, &cake.IsOpenForSale, &cake.DateCreation, &cake.DiscountKgPrice,
 		&cake.DiscountEndTime, &cake.Owner.ID, &cake.Owner.FIO, &cake.Owner.Address,
 		&cake.Owner.Nickname, &cake.Owner.ImageURL, &cake.Owner.Mail, &cake.Owner.Phone,
@@ -125,7 +129,7 @@ func (r *CakeRepository) CakeByID(ctx context.Context, in dto.GetCakeReq) (*dto.
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errs.ErrNotFound
 		}
-		return nil, err
+		return nil, errors.Wrap(err, "[Repo.CakeByID]")
 	}
 
 	return &dto.GetCakeRes{
@@ -133,26 +137,121 @@ func (r *CakeRepository) CakeByID(ctx context.Context, in dto.GetCakeReq) (*dto.
 	}, nil
 }
 
-func (r *CakeRepository) CakeFillings(ctx context.Context, cakeID uuid.UUID) (*models.CakeCategory, error) {
-	var cakeCategory models.CakeCategory
-	if err := r.db.QueryRowContext(ctx, queryGetCakeCategories, cakeID).Scan(
-		&cakeCategory.ID,
-		&cakeCategory.DateCreation,
-		&cakeCategory.CategoryID,
+func (r *CakeRepository) CakeCategoriesIDs(ctx context.Context, cakeID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := r.db.QueryContext(ctx, queryGetCakeCategoriesIDs, cakeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var ids []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err = rows.Scan(&id); err != nil {
+			return nil, errors.Wrap(err, "[Repo.CakeCategoriesIDs]")
+		}
+
+		ids = append(ids, id)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return ids, nil
+}
+
+func (r *CakeRepository) CakeFillingsIDs(ctx context.Context, cakeID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := r.db.QueryContext(ctx, queryGetCakeFillingsIDs, cakeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var ids []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err = rows.Scan(&id); err != nil {
+			return nil, errors.Wrap(err, "[Repo.CakeFillingsIDs]")
+		}
+
+		ids = append(ids, id)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return ids, nil
+}
+
+func (r *CakeRepository) FillingByID(ctx context.Context, fillingID uuid.UUID) (*models.Filling, error) {
+	var filling models.Filling
+	if err := r.db.QueryRowContext(ctx, queryGetFillingByID, fillingID).Scan(
+		&filling.ID,
+		&filling.Name,
+		&filling.ImageURL,
+		&filling.Content,
+		&filling.KgPrice,
+		&filling.Description,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errs.ErrNotFound
 		}
-		return nil, err
+
+		return nil, errors.Wrap(err, "[Repo.FillingByID]")
 	}
 
-	return &cakeCategory, nil
+	return &filling, nil
+}
+
+func (r *CakeRepository) CategoryByID(ctx context.Context, categoryID uuid.UUID) (*models.Category, error) {
+	var category models.Category
+	var genderTags pq.StringArray
+
+	if err := r.db.QueryRowContext(ctx, queryGetCategoryByID, categoryID).Scan(
+		&category.ID,
+		&category.Name,
+		&category.ImageURL,
+		&genderTags,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.ErrNotFound
+		}
+
+		return nil, errors.Wrap(err, "[Repo.CategoryByID]")
+	}
+
+	category.CategoryGenders = models.ParseGenderTags(genderTags)
+	return &category, nil
+}
+
+func (r *CakeRepository) CakeImages(ctx context.Context, cakeID uuid.UUID) ([]models.CakeImage, error) {
+	rows, err := r.db.QueryContext(ctx, queryGetCakeImages, cakeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var images []models.CakeImage
+	for rows.Next() {
+		var image models.CakeImage
+		if err = rows.Scan(&image.ID, &image.ImageURL); err != nil {
+			return nil, errors.Wrap(err, "[Repo.CakeImages]")
+		}
+
+		images = append(images, image)
+	}
+
+	return images, nil
 }
 
 func (r *CakeRepository) CreateCake(ctx context.Context, in dto.CreateCakeDBReq) error {
+	methodName := "[Repo.CreateCake]"
+
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return errors.Wrap(err, methodName)
 	}
 
 	// Создаём торт
@@ -162,7 +261,7 @@ func (r *CakeRepository) CreateCake(ctx context.Context, in dto.CreateCakeDBReq)
 	)
 	if err != nil {
 		_ = tx.Rollback()
-		return err
+		return errors.Wrap(err, methodName)
 	}
 
 	var wg sync.WaitGroup
@@ -212,14 +311,14 @@ func (r *CakeRepository) CreateCake(ctx context.Context, in dto.CreateCakeDBReq)
 	select {
 	case dbErr := <-errChan:
 		_ = tx.Rollback()
-		return dbErr
+		return errors.Wrap(dbErr, methodName)
 	case <-done:
 	}
 
 	// Фиксируем транзакцию
 	if err = tx.Commit(); err != nil {
 		_ = tx.Rollback()
-		return err
+		return errors.Wrap(err, methodName)
 	}
 
 	return nil
@@ -234,7 +333,7 @@ func (r *CakeRepository) CreateFilling(ctx context.Context, in models.Filling) e
 		in.KgPrice,
 		in.Description,
 	); err != nil {
-		return err
+		return errors.Wrap(err, "[Repo.CreateFilling]")
 	}
 
 	return nil
@@ -243,17 +342,19 @@ func (r *CakeRepository) CreateFilling(ctx context.Context, in models.Filling) e
 func (r *CakeRepository) CreateCategory(ctx context.Context, in *models.Category) error {
 	// TODO: Сделать добавление тегов
 	if _, err := r.db.ExecContext(ctx, queryCreateCategory, in.ID, in.Name, in.ImageURL); err != nil {
-		return err
+		return errors.Wrap(err, "[Repo.CreateCategory]")
 	}
 
 	return nil
 }
 
 func (r *CakeRepository) Categories(ctx context.Context) (*[]models.Category, error) {
+	methodName := "[Repo.Categories]"
+
 	rows, err := r.db.QueryContext(ctx, queryCategories)
 	defer rows.Close()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, methodName)
 	}
 
 	// Чтение результатов
@@ -261,40 +362,37 @@ func (r *CakeRepository) Categories(ctx context.Context) (*[]models.Category, er
 	for rows.Next() {
 		var (
 			category        models.Category
-			categoryGenders []string
+			categoryGenders pq.StringArray
 		)
 
 		if err = rows.Scan(
 			&category.ID,
 			&category.Name,
 			&category.ImageURL,
-			pq.Array(&categoryGenders),
+			&categoryGenders,
 		); err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, methodName)
 		}
 
-		// Преобразуем []string в []CategoryGender
-		category.CategoryGenders = make([]models.CategoryGender, 0, len(categoryGenders))
-		for _, g := range categoryGenders {
-			category.CategoryGenders = append(category.CategoryGenders, models.CategoryGender(g))
-		}
-
+		category.CategoryGenders = models.ParseGenderTags(categoryGenders)
 		categories = append(categories, category)
 	}
 
 	// Проверка на ошибки после завершения итерации
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, methodName)
 	}
 
 	return &categories, nil
 }
 
 func (r *CakeRepository) Fillings(ctx context.Context) (*[]models.Filling, error) {
+	methodName := "[Repo.Fillings]"
+
 	rows, err := r.db.QueryContext(ctx, queryFillings)
 	defer rows.Close()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, methodName)
 	}
 
 	// Чтение результатов
@@ -305,23 +403,25 @@ func (r *CakeRepository) Fillings(ctx context.Context) (*[]models.Filling, error
 			&filling.ID, &filling.Name, &filling.ImageURL,
 			&filling.Content, &filling.KgPrice, &filling.Description,
 		); err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, methodName)
 		}
 		fillings = append(fillings, filling)
 	}
 
 	// Проверка на ошибки после завершения итерации
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, methodName)
 	}
 
 	return &fillings, nil
 }
 
 func (r *CakeRepository) Cakes(ctx context.Context) (*[]models.Cake, error) {
+	methodName := "[Repo.Cakes]"
+
 	rows, err := r.db.QueryContext(ctx, queryGetCakes)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, methodName)
 	}
 	defer rows.Close()
 
@@ -341,13 +441,13 @@ func (r *CakeRepository) Cakes(ctx context.Context) (*[]models.Cake, error) {
 
 		// Чтение данных
 		if err = rows.Scan(
-			&cake.ID, &cake.Name, &cake.ImageURL, &cake.KgPrice, &cake.Rating, &cake.Description, &cake.Mass,
+			&cake.ID, &cake.Name, &cake.PreviewImageURL, &cake.KgPrice, &cake.Rating, &cake.Description, &cake.Mass,
 			&cake.IsOpenForSale, &cake.DateCreation, &cake.DiscountKgPrice, &cake.DiscountEndTime,
 			&owner.ID, &owner.FIO, &owner.Nickname, &owner.Mail,
 			&dbFilling.ID, &dbFilling.Name, &dbFilling.ImageURL, &dbFilling.Content, &dbFilling.KgPrice, &dbFilling.Description,
 			&dbCategory.ID, &dbCategory.Name, &dbCategory.ImageURL,
 		); err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, methodName)
 		}
 
 		filling = dbFilling.ConvertToFilling()
@@ -384,7 +484,7 @@ func (r *CakeRepository) Cakes(ctx context.Context) (*[]models.Cake, error) {
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, methodName)
 	}
 
 	cakeSlice := mapToSlice(cakes)
@@ -392,38 +492,47 @@ func (r *CakeRepository) Cakes(ctx context.Context) (*[]models.Cake, error) {
 }
 
 func (r *CakeRepository) CategoryIDsByGenderName(ctx context.Context, genderTag models.CategoryGender) ([]dto.DBCategory, error) {
+	methodName := "[Repo.CategoryIDsByGender]"
+
 	rows, err := r.db.QueryContext(ctx, queryCakesByGenderTag, genderTag)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, methodName)
 	}
 
 	defer rows.Close()
 	var categories []dto.DBCategory
 	for rows.Next() {
-		var category dto.DBCategory
+		var (
+			category   dto.DBCategory
+			genderTags pq.StringArray
+		)
+
 		if err = rows.Scan(
 			&category.ID,
 			&category.Name,
 			&category.ImageURL,
-			pq.Array(&category.CategoryGenders),
+			&genderTags,
 		); err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, methodName)
 		}
 
+		category.CategoryGenders = models.ParseGenderTags(genderTags)
 		categories = append(categories, category)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, methodName)
 	}
 
 	return categories, nil
 }
 
 func (r *CakeRepository) CategoryCakesIDs(ctx context.Context, categoryID uuid.UUID) ([]uuid.UUID, error) {
+	methodName := "[Repo.CategoryCakesID]"
+
 	rows, err := r.db.QueryContext(ctx, queryCategoryCakesIDs, categoryID)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, methodName)
 	}
 
 	defer rows.Close()
@@ -431,14 +540,14 @@ func (r *CakeRepository) CategoryCakesIDs(ctx context.Context, categoryID uuid.U
 	for rows.Next() {
 		var id uuid.UUID
 		if err = rows.Scan(&id); err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, methodName)
 		}
 
 		ids = append(ids, id)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, methodName)
 	}
 
 	return ids, nil
@@ -469,7 +578,7 @@ func (r *CakeRepository) PreviewCakeByID(ctx context.Context, cakeID uuid.UUID) 
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errs.ErrNotFound
 		}
-		return nil, err
+		return nil, errors.Wrap(err, "[Repo.PreviewCakeByID]")
 	}
 
 	return &previewCake, nil

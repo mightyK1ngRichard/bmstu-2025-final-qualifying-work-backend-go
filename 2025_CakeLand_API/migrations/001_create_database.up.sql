@@ -22,12 +22,12 @@ CREATE TABLE IF NOT EXISTS cake
     image_url         VARCHAR(200),
     kg_price          DOUBLE PRECISION                    NOT NULL,
     rating            INT       DEFAULT 0 CHECK (rating >= 0 AND rating <= 5),
-    description       TEXT,
-    mass              DOUBLE PRECISION,
+    description       TEXT                                NOT NULL,
+    mass              DOUBLE PRECISION                    NOT NULL,
     discount_kg_price DOUBLE PRECISION CHECK (discount_kg_price >= 0),
     discount_end_time TIMESTAMP,
     date_creation     TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    is_open_for_sale  BOOL,
+    is_open_for_sale  BOOL      DEFAULT true,
     owner_id          UUID                                NOT NULL,
     FOREIGN KEY (owner_id) REFERENCES "user" (id)
 );
@@ -61,9 +61,9 @@ CREATE TYPE category_gender AS ENUM ('male', 'female', 'child');
 CREATE TABLE IF NOT EXISTS category
 (
     id          UUID PRIMARY KEY,
-    name        VARCHAR(150) NOT NULL,
-    image_url   VARCHAR(200),
-    gender_tags category_gender[]
+    name        VARCHAR(150) UNIQUE NOT NULL,
+    image_url   VARCHAR(200)        NOT NULL,
+    gender_tags category_gender[] DEFAULT '{}'::category_gender[]
 );
 
 -- Категории торта (М-М)
@@ -82,10 +82,10 @@ CREATE TABLE IF NOT EXISTS filling
 (
     id          UUID PRIMARY KEY,
     name        VARCHAR(150)     NOT NULL,
-    image_url   VARCHAR(200),
-    content     TEXT,
+    image_url   VARCHAR(200)     NOT NULL,
+    content     TEXT             NOT NULL,
     kg_price    DOUBLE PRECISION NOT NULL,
-    description TEXT
+    description TEXT             NOT NULL
 );
 
 -- Начинки торта (М-М)

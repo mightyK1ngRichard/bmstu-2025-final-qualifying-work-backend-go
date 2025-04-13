@@ -8,9 +8,8 @@ import (
 	ms "2025_CakeLand_API/internal/pkg/minio"
 	"2025_CakeLand_API/internal/pkg/utils/jwt"
 	"context"
-	"sync"
-
 	"github.com/google/uuid"
+	"sync"
 )
 
 type CakeUseсase struct {
@@ -35,13 +34,149 @@ func NewCakeUsecase(
 }
 
 func (u *CakeUseсase) Cake(ctx context.Context, in dto.GetCakeReq) (*dto.GetCakeRes, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	res, err := u.repo.CakeByID(ctx, in)
 	if err != nil {
 		return nil, err
 	}
+	cakeInfo := res.Cake
+
+	wg := sync.WaitGroup{}
+	mu := sync.Mutex{}
+	errChan := make(chan error, 1)
+
+	wg.Add(3)
+
+	// Получаем категории торта
+	go func() {
+		defer wg.Done()
+		if ctx.Err() != nil {
+			return
+		}
+
+		ids, catIdsErr := u.repo.CakeCategoriesIDs(ctx, cakeInfo.ID)
+		if catIdsErr != nil {
+			trySendError(catIdsErr, errChan, cancel)
+			return
+		}
+
+		// Получаем информацию каждой категории
+		catMu := sync.Mutex{}
+		catWg := sync.WaitGroup{}
+
+		var cakeCategories []models.Category
+		for _, categoryID := range ids {
+			catWg.Add(1)
+			go func() {
+				defer catWg.Done()
+				if ctx.Err() != nil {
+					return
+				}
+
+				category, catErr := u.repo.CategoryByID(ctx, categoryID)
+				if catErr != nil {
+					trySendError(catErr, errChan, cancel)
+					return
+				}
+
+				catMu.Lock()
+				cakeCategories = append(cakeCategories, *category)
+				catMu.Unlock()
+			}()
+		}
+
+		catWg.Wait()
+		if ctx.Err() != nil {
+			return
+		}
+
+		mu.Lock()
+		cakeInfo.Categories = cakeCategories
+		mu.Unlock()
+	}()
+
+	// Получаем начинки торта
+	go func() {
+		defer wg.Done()
+		if ctx.Err() != nil {
+			return
+		}
+
+		ids, filIdsErr := u.repo.CakeFillingsIDs(ctx, cakeInfo.ID)
+		if filIdsErr != nil {
+			trySendError(filIdsErr, errChan, cancel)
+			return
+		}
+
+		// Получаем информацию каждой категории
+		filMu := sync.Mutex{}
+		filWg := sync.WaitGroup{}
+
+		var fillings []models.Filling
+		for _, fillingID := range ids {
+			filWg.Add(1)
+			go func() {
+				defer filWg.Done()
+				if ctx.Err() != nil {
+					return
+				}
+
+				filling, fillErr := u.repo.FillingByID(ctx, fillingID)
+				if fillErr != nil {
+					trySendError(fillErr, errChan, cancel)
+					return
+				}
+
+				filMu.Lock()
+				fillings = append(fillings, *filling)
+				filMu.Unlock()
+			}()
+		}
+
+		filWg.Wait()
+		if ctx.Err() != nil {
+			return
+		}
+
+		mu.Lock()
+		cakeInfo.Fillings = fillings
+		mu.Unlock()
+	}()
+
+	// Получаем фотографии торта
+	go func() {
+		defer wg.Done()
+		if ctx.Err() != nil {
+			return
+		}
+
+		images, imgErr := u.repo.CakeImages(ctx, cakeInfo.ID)
+		if imgErr != nil {
+			trySendError(imgErr, errChan, cancel)
+			return
+		}
+
+		if ctx.Err() != nil {
+			return
+		}
+		mu.Lock()
+		cakeInfo.Images = images
+		mu.Unlock()
+	}()
+
+	go func() {
+		wg.Wait()
+		close(errChan)
+	}()
+
+	if err = <-errChan; err != nil {
+		return nil, err
+	}
 
 	return &dto.GetCakeRes{
-		Cake: res.Cake,
+		Cake: cakeInfo,
 	}, nil
 }
 

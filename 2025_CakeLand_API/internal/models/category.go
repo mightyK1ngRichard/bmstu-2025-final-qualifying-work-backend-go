@@ -3,6 +3,7 @@ package models
 import (
 	"2025_CakeLand_API/internal/pkg/cake/delivery/grpc/generated"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 type CategoryGender string
@@ -13,19 +14,6 @@ const (
 	GenderChild       CategoryGender = "child"
 	GenderUnspecified CategoryGender = "unspecified"
 )
-
-func ConvertToCategoryGenderFromGrpc(categoryGen generated.CategoryGender) CategoryGender {
-	switch categoryGen {
-	case generated.CategoryGender_MALE:
-		return GenderMale
-	case generated.CategoryGender_FEMALE:
-		return GenderFemale
-	case generated.CategoryGender_CHILD:
-		return GenderChild
-	default:
-		return GenderUnspecified
-	}
-}
 
 func (c CategoryGender) ConvertToGRPCCategoryGender() generated.CategoryGender {
 	switch c {
@@ -40,6 +28,36 @@ func (c CategoryGender) ConvertToGRPCCategoryGender() generated.CategoryGender {
 	}
 }
 
+func ConvertToCategoryGenderFromGrpc(categoryGen generated.CategoryGender) CategoryGender {
+	switch categoryGen {
+	case generated.CategoryGender_MALE:
+		return GenderMale
+	case generated.CategoryGender_FEMALE:
+		return GenderFemale
+	case generated.CategoryGender_CHILD:
+		return GenderChild
+	default:
+		return GenderUnspecified
+	}
+}
+
+func ParseGenderTags(tags pq.StringArray) []CategoryGender {
+	genders := make([]CategoryGender, len(tags))
+	for i, tag := range tags {
+		switch tag {
+		case string(GenderMale):
+			genders[i] = GenderMale
+		case string(GenderFemale):
+			genders[i] = GenderFemale
+		case string(GenderChild):
+			genders[i] = GenderChild
+		case string(GenderUnspecified):
+			genders[i] = GenderUnspecified
+		}
+	}
+	return genders
+}
+
 // Category Модель категории
 type Category struct {
 	ID              uuid.UUID        // Код
@@ -50,11 +68,11 @@ type Category struct {
 
 func (c *Category) ConvertToCategoryGRPC() *generated.Category {
 	// Создаем пустой слайс для gender_tags
-	var genderTags []generated.CategoryGender
+	genderTags := make([]generated.CategoryGender, len(c.CategoryGenders))
 
 	// Заполняем слайс genderTags значениями из CategoryGenders
-	for _, gender := range c.CategoryGenders {
-		genderTags = append(genderTags, gender.ConvertToGRPCCategoryGender())
+	for i, gender := range c.CategoryGenders {
+		genderTags[i] = gender.ConvertToGRPCCategoryGender()
 	}
 
 	return &generated.Category{

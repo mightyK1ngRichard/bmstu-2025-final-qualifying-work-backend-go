@@ -22,9 +22,16 @@ type ICakeUsecase interface {
 
 type ICakeRepository interface {
 	CakeByID(context.Context, dto.GetCakeReq) (*dto.GetCakeRes, error)
+	CakeCategoriesIDs(context.Context, uuid.UUID) ([]uuid.UUID, error)
+	CakeFillingsIDs(context.Context, uuid.UUID) ([]uuid.UUID, error)
+	FillingByID(context.Context, uuid.UUID) (*models.Filling, error)
+	CategoryByID(context.Context, uuid.UUID) (*models.Category, error)
+	CakeImages(context.Context, uuid.UUID) ([]models.CakeImage, error)
+
 	CreateCake(context.Context, dto.CreateCakeDBReq) error
 	CreateFilling(context.Context, models.Filling) error
 	CreateCategory(context.Context, *models.Category) error
+
 	Categories(context.Context) (*[]models.Category, error)
 	Fillings(context.Context) (*[]models.Filling, error)
 	Cakes(context.Context) (*[]models.Cake, error)

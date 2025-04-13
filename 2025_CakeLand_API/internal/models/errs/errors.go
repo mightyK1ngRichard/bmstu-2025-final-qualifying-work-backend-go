@@ -30,48 +30,40 @@ func ConvertToGrpcError(ctx context.Context, log *slog.Logger, err error, descri
 		return nil
 	}
 
+	logGRPCError(ctx, log, err, description)
+
 	switch {
 	case errors.Is(err, ErrPreviewImageNotFound):
-		logGRPCError(ctx, log, err, description)
 		return status.Error(codes.Internal, fmt.Sprintf("%s: %v", description, err))
 
 	case errors.Is(err, ErrTokenIsExpired):
-		logGRPCError(ctx, log, err, description)
 		return status.Error(codes.Unauthenticated, fmt.Sprintf("%s: %v", description, err))
 
 	case errors.Is(err, ErrClaimIsMissing):
-		logGRPCError(ctx, log, err, description)
 		return status.Error(codes.Internal, fmt.Sprintf("%s: %v", description, err))
 
 	case errors.Is(err, ErrNotFound):
-		logGRPCError(ctx, log, err, description)
 		return status.Error(codes.NotFound, fmt.Sprintf("%s: %v", description, err))
 
 	case errors.Is(err, ErrAlreadyExists):
-		logGRPCError(ctx, log, err, description)
 		return status.Error(codes.AlreadyExists, fmt.Sprintf("%v: %s", err, description))
 
 	case errors.Is(err, ErrNoToken):
-		logGRPCError(ctx, log, err, description)
 		return status.Error(codes.Unauthenticated, "missing token")
 
 	case errors.Is(err, ErrInvalidPassword):
-		logGRPCError(ctx, log, err, description)
 		return status.Error(codes.InvalidArgument, "invalid email or password")
 
 	case errors.Is(err, ErrNoMetadata):
-		logGRPCError(ctx, log, err, description)
 		return status.Error(codes.InvalidArgument, fmt.Sprintf("%v: %s", err, description))
 
 	case errors.Is(err, ErrInvalidUUIDFormat),
 		errors.Is(err, ErrInvalidRefreshToken):
-		logGRPCError(ctx, log, err, description)
 		return status.Error(codes.InvalidArgument, fmt.Sprintf("%v: %s", err, description))
 
 	case errors.Is(err, ErrUnexpectedSignInMethod),
 		errors.Is(err, ErrInvalidTokenOrClaims),
 		errors.Is(err, ErrParsingToken):
-		logGRPCError(ctx, log, err, description)
 		return status.Error(codes.Unauthenticated, fmt.Sprintf("%v: %s", err, description))
 	}
 
@@ -81,8 +73,7 @@ func ConvertToGrpcError(ctx context.Context, log *slog.Logger, err error, descri
 	}
 
 	// Неизвестная ошибка
-	logGRPCError(ctx, log, err, description)
-	return status.Errorf(codes.Unknown, "%s: %v", description, err)
+	return status.Errorf(codes.Internal, "internal error")
 }
 
 func logGRPCError(ctx context.Context, log *slog.Logger, err error, description string) {

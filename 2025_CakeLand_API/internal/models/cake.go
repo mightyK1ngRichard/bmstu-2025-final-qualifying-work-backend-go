@@ -12,7 +12,7 @@ import (
 type Cake struct {
 	ID              uuid.UUID   // Код
 	Name            string      // Название
-	ImageURL        string      // Картинка товара
+	PreviewImageURL string      // Картинка товара
 	KgPrice         float64     // Цена за кг
 	Rating          int         // Рейтинг (от 0 до 5)
 	Description     string      // Описание
@@ -68,7 +68,7 @@ func (c *Cake) ConvertToCakeGRPC() *gen.Cake {
 	return &gen.Cake{
 		Id:              c.ID.String(),
 		Name:            c.Name,
-		ImageUrl:        c.ImageURL,
+		ImageUrl:        c.PreviewImageURL,
 		KgPrice:         c.KgPrice,
 		Rating:          int32(c.Rating),
 		Description:     c.Description,
