@@ -1,10 +1,12 @@
 package repo
 
 import (
+	"2025_CakeLand_API/internal/models/errs"
 	cakeDto "2025_CakeLand_API/internal/pkg/cake/dto"
 	"2025_CakeLand_API/internal/pkg/profile/dto"
 	"context"
 	"database/sql"
+	"errors"
 	"github.com/google/uuid"
 )
 
@@ -51,6 +53,9 @@ func (r *ProfileRepository) UserInfo(ctx context.Context, userID uuid.UUID) (*dt
 		&user.Phone,
 		&user.CardNumber,
 	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.ErrNotFound
+		}
 		return nil, err
 	}
 

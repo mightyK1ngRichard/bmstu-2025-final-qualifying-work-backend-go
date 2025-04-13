@@ -1,13 +1,13 @@
 package handler
 
 import (
-	"2025_CakeLand_API/internal/models"
+	"2025_CakeLand_API/internal/domains"
+	"2025_CakeLand_API/internal/models/errs"
 	"2025_CakeLand_API/internal/pkg/profile"
 	gen "2025_CakeLand_API/internal/pkg/profile/delivery/grpc/generated"
 	md "2025_CakeLand_API/internal/pkg/utils/metadata"
 	"context"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"fmt"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"log/slog"
 )
@@ -34,15 +34,14 @@ func NewProfileHandler(
 
 func (h *GrpcProfileHandler) GetUserInfo(ctx context.Context, _ *emptypb.Empty) (*gen.GetUserInfoRes, error) {
 	// Получаем токен из метаданных
-	accessToken, err := h.mdProvider.GetValue(ctx, md.KeyAuthorization)
+	accessToken, err := h.mdProvider.GetValue(ctx, domains.KeyAuthorization)
 	if err != nil {
-		h.log.Error(err.Error())
-		return nil, status.Error(codes.InvalidArgument, err.Error())
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, fmt.Sprintf("missing required metadata: %s", domains.KeyAuthorization))
 	}
 
 	userInfo, err := h.usecase.UserInfo(ctx, accessToken)
 	if err != nil {
-		return nil, models.HandleError(ctx, h.log, err, "failed to get user info")
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to fetch user info")
 	}
 
 	return &gen.GetUserInfoRes{

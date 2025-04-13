@@ -25,6 +25,21 @@ type PreviewCake struct {
 	Owner           Owner
 }
 
+type PreviewCakeDB struct {
+	ID              uuid.UUID
+	Name            string
+	PreviewImageURL string
+	KgPrice         float64
+	Rating          uint
+	Description     null.String
+	Mass            float64
+	DiscountKgPrice null.Float
+	DiscountEndTime null.Time
+	DateCreation    time.Time
+	IsOpenForSale   bool
+	OwnerID         uuid.UUID
+}
+
 func (pc PreviewCake) ConvertToGrpcModel() *generated.PreviewCake {
 	var description *wrappers.StringValue
 	if pc.Description.Valid {
@@ -55,21 +70,6 @@ func (pc PreviewCake) ConvertToGrpcModel() *generated.PreviewCake {
 		IsOpenForSale:   pc.IsOpenForSale,
 		Owner:           pc.Owner.ConvertToGrpcUser(),
 	}
-}
-
-type PreviewCakeDB struct {
-	ID              uuid.UUID
-	Name            string
-	PreviewImageURL string
-	KgPrice         float64
-	Rating          uint
-	Description     null.String
-	Mass            float64
-	DiscountKgPrice null.Float
-	DiscountEndTime null.Time
-	DateCreation    time.Time
-	IsOpenForSale   bool
-	OwnerID         uuid.UUID
 }
 
 func (pc *PreviewCakeDB) ConvertToPreviewCake(owner Owner) PreviewCake {

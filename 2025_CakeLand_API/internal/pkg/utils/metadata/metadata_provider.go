@@ -1,18 +1,11 @@
 package metadata
 
 import (
-	"2025_CakeLand_API/internal/models"
+	"2025_CakeLand_API/internal/domains"
+	"2025_CakeLand_API/internal/models/errs"
 	"context"
-	"fmt"
 	"google.golang.org/grpc/metadata"
 	"strings"
-)
-
-type MetadataKey string
-
-const (
-	KeyFingerprint   MetadataKey = "fingerprint"
-	KeyAuthorization MetadataKey = "authorization"
 )
 
 type MetadataProvider struct {
@@ -22,39 +15,40 @@ func NewMetadataProvider() *MetadataProvider {
 	return &MetadataProvider{}
 }
 
-func (m *MetadataProvider) GetValue(ctx context.Context, key MetadataKey) (string, error) {
+func (m *MetadataProvider) GetValue(ctx context.Context, key domains.MetadataKey) (string, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return "", fmt.Errorf("%w: %s", models.ErrNoMetadata, key)
+		return "", errs.ErrNoMetadata
 	}
 
-	val := md.Get(string(key))
+	val := md.Get(key.String())
 	if len(val) == 0 {
-		return "", fmt.Errorf("%w: %s", models.ErrNoMetadata, key)
+		return "", errs.ErrNoMetadata
 	}
 
 	// Если это Authorization заголовок, сохраняем токен без префикса
-	if key == KeyAuthorization {
+	if key == domains.KeyAuthorization {
 		return removeBearerPrefix(val[0]), nil
 	}
+
 	return val[0], nil
 }
 
-func (m *MetadataProvider) GetValues(ctx context.Context, keys ...MetadataKey) (map[MetadataKey]string, error) {
+func (m *MetadataProvider) GetValues(ctx context.Context, keys ...domains.MetadataKey) (map[domains.MetadataKey]string, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return nil, fmt.Errorf("%w: metadata is missing", models.ErrNoMetadata)
+		return nil, errs.ErrNoMetadata
 	}
 
-	values := make(map[MetadataKey]string)
+	values := make(map[domains.MetadataKey]string)
 	for _, key := range keys {
-		val := md.Get(string(key))
+		val := md.Get(key.String())
 		if len(val) == 0 {
-			return nil, fmt.Errorf("%w: missing value for key %s", models.ErrNoMetadata, key)
+			return nil, errs.ErrNoMetadata
 		}
 
 		// Если это Authorization заголовок, сохраняем токен без префикса
-		if key == KeyAuthorization {
+		if key == domains.KeyAuthorization {
 			values[key] = removeBearerPrefix(val[0])
 		} else {
 			values[key] = val[0]

@@ -3,7 +3,7 @@ package main
 import (
 	"2025_CakeLand_API/internal/pkg/config"
 	"2025_CakeLand_API/internal/pkg/minio"
-	handler2 "2025_CakeLand_API/internal/pkg/profile/delivery/grpc"
+	"2025_CakeLand_API/internal/pkg/profile/delivery/grpc"
 	"2025_CakeLand_API/internal/pkg/profile/delivery/grpc/generated"
 	"2025_CakeLand_API/internal/pkg/profile/repo"
 	"2025_CakeLand_API/internal/pkg/profile/usecase"
@@ -57,14 +57,14 @@ func run() error {
 	}
 
 	grpcServer := grpc.NewServer(
-		grpc.MaxRecvMsgSize(200*1024*1024), // 10MB для входящих сообщений
-		grpc.MaxSendMsgSize(200*1024*1024), // 10MB для исходящих сообщений
+		grpc.MaxRecvMsgSize(200*1024*1024), // 200MB для входящих сообщений
+		grpc.MaxSendMsgSize(200*1024*1024), // 200MB для исходящих сообщений
 	)
 	repository := repo.NewProfileRepository(db)
 	tokenator := jwt.NewTokenator()
-	usecase := usecase.NewProfileUsecase(l, tokenator, repository, minioProvider)
+	usecase := usecase.NewProfileUsecase(tokenator, repository, minioProvider)
 	mdProvider := md.NewMetadataProvider()
-	handler := handler2.NewProfileHandler(l, usecase, mdProvider)
+	handler := handler.NewProfileHandler(l, usecase, mdProvider)
 	generated.RegisterProfileServiceServer(grpcServer, handler)
 	l.Info("Starting gRPC profile service", slog.String("port", fmt.Sprintf(":%d", conf.GRPC.ProfilePort)))
 	return grpcServer.Serve(listener)

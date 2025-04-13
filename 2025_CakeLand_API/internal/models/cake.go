@@ -12,7 +12,7 @@ import (
 type Cake struct {
 	ID              uuid.UUID   // Код
 	Name            string      // Название
-	ImageURL        string      // Картинка
+	ImageURL        string      // Картинка товара
 	KgPrice         float64     // Цена за кг
 	Rating          int         // Рейтинг (от 0 до 5)
 	Description     string      // Описание

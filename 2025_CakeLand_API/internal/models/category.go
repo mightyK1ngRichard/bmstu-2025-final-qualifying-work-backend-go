@@ -14,19 +14,6 @@ const (
 	GenderUnspecified CategoryGender = "unspecified"
 )
 
-func ConvertToCategoryGender(categoryGenStr string) CategoryGender {
-	switch categoryGenStr {
-	case string(GenderMale):
-		return GenderMale
-	case string(GenderFemale):
-		return GenderFemale
-	case string(GenderChild):
-		return GenderChild
-	default:
-		return GenderUnspecified
-	}
-}
-
 func ConvertToCategoryGenderFromGrpc(categoryGen generated.CategoryGender) CategoryGender {
 	switch categoryGen {
 	case generated.CategoryGender_MALE:

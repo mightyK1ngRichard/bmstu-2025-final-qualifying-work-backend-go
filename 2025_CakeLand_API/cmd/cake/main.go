@@ -57,12 +57,12 @@ func run() error {
 	}
 
 	grpcServer := grpc.NewServer(
-		grpc.MaxRecvMsgSize(200*1024*1024), // 10MB для входящих сообщений
-		grpc.MaxSendMsgSize(200*1024*1024), // 10MB для исходящих сообщений
+		grpc.MaxRecvMsgSize(200*1024*1024), // 200MB для входящих сообщений
+		grpc.MaxSendMsgSize(200*1024*1024), // 200MB для исходящих сообщений
 	)
 	repository := repo.NewCakeRepository(db)
 	tokenator := jwt.NewTokenator()
-	useCase := usecase.NewCakeUsecase(l, tokenator, repository, minioProvider, conf.MinIO.Bucket)
+	useCase := usecase.NewCakeUsecase(tokenator, repository, minioProvider, conf.MinIO.Bucket)
 	mdProvider := md.NewMetadataProvider()
 	handler := cake.NewCakeHandler(l, useCase, mdProvider)
 	generated.RegisterCakeServiceServer(grpcServer, handler)

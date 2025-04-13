@@ -1,7 +1,8 @@
 package handler
 
 import (
-	"2025_CakeLand_API/internal/models"
+	"2025_CakeLand_API/internal/domains"
+	"2025_CakeLand_API/internal/models/errs"
 	"2025_CakeLand_API/internal/pkg/auth"
 	gen "2025_CakeLand_API/internal/pkg/auth/delivery/grpc/generated"
 	"2025_CakeLand_API/internal/pkg/auth/dto"
@@ -9,26 +10,27 @@ import (
 	md "2025_CakeLand_API/internal/pkg/utils/metadata"
 	"context"
 	"fmt"
-	"github.com/pkg/errors"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"log/slog"
 )
 
 type GrpcAuthHandler struct {
 	gen.UnimplementedAuthServer
 
+	log        *slog.Logger
 	validator  *utils.Validator
 	usecase    auth.IAuthUsecase
 	mdProvider *md.MetadataProvider
 }
 
 func NewGrpcAuthHandler(
+	log *slog.Logger,
 	validator *utils.Validator,
 	usecase auth.IAuthUsecase,
 	mdProvider *md.MetadataProvider,
 ) *GrpcAuthHandler {
 	return &GrpcAuthHandler{
+		log:        log,
 		validator:  validator,
 		usecase:    usecase,
 		mdProvider: mdProvider,
@@ -37,16 +39,18 @@ func NewGrpcAuthHandler(
 
 func (h *GrpcAuthHandler) Register(ctx context.Context, req *gen.RegisterRequest) (*gen.RegisterResponse, error) {
 	// Получение метаданных
-	fingerprint, err := h.mdProvider.GetValue(ctx, md.KeyFingerprint)
+	fingerprint, err := h.mdProvider.GetValue(ctx, domains.KeyFingerprint)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "fingerprint отсутствует в метаданных")
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err,
+			fmt.Sprintf("missing required metadata: %s", domains.KeyFingerprint),
+		)
 	}
 
 	// Валидация
 	if err = h.validator.ValidateEmail(req.Email); err != nil {
-		return nil, err
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "invalid email format")
 	} else if err = h.validator.ValidatePassword(req.Password); err != nil {
-		return nil, err
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "invalid password format")
 	}
 
 	// Сохраняем пользователя в бд
@@ -56,10 +60,7 @@ func (h *GrpcAuthHandler) Register(ctx context.Context, req *gen.RegisterRequest
 		Fingerprint: fingerprint,
 	})
 	if err != nil {
-		if errors.Is(err, models.ErrUserAlreadyExists) {
-			return nil, status.Error(codes.AlreadyExists, fmt.Sprintf(`%v`, err))
-		}
-		return nil, err
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to register user")
 	}
 
 	return &gen.RegisterResponse{
@@ -71,16 +72,18 @@ func (h *GrpcAuthHandler) Register(ctx context.Context, req *gen.RegisterRequest
 
 func (h *GrpcAuthHandler) Login(ctx context.Context, req *gen.LoginRequest) (*gen.LoginResponse, error) {
 	// Получение метаданных
-	fingerprint, err := h.mdProvider.GetValue(ctx, md.KeyFingerprint)
+	fingerprint, err := h.mdProvider.GetValue(ctx, domains.KeyFingerprint)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "fingerprint отсутствует в метаданных")
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err,
+			fmt.Sprintf("missing required metadata: %s", domains.KeyFingerprint),
+		)
 	}
 
 	// Валидация
 	if err = h.validator.ValidateEmail(req.Email); err != nil {
-		return nil, err
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "invalid email format")
 	} else if err = h.validator.ValidatePassword(req.Password); err != nil {
-		return nil, err
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "invalid password format")
 	}
 
 	// Сохраняем пользователя в бд
@@ -90,11 +93,7 @@ func (h *GrpcAuthHandler) Login(ctx context.Context, req *gen.LoginRequest) (*ge
 		Fingerprint: fingerprint,
 	})
 	if loginErr != nil {
-		// Преобразование ошибки в формат gRPC
-		if errors.Is(loginErr, models.ErrUserNotFound) || errors.Is(loginErr, models.ErrInvalidPassword) {
-			return nil, status.Error(codes.NotFound, "неверный логин или пароль")
-		}
-		return nil, status.Error(codes.Internal, "внутренняя ошибка сервера")
+		return nil, errs.ConvertToGrpcError(ctx, h.log, loginErr, "failed to login")
 	}
 
 	return &gen.LoginResponse{
@@ -106,17 +105,21 @@ func (h *GrpcAuthHandler) Login(ctx context.Context, req *gen.LoginRequest) (*ge
 
 func (h *GrpcAuthHandler) Logout(ctx context.Context, _ *emptypb.Empty) (*gen.LogoutResponse, error) {
 	// Получение метаданных
-	values, err := h.mdProvider.GetValues(ctx, md.KeyFingerprint, md.KeyAuthorization)
+	values, err := h.mdProvider.GetValues(ctx, domains.KeyFingerprint, domains.KeyAuthorization)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "fingerprint отсутствует в метаданных")
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err,
+			fmt.Sprintf("missing required metadata: %s or %s", domains.KeyAuthorization, domains.KeyFingerprint),
+		)
 	}
 
-	fingerprint, fOk := values[md.KeyFingerprint]
-	refreshToken, rOk := values[md.KeyAuthorization]
+	fingerprint := values[domains.KeyFingerprint]
+	refreshToken := values[domains.KeyAuthorization]
 
 	// Валидация
-	if refreshToken == "" || fingerprint == "" || !fOk || !rOk {
-		return nil, status.Error(codes.InvalidArgument, "refreshToken обязателен")
+	if refreshToken == "" {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, errs.ErrNoMetadata, "refreshToken is empty")
+	} else if fingerprint == "" {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, errs.ErrNoMetadata, "fingerprint is empty")
 	}
 
 	// Бизнес логика
@@ -125,10 +128,7 @@ func (h *GrpcAuthHandler) Logout(ctx context.Context, _ *emptypb.Empty) (*gen.Lo
 		RefreshToken: refreshToken,
 	})
 	if err != nil {
-		if errors.Is(err, models.ErrNoToken) {
-			return nil, status.Error(codes.InvalidArgument, "неверный refresh токен")
-		}
-		return nil, err
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to logout")
 	}
 
 	return &gen.LogoutResponse{
@@ -138,17 +138,21 @@ func (h *GrpcAuthHandler) Logout(ctx context.Context, _ *emptypb.Empty) (*gen.Lo
 
 func (h *GrpcAuthHandler) UpdateAccessToken(ctx context.Context, _ *emptypb.Empty) (*gen.UpdateAccessTokenResponse, error) {
 	// Получение метаданных
-	values, err := h.mdProvider.GetValues(ctx, md.KeyFingerprint, md.KeyAuthorization)
+	values, err := h.mdProvider.GetValues(ctx, domains.KeyFingerprint, domains.KeyAuthorization)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "fingerprint отсутствует в метаданных")
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err,
+			fmt.Sprintf("missing required metadata: %s or %s", domains.KeyAuthorization, domains.KeyFingerprint),
+		)
 	}
 
-	fingerprint := values[md.KeyFingerprint]
-	refreshToken := values[md.KeyAuthorization]
+	fingerprint := values[domains.KeyFingerprint]
+	refreshToken := values[domains.KeyAuthorization]
 
 	// Валидация
 	if refreshToken == "" {
-		return nil, status.Error(codes.InvalidArgument, "refreshToken обязателен")
+		return nil, errs.ConvertToGrpcError(ctx, h.log, errs.ErrNoMetadata, "refreshToken is empty")
+	} else if fingerprint == "" {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, errs.ErrNoMetadata, "fingerprint is empty")
 	}
 
 	// Бизнес логика
@@ -157,7 +161,7 @@ func (h *GrpcAuthHandler) UpdateAccessToken(ctx context.Context, _ *emptypb.Empt
 		Fingerprint:  fingerprint,
 	})
 	if err != nil {
-		return nil, err
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to update access token")
 	}
 
 	return &gen.UpdateAccessTokenResponse{

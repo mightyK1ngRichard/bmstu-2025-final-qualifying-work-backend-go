@@ -1,9 +1,10 @@
 package jwt
 
 import (
+	"2025_CakeLand_API/internal/domains"
 	"2025_CakeLand_API/internal/models"
 	"2025_CakeLand_API/internal/models/errs"
-	"2025_CakeLand_API/internal/pkg/domains"
+	"fmt"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/pkg/errors"
 	"os"
@@ -52,7 +53,7 @@ func (t *Tokenator) IsTokenExpired(tokenString string, isRefresh bool) (bool, er
 		return false, err
 	}
 
-	if exp, ok := claims[string(domains.KeyEpxClaim)].(float64); ok {
+	if exp, ok := claims[string(domains.KeyExpClaim)].(float64); ok {
 		expirationTime := time.Unix(int64(exp), 0)
 		// Проверяем, истёк ли токен
 		if time.Now().After(expirationTime) {
@@ -61,7 +62,7 @@ func (t *Tokenator) IsTokenExpired(tokenString string, isRefresh bool) (bool, er
 		return false, nil
 	}
 
-	return false, models.ErrExpMissingInToken
+	return false, errs.ErrClaimIsMissing
 }
 
 // GetUserIDFromToken возвращает user_id если токен ещё не протух
@@ -80,21 +81,21 @@ func (t *Tokenator) GetUserIDFromToken(tokenString string, isRefresh bool) (stri
 	}
 
 	// Получает exp
-	exp, ok := claims[domains.KeyEpxClaim.String()].(float64)
+	exp, ok := claims[domains.KeyExpClaim.String()].(float64)
 	if !ok {
-		return "", models.ErrExpMissingInToken
+		return "", fmt.Errorf("%v: %s is missing in token", errs.ErrClaimIsMissing, domains.KeyExpClaim.String())
 	}
 
 	// Проверяем истёк ли токен
 	expirationTime := time.Unix(int64(exp), 0)
 	if time.Now().After(expirationTime) {
-		return "", models.ErrTokenIsExpired
+		return "", errs.ErrTokenIsExpired
 	}
 
 	// Достаём userID если токен не протух
 	userID, ok := claims[domains.KeyUserIDClaim.String()].(string)
 	if !ok {
-		return "", models.ErrUserIDMissingInToken
+		return "", fmt.Errorf("%v: %s is missing in token", errs.ErrClaimIsMissing, domains.KeyUserIDClaim.String())
 	}
 
 	return userID, nil
@@ -104,12 +105,12 @@ func generateToken(userUID string, duration time.Duration, sign []byte) (*models
 	tokenExpiryTime := time.Now().Add(duration)
 	claims := jwt.MapClaims{
 		domains.KeyUserIDClaim.String(): userUID,
-		domains.KeyEpxClaim.String():    tokenExpiryTime.Unix(),
+		domains.KeyExpClaim.String():    tokenExpiryTime.Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(sign)
 	if err != nil {
-		return nil, errors.Wrap(models.ErrInternal, err.Error())
+		return nil, err
 	}
 
 	return &models.JWTTokenPayload{
@@ -128,7 +129,7 @@ func getTokenClaims(tokenString string, secret []byte) (jwt.MapClaims, error) {
 		return secret, nil
 	})
 	if err != nil {
-		return nil, errors.Wrap(errs.ErrParsingToken, err.Error())
+		return nil, errors.Wrap(err, errs.ErrParsingToken.Error())
 	}
 
 	// Извлечение claims и валидация токена

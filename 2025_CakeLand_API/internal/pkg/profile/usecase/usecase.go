@@ -8,25 +8,21 @@ import (
 	"2025_CakeLand_API/internal/pkg/utils/jwt"
 	"context"
 	"github.com/google/uuid"
-	"log/slog"
 	"sync"
 )
 
 type ProfileUseсase struct {
-	log           *slog.Logger
 	tokenator     *jwt.Tokenator
 	repo          profile.IProfileRepository
 	imageProvider *minio.MinioProvider
 }
 
 func NewProfileUsecase(
-	log *slog.Logger,
 	tokenator *jwt.Tokenator,
 	repo profile.IProfileRepository,
 	imageProvider *minio.MinioProvider,
 ) *ProfileUseсase {
 	return &ProfileUseсase{
-		log:           log,
 		tokenator:     tokenator,
 		repo:          repo,
 		imageProvider: imageProvider,

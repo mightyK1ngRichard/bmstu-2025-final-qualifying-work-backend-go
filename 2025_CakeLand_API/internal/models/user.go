@@ -17,6 +17,7 @@ type User struct {
 	Address          null.String     // Адрес
 	Nickname         string          // Уникальный псевдоним (default: id)
 	ImageURL         null.String     // Картинка
+	HeaderImageURL   null.String     // Картинка шапки профиля
 	Mail             string          // Почта
 	PasswordHash     []byte          // Пароль
 	Phone            null.String     // Телефон
@@ -30,11 +31,35 @@ func (u *User) ConvertToUserGRPC() *generated.User {
 		fio = wrapperspb.String(u.FIO.String)
 	}
 
+	var address *wrapperspb.StringValue
+	if u.Address.Valid {
+		address = wrapperspb.String(u.Address.String)
+	}
+
+	var phoneNumber *wrapperspb.StringValue
+	if u.Phone.Valid {
+		phoneNumber = wrapperspb.String(u.Phone.String)
+	}
+
+	var imageURL *wrapperspb.StringValue
+	if u.ImageURL.Valid {
+		imageURL = wrapperspb.String(u.ImageURL.String)
+	}
+
+	var headerImageURL *wrapperspb.StringValue
+	if u.HeaderImageURL.Valid {
+		headerImageURL = wrapperspb.String(u.HeaderImageURL.String)
+	}
+
 	return &generated.User{
-		Id:       u.ID.String(),
-		Nickname: u.Nickname,
-		Mail:     u.Mail,
-		Fio:      fio,
+		Id:             u.ID.String(),
+		Nickname:       u.Nickname,
+		Mail:           u.Mail,
+		Fio:            fio,
+		Address:        address,
+		Phone:          phoneNumber,
+		ImageURL:       imageURL,
+		HeaderImageURL: headerImageURL,
 	}
 }
 

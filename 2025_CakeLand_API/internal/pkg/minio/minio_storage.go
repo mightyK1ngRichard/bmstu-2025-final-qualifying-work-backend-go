@@ -1,11 +1,11 @@
 package minio
 
 import (
-	"2025_CakeLand_API/internal/models"
 	"2025_CakeLand_API/internal/pkg/config"
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/pkg/errors"
 	"sync"
 
 	"github.com/minio/minio-go/v7"
@@ -19,7 +19,6 @@ type MinioProvider struct {
 
 type ImageID string
 
-// NewMinioProvider создает новый MinioProvider и инициализирует клиента MinIO
 func NewMinioProvider(conf *config.MinioConfig) (*MinioProvider, error) {
 	// Создаем нового клиента MinIO
 	client, err := minio.New(conf.Host, &minio.Options{
@@ -36,24 +35,6 @@ func NewMinioProvider(conf *config.MinioConfig) (*MinioProvider, error) {
 	}, nil
 }
 
-// ensureBucketExists проверяет, существует ли бакет, и создает его, если нет
-func (m *MinioProvider) ensureBucketExists(ctx context.Context, bucketName string, region string) error {
-	exists, err := m.client.BucketExists(ctx, bucketName)
-	if err != nil {
-		return fmt.Errorf("ошибка при проверке существования бакета: %w", err)
-	}
-	if !exists {
-		// Создаем бакет, если он не существует
-		err = m.client.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{
-			Region: region,
-		})
-		if err != nil {
-			return fmt.Errorf("ошибка при создании бакета: %w", err)
-		}
-	}
-	return nil
-}
-
 func (m *MinioProvider) SaveImage(
 	ctx context.Context,
 	bucketName string,
@@ -62,7 +43,7 @@ func (m *MinioProvider) SaveImage(
 ) (string, error) {
 	// Проверяем существование бакета
 	if err := m.ensureBucketExists(ctx, bucketName, m.conf.Region); err != nil {
-		return "", models.NewImageStorageError(fmt.Sprintf("ошибка при проверке или создании бакета %s", bucketName), err)
+		return "", errors.Wrapf(err, fmt.Sprintf("ошибка при проверке или создании бакета %s", bucketName))
 	}
 
 	// Формируем путь
@@ -72,7 +53,7 @@ func (m *MinioProvider) SaveImage(
 	if _, err := m.client.PutObject(ctx, bucketName, objectPath, bytes.NewReader(imageData), int64(len(imageData)), minio.PutObjectOptions{
 		ContentType: "image/jpeg",
 	}); err != nil {
-		return "", models.NewImageStorageError(fmt.Sprintf("ошибка при загрузке изображения в MinIO в бакет %s с объектом %s", bucketName, objectPath), err)
+		return "", errors.Wrapf(err, fmt.Sprintf("ошибка при загрузке изображения в MinIO в бакет %s с объектом %s", bucketName, objectPath))
 	}
 
 	// Формируем URL
@@ -80,7 +61,6 @@ func (m *MinioProvider) SaveImage(
 	return url, nil
 }
 
-// SaveImages сохраняет несколько изображений в MinIO и возвращает карту URL-ов.
 func (m *MinioProvider) SaveImages(
 	ctx context.Context,
 	bucketName string,
@@ -88,7 +68,7 @@ func (m *MinioProvider) SaveImages(
 ) (map[ImageID]string, error) {
 	// Проверяем существование бакета
 	if err := m.ensureBucketExists(ctx, bucketName, m.conf.Region); err != nil {
-		return nil, models.NewImageStorageError(fmt.Sprintf("ошибка при проверке или создании бакета %s", bucketName), err)
+		return nil, errors.Wrapf(err, fmt.Sprintf("ошибка при проверке или создании бакета %s", bucketName))
 	}
 
 	// Карта для хранения URL-ов загруженных изображений
@@ -110,9 +90,7 @@ func (m *MinioProvider) SaveImages(
 				ContentType: "image/jpeg",
 			})
 			if err != nil {
-				errs <- models.NewImageStorageError(
-					fmt.Sprintf("ошибка при загрузке изображения в MinIO в бакет %s с объектом %s", bucketName, objectName), err,
-				)
+				errs <- errors.Wrapf(err, fmt.Sprintf("ошибка при загрузке изображения в MinIO в бакет %s с объектом %s", bucketName, objectName))
 				return
 			}
 
@@ -135,4 +113,22 @@ func (m *MinioProvider) SaveImages(
 	}
 
 	return urls, nil
+}
+
+// ensureBucketExists проверяет, существует ли бакет, и создает его, если нет
+func (m *MinioProvider) ensureBucketExists(ctx context.Context, bucketName string, region string) error {
+	exists, err := m.client.BucketExists(ctx, bucketName)
+	if err != nil {
+		return fmt.Errorf("ошибка при проверке существования бакета: %w", err)
+	}
+	if !exists {
+		// Создаем бакет, если он не существует
+		err = m.client.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{
+			Region: region,
+		})
+		if err != nil {
+			return fmt.Errorf("ошибка при создании бакета: %w", err)
+		}
+	}
+	return nil
 }

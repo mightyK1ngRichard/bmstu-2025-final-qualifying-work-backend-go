@@ -10,19 +10,14 @@ type DBCategory struct {
 	ID              uuid.UUID
 	Name            null.String
 	ImageURL        null.String
-	CategoryGenders []string
+	CategoryGenders []models.CategoryGender
 }
 
 func (c *DBCategory) ConvertToCategory() models.Category {
-	var categoryGenders []models.CategoryGender
-	for _, gender := range c.CategoryGenders {
-		categoryGenders = append(categoryGenders, models.ConvertToCategoryGender(gender))
-	}
-
 	return models.Category{
 		ID:              c.ID,
 		Name:            c.Name.String,
 		ImageURL:        c.ImageURL.String,
-		CategoryGenders: categoryGenders,
+		CategoryGenders: c.CategoryGenders,
 	}
 }
