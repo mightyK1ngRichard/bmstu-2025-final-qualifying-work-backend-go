@@ -66,6 +66,6 @@ func run() error {
 	mdProvider := md.NewMetadataProvider()
 	handler := cake.NewCakeHandler(l, useCase, mdProvider)
 	generated.RegisterCakeServiceServer(grpcServer, handler)
-	l.Info("Starting gRPC cake service", slog.String("port", fmt.Sprintf(":%d", conf.GRPC.CakePort)))
+	l.Info("Starting cake gRPC service", slog.String("port", fmt.Sprintf(":%d", conf.GRPC.CakePort)))
 	return grpcServer.Serve(listener)
 }

@@ -66,6 +66,6 @@ func run() error {
 	mdProvider := md.NewMetadataProvider()
 	handler := handler.NewProfileHandler(l, usecase, mdProvider)
 	generated.RegisterProfileServiceServer(grpcServer, handler)
-	l.Info("Starting gRPC profile service", slog.String("port", fmt.Sprintf(":%d", conf.GRPC.ProfilePort)))
+	l.Info("Starting profile gRPC service", slog.String("port", fmt.Sprintf(":%d", conf.GRPC.ProfilePort)))
 	return grpcServer.Serve(listener)
 }

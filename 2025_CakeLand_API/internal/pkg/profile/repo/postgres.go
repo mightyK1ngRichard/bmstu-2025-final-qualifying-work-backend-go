@@ -6,8 +6,9 @@ import (
 	"2025_CakeLand_API/internal/pkg/profile/dto"
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -58,7 +59,7 @@ func (r *ProfileRepository) UserInfo(ctx context.Context, userID uuid.UUID) (*dt
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errs.ErrNotFound
 		}
-		return nil, errors.Wrapf(err, "%v: %s", errs.ErrDB, methodName)
+		return nil, fmt.Errorf("%w: %s: %w", errs.ErrDB, methodName, err)
 	}
 
 	return &user, nil
@@ -69,7 +70,7 @@ func (r *ProfileRepository) CakesByUserID(ctx context.Context, userID uuid.UUID)
 
 	rows, err := r.db.QueryContext(ctx, querySelectCakesByUserID, userID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "%v: %s", errs.ErrDB, methodName)
+		return nil, fmt.Errorf("%w: %s: %w", errs.ErrDB, methodName, err)
 	}
 
 	defer rows.Close()
@@ -90,14 +91,14 @@ func (r *ProfileRepository) CakesByUserID(ctx context.Context, userID uuid.UUID)
 			&previewCake.IsOpenForSale,
 			&previewCake.OwnerID,
 		); err != nil {
-			return nil, errors.Wrapf(err, "%v: %s", errs.ErrDB, methodName)
+			return nil, fmt.Errorf("%w: %s: %w", errs.ErrDB, methodName, err)
 		}
 
 		cakes = append(cakes, previewCake)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, errors.Wrapf(err, "%v: %s", errs.ErrDB, methodName)
+		return nil, fmt.Errorf("%w: %s: %w", errs.ErrDB, methodName, err)
 	}
 
 	return cakes, nil
