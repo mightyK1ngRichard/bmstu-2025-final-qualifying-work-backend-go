@@ -28,13 +28,15 @@ func NewAuthRepository(db *sql.DB) *AuthRepository {
 }
 
 func (r *AuthRepository) CreateUser(ctx context.Context, in dto.CreateUserReq) error {
+	methodName := "[Repo.CreateUser]"
+
 	// Проверка существования пользователя с таким email
 	var exists bool
 	if err := r.db.QueryRowContext(ctx, isUserExistsCommand, in.Email).Scan(&exists); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return errs.ErrNotFound
 		}
-		return err
+		return errors.Wrapf(err, "%v: %s", errs.ErrDB, methodName)
 	}
 	if exists {
 		return errs.ErrAlreadyExists
@@ -43,7 +45,7 @@ func (r *AuthRepository) CreateUser(ctx context.Context, in dto.CreateUserReq) e
 	// Сериализация RefreshTokensMap в JSON
 	refreshTokensJSON, err := json.Marshal(in.RefreshTokensMap)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "%s: failed to marshal refreshTokensJSON", methodName)
 	}
 
 	// Выполнение команды создания пользователя
@@ -55,53 +57,59 @@ func (r *AuthRepository) CreateUser(ctx context.Context, in dto.CreateUserReq) e
 		in.PasswordHash,
 		refreshTokensJSON,
 	); err != nil {
-		return err
+		return errors.Wrapf(err, "%v: %s", errs.ErrDB, methodName)
 	}
 
 	return nil
 }
 
 func (r *AuthRepository) GetUserByEmail(ctx context.Context, in dto.GetUserByEmailReq) (*dto.GetUserByEmailRes, error) {
+	methodName := "[Repo.GetUserByEmail]"
+
 	row := r.db.QueryRowContext(ctx, getUserByEmailCommand, in.Email)
 	var res dto.GetUserByEmailRes
 	if err := row.Scan(&res.ID, &res.Email, &res.RefreshTokensMap, &res.PasswordHash); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errs.ErrNotFound
 		}
-		return nil, err
+		return nil, errors.Wrapf(err, "%v: %s", errs.ErrDB, methodName)
 	}
 
 	return &res, nil
 }
 
 func (r *AuthRepository) UpdateUserRefreshTokens(ctx context.Context, in dto.UpdateUserRefreshTokensReq) error {
+	methodName := "[Repo.UpdateUserRefreshTokens]"
+
 	// Сериализация RefreshTokensMap в JSON
 	refreshTokensJSON, err := json.Marshal(in.RefreshTokensMap)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "%s: failed to marshal refreshTokensJSON", methodName)
 	}
 
 	// Выполнение команды обновления токенов
 	if _, err = r.db.ExecContext(ctx, updateUserRefreshTokensCommand, refreshTokensJSON, in.UserID); err != nil {
-		return err
+		return errors.Wrapf(err, "%v: %s", errs.ErrDB, methodName)
 	}
 
 	return nil
 }
 
 func (r *AuthRepository) GetUserRefreshTokens(ctx context.Context, in dto.GetUserRefreshTokensReq) (*dto.GetUserRefreshTokensRes, error) {
+	methodName := "[Repo.GetUserRefreshTokens]"
+
 	var refreshTokens []byte
 	row := r.db.QueryRowContext(ctx, getUserRefreshTokensCommand, in.UserID)
 	if err := row.Scan(&refreshTokens); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errs.ErrNotFound
 		}
-		return nil, err
+		return nil, errors.Wrapf(err, "%v: %s", errs.ErrDB, methodName)
 	}
 
 	var refreshTokensMap map[string]string
 	if err := json.Unmarshal(refreshTokens, &refreshTokensMap); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "%s: failed to unmarshal refreshTokensMap", methodName)
 	}
 
 	return &dto.GetUserRefreshTokensRes{

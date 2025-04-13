@@ -6,8 +6,8 @@ import (
 	"2025_CakeLand_API/internal/pkg/profile/dto"
 	"context"
 	"database/sql"
-	"errors"
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -41,6 +41,8 @@ func NewProfileRepository(db *sql.DB) *ProfileRepository {
 }
 
 func (r *ProfileRepository) UserInfo(ctx context.Context, userID uuid.UUID) (*dto.Profile, error) {
+	methodName := "[Repo.UserInfo]"
+
 	var user dto.Profile
 	if err := r.db.QueryRowContext(ctx, querySelectProfileByID, userID).Scan(
 		&user.ID,
@@ -56,16 +58,18 @@ func (r *ProfileRepository) UserInfo(ctx context.Context, userID uuid.UUID) (*dt
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errs.ErrNotFound
 		}
-		return nil, err
+		return nil, errors.Wrapf(err, "%v: %s", errs.ErrDB, methodName)
 	}
 
 	return &user, nil
 }
 
 func (r *ProfileRepository) CakesByUserID(ctx context.Context, userID uuid.UUID) ([]cakeDto.PreviewCakeDB, error) {
+	methodName := "[Repo.CakesByUserID]"
+
 	rows, err := r.db.QueryContext(ctx, querySelectCakesByUserID, userID)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "%v: %s", errs.ErrDB, methodName)
 	}
 
 	defer rows.Close()
@@ -86,11 +90,15 @@ func (r *ProfileRepository) CakesByUserID(ctx context.Context, userID uuid.UUID)
 			&previewCake.IsOpenForSale,
 			&previewCake.OwnerID,
 		); err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "%v: %s", errs.ErrDB, methodName)
 		}
 
 		cakes = append(cakes, previewCake)
 	}
 
-	return cakes, rows.Err()
+	if err = rows.Err(); err != nil {
+		return nil, errors.Wrapf(err, "%v: %s", errs.ErrDB, methodName)
+	}
+
+	return cakes, nil
 }

@@ -23,6 +23,7 @@ var (
 	ErrTokenIsExpired         = errors.New("token is expired")
 	ErrClaimIsMissing         = errors.New("claim is missing")
 	ErrPreviewImageNotFound   = errors.New("preview image not found")
+	ErrDB                     = errors.New("database error")
 )
 
 func ConvertToGrpcError(ctx context.Context, log *slog.Logger, err error, description string) error {
@@ -33,6 +34,9 @@ func ConvertToGrpcError(ctx context.Context, log *slog.Logger, err error, descri
 	logGRPCError(ctx, log, err, description)
 
 	switch {
+	case errors.Is(err, ErrDB):
+		return status.Error(codes.Internal, "internal server error")
+
 	case errors.Is(err, ErrPreviewImageNotFound):
 		return status.Error(codes.Internal, fmt.Sprintf("%s: %v", description, err))
 
@@ -73,14 +77,14 @@ func ConvertToGrpcError(ctx context.Context, log *slog.Logger, err error, descri
 	}
 
 	// Неизвестная ошибка
-	return status.Errorf(codes.Internal, "internal error")
+	return status.Errorf(codes.Unknown, "unknown error")
 }
 
 func logGRPCError(ctx context.Context, log *slog.Logger, err error, description string) {
 	log.Log(
 		ctx,
 		slog.LevelWarn,
-		"grpc error",
+		"error",
 		slog.String("description", description),
 		slog.String("error", err.Error()),
 	)
