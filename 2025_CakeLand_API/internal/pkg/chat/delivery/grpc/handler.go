@@ -144,7 +144,7 @@ func (p *ChatProvider) UserChats(ctx context.Context, _ *emptypb.Empty) (*gen.Us
 	mu := sync.Mutex{}
 	wg := sync.WaitGroup{}
 	errChan := make(chan error, 1)
-	interlocutorsInfo := make([]*generated.User, len(interlocutors))
+	interlocutorsInfo := make([]*generated.User, len(uniqueInterlocutors))
 	for index, interlocutorID := range uniqueInterlocutors {
 		wg.Add(1)
 		go func() {
