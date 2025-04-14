@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "2025_CakeLand_API/internal/pkg/chat/delivery/grpc/generated";
+
+package chat;
+
+service ChatService {
+  rpc Chat(stream ChatMessage) returns (stream ChatMessage);
+}
+
+message ChatMessage {
+  string ownerID = 1;
+  string receiverID = 2;
+  string text = 3;
+  google.protobuf.Timestamp dateCreation = 4;
+}
+

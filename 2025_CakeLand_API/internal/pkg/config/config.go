@@ -21,6 +21,7 @@ type Config struct {
 
 type GRPCConfig struct {
 	CakePort    int           `yaml:"cakePort"`
+	ChatPort    int           `yaml:"chatPort"`
 	AuthPort    int           `yaml:"authPort"`
 	ProfilePort int           `yaml:"profilePort"`
 	Timeout     time.Duration `yaml:"timeout"`

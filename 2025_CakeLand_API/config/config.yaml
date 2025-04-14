@@ -3,4 +3,5 @@ grpc:
   cakePort: 44044
   authPort: 44045
   profilePort: 44046
+  chatPort: 44047
   timeout: 5s
