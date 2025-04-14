@@ -1,12 +1,13 @@
 package repo
 
 import (
-	"2025_CakeLand_API/internal/models"
-	"2025_CakeLand_API/internal/pkg/auth/entities"
+	"2025_CakeLand_API/internal/models/errs"
+	"2025_CakeLand_API/internal/pkg/auth/dto"
 	"context"
 	"database/sql"
 	"encoding/json"
-	"github.com/pkg/errors"
+	"errors"
+	"fmt"
 )
 
 const (
@@ -27,21 +28,25 @@ func NewAuthRepository(db *sql.DB) *AuthRepository {
 	}
 }
 
-func (r *AuthRepository) CreateUser(ctx context.Context, in entities.CreateUserReq) error {
+func (r *AuthRepository) CreateUser(ctx context.Context, in dto.CreateUserReq) error {
+	methodName := "[Repo.CreateUser]"
+
 	// Проверка существования пользователя с таким email
 	var exists bool
-	err := r.db.QueryRowContext(ctx, isUserExistsCommand, in.Email).Scan(&exists)
-	if err != nil {
-		return errors.Wrap(err, "ошибка при проверке существования пользователя")
+	if err := r.db.QueryRowContext(ctx, isUserExistsCommand, in.Email).Scan(&exists); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return errs.ErrNotFound
+		}
+		return fmt.Errorf("%w: %s: %w", errs.ErrDB, methodName, err)
 	}
 	if exists {
-		return models.ErrUserAlreadyExists
+		return errs.ErrAlreadyExists
 	}
 
 	// Сериализация RefreshTokensMap в JSON
 	refreshTokensJSON, err := json.Marshal(in.RefreshTokensMap)
 	if err != nil {
-		return errors.Wrap(err, "ошибка сериализации RefreshTokensMap в JSON при создании пользователя")
+		return fmt.Errorf("%s: failed to marshal refreshTokensJSON: %v", methodName, err)
 	}
 
 	// Выполнение команды создания пользователя
@@ -53,55 +58,62 @@ func (r *AuthRepository) CreateUser(ctx context.Context, in entities.CreateUserR
 		in.PasswordHash,
 		refreshTokensJSON,
 	); err != nil {
-		return errors.Wrap(err, "ошибка выполнения команды создания пользователя в базе данных")
+		return fmt.Errorf("%w: %s: %w", errs.ErrDB, methodName, err)
 	}
 
 	return nil
 }
 
-func (r *AuthRepository) GetUserByEmail(ctx context.Context, in entities.GetUserByEmailReq) (*entities.GetUserByEmailRes, error) {
+func (r *AuthRepository) GetUserByEmail(ctx context.Context, in dto.GetUserByEmailReq) (*dto.GetUserByEmailRes, error) {
+	methodName := "[Repo.GetUserByEmail]"
+
 	row := r.db.QueryRowContext(ctx, getUserByEmailCommand, in.Email)
-	var res entities.GetUserByEmailRes
-	var refreshTokensMap []byte
-	if err := row.Scan(&res.ID, &res.Email, &refreshTokensMap, &res.PasswordHash); err != nil {
+	var res dto.GetUserByEmailRes
+	if err := row.Scan(&res.ID, &res.Email, &res.RefreshTokensMap, &res.PasswordHash); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, models.ErrUserNotFound
+			return nil, errs.ErrNotFound
 		}
-		return nil, errors.Wrap(err, "ошибка получения данных пользователя из базы данных")
-	}
-	if err := json.Unmarshal(refreshTokensMap, &res.RefreshTokensMap); err != nil {
-		return nil, errors.Wrapf(err, "ошибка декодирования JSON refreshTokensMap для пользователя с email %s", in.Email)
+		return nil, fmt.Errorf("%w: %s: %w", errs.ErrDB, methodName, err)
 	}
 
 	return &res, nil
 }
 
-func (r *AuthRepository) UpdateUserRefreshTokens(ctx context.Context, in entities.UpdateUserRefreshTokensReq) error {
+func (r *AuthRepository) UpdateUserRefreshTokens(ctx context.Context, in dto.UpdateUserRefreshTokensReq) error {
+	methodName := "[Repo.UpdateUserRefreshTokens]"
+
 	// Сериализация RefreshTokensMap в JSON
 	refreshTokensJSON, err := json.Marshal(in.RefreshTokensMap)
 	if err != nil {
-		return errors.Wrap(err, "ошибка сериализации RefreshTokensMap в JSON при обновлении токенов пользователя")
+		return fmt.Errorf("%s: failed to marshal refreshTokensJSON: %v", methodName, err)
 	}
 
 	// Выполнение команды обновления токенов
 	if _, err = r.db.ExecContext(ctx, updateUserRefreshTokensCommand, refreshTokensJSON, in.UserID); err != nil {
-		return errors.Wrapf(err, "ошибка выполнения команды обновления токенов пользователя с ID %s", in.UserID)
+		return fmt.Errorf("%w: %s: %w", errs.ErrDB, methodName, err)
 	}
 
 	return nil
 }
 
-func (r *AuthRepository) GetUserRefreshTokens(ctx context.Context, in entities.GetUserRefreshTokensReq) (*entities.GetUserRefreshTokensRes, error) {
+func (r *AuthRepository) GetUserRefreshTokens(ctx context.Context, in dto.GetUserRefreshTokensReq) (*dto.GetUserRefreshTokensRes, error) {
+	methodName := "[Repo.GetUserRefreshTokens]"
+
 	var refreshTokens []byte
 	row := r.db.QueryRowContext(ctx, getUserRefreshTokensCommand, in.UserID)
 	if err := row.Scan(&refreshTokens); err != nil {
-		return nil, errors.New(`refresh_tokens_map not found`)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.ErrNotFound
+		}
+		return nil, fmt.Errorf("%w: %s: %w", errs.ErrDB, methodName, err)
 	}
+
 	var refreshTokensMap map[string]string
 	if err := json.Unmarshal(refreshTokens, &refreshTokensMap); err != nil {
-		return nil, errors.Wrapf(err, `ошибка декодирования JSON refreshTokensMap`)
+		return nil, fmt.Errorf("%s: failed to unmarshal refreshTokensMap: %w", methodName, err)
 	}
-	return &entities.GetUserRefreshTokensRes{
+
+	return &dto.GetUserRefreshTokensRes{
 		RefreshTokensMap: refreshTokensMap,
 	}, nil
 }

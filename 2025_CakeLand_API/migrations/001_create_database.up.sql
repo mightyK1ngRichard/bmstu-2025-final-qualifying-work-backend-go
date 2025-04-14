@@ -1,35 +1,48 @@
 -- Пользователь
-CREATE TABLE "user"
+CREATE TABLE IF NOT EXISTS "user"
 (
     id                 UUID PRIMARY KEY,
     fio                VARCHAR(150),
     address            TEXT,
     nickname           VARCHAR(50) UNIQUE  NOT NULL,
     image_url          VARCHAR(200),
+    header_image_url   VARCHAR(200),
     mail               VARCHAR(200) UNIQUE NOT NULL,
-    password_hash      VARCHAR(100),
+    password_hash      VARCHAR(100) UNIQUE NOT NULL,
     phone              VARCHAR(11),
     card_number        VARCHAR(16),
     refresh_tokens_map JSONB
 );
 
 -- Торт
-CREATE TABLE "cake"
+CREATE TABLE IF NOT EXISTS cake
 (
-    id               UUID PRIMARY KEY,
-    name             VARCHAR(150)     NOT NULL,
-    image_url        VARCHAR(200),
-    kg_price         DOUBLE PRECISION NOT NULL,
-    rating           INT DEFAULT 0 CHECK (rating >= 0 AND rating <= 5),
-    description      TEXT,
-    mass             DOUBLE PRECISION,
-    is_open_for_sale BOOL,
-    owner_id         UUID             NOT NULL,
+    id                UUID PRIMARY KEY,
+    name              VARCHAR(150)                        NOT NULL,
+    image_url         VARCHAR(200),
+    kg_price          DOUBLE PRECISION                    NOT NULL,
+    rating            INT       DEFAULT 0 CHECK (rating >= 0 AND rating <= 5),
+    description       TEXT                                NOT NULL,
+    mass              DOUBLE PRECISION                    NOT NULL,
+    discount_kg_price DOUBLE PRECISION CHECK (discount_kg_price >= 0),
+    discount_end_time TIMESTAMP,
+    date_creation     TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    is_open_for_sale  BOOL      DEFAULT true,
+    owner_id          UUID                                NOT NULL,
     FOREIGN KEY (owner_id) REFERENCES "user" (id)
 );
 
+-- Фотографии торта
+CREATE TABLE IF NOT EXISTS "cake_images"
+(
+    id        UUID PRIMARY KEY,
+    image_url VARCHAR(200),
+    cake_id   UUID,
+    FOREIGN KEY (cake_id) REFERENCES "cake" (id)
+);
+
 -- Отзыв
-CREATE TABLE "feedback"
+CREATE TABLE IF NOT EXISTS feedback
 (
     id            UUID PRIMARY KEY,
     text          TEXT,
@@ -41,16 +54,20 @@ CREATE TABLE "feedback"
     FOREIGN KEY (author_id) REFERENCES "user" (id)
 );
 
+-- Пол категории
+CREATE TYPE category_gender AS ENUM ('male', 'female', 'child');
+
 -- Категория
-CREATE TABLE "category"
+CREATE TABLE IF NOT EXISTS category
 (
-    id        UUID PRIMARY KEY,
-    name      VARCHAR(150) NOT NULL,
-    image_url VARCHAR(200)
+    id          UUID PRIMARY KEY,
+    name        VARCHAR(150) UNIQUE NOT NULL,
+    image_url   VARCHAR(200)        NOT NULL,
+    gender_tags category_gender[] DEFAULT '{}'::category_gender[]
 );
 
 -- Категории торта (М-М)
-CREATE TABLE "cake_category"
+CREATE TABLE IF NOT EXISTS cake_category
 (
     id            UUID PRIMARY KEY,
     date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -61,18 +78,18 @@ CREATE TABLE "cake_category"
 );
 
 -- Начинка
-CREATE TABLE "filling"
+CREATE TABLE IF NOT EXISTS filling
 (
     id          UUID PRIMARY KEY,
     name        VARCHAR(150)     NOT NULL,
-    image_url   VARCHAR(200),
-    content     TEXT,
+    image_url   VARCHAR(200)     NOT NULL,
+    content     TEXT             NOT NULL,
     kg_price    DOUBLE PRECISION NOT NULL,
-    description TEXT
+    description TEXT             NOT NULL
 );
 
--- Начиники торта (М-М)
-CREATE TABLE "cake_filling"
+-- Начинки торта (М-М)
+CREATE TABLE IF NOT EXISTS cake_filling
 (
     id         uuid PRIMARY KEY,
     cake_id    UUID NOT NULL,
@@ -82,7 +99,7 @@ CREATE TABLE "cake_filling"
 );
 
 -- Сообщение
-CREATE TABLE "message"
+CREATE TABLE IF NOT EXISTS message
 (
     id            uuid PRIMARY KEY,
     text          TEXT,
@@ -102,7 +119,7 @@ CREATE TYPE order_status AS ENUM (
     );
 
 -- Заказ
-CREATE TABLE "order"
+CREATE TABLE IF NOT EXISTS "order"
 (
     id               uuid PRIMARY KEY,
     price            DOUBLE PRECISION CHECK (price > 0),

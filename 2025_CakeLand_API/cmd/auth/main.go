@@ -34,7 +34,7 @@ func run() error {
 		return err
 	}
 	// Создаём Logger
-	log := logger.NewLogger(conf.Env)
+	l := logger.NewLogger(conf.Env)
 	// Подключаем базу данных
 	db, err := utils.ConnectPostgres(&conf.DB)
 	if err != nil {
@@ -42,20 +42,24 @@ func run() error {
 	}
 
 	// Создаём grpc сервис
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.GRPC.Port))
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.GRPC.AuthPort))
 	if err != nil {
 		return err
 	}
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(logger.LoggingUnaryInterceptor(l)),
+	)
 
 	rep := repo.NewAuthRepository(db)
 	validator := utils.NewValidator()
 	tokenator := jwt.NewTokenator()
 	mdProvider := md.NewMetadataProvider()
-	authUsecase := usecase.NewAuthUsecase(log, tokenator, rep)
-	grpcAuthHandler := auth.NewGrpcAuthHandler(validator, authUsecase, mdProvider)
+	authUsecase := usecase.NewAuthUsecase(tokenator, rep)
+	grpcAuthHandler := auth.NewGrpcAuthHandler(l, validator, authUsecase, mdProvider)
 
 	generated.RegisterAuthServer(grpcServer, grpcAuthHandler)
-	log.Info("Starting gRPC server", slog.String("port", fmt.Sprintf(":%d", conf.GRPC.Port)))
+	l.Info("Starting auth gRPC server",
+		slog.String("port", fmt.Sprintf(":%d", conf.GRPC.AuthPort)),
+	)
 	return grpcServer.Serve(listener)
 }

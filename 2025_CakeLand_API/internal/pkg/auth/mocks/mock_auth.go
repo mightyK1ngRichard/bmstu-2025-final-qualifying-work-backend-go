@@ -5,7 +5,7 @@
 package mocks
 
 import (
-	entities "2025_CakeLand_API/internal/pkg/auth/entities"
+	entities "2025_CakeLand_API/internal/pkg/auth/dto"
 	context "context"
 	reflect "reflect"
 

@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"2025_CakeLand_API/internal/domains"
 	"2025_CakeLand_API/internal/models"
+	"2025_CakeLand_API/internal/models/errs"
 	"2025_CakeLand_API/internal/pkg/cake"
 	gen "2025_CakeLand_API/internal/pkg/cake/delivery/grpc/generated"
-	en "2025_CakeLand_API/internal/pkg/cake/entities"
+	"2025_CakeLand_API/internal/pkg/cake/dto"
 	md "2025_CakeLand_API/internal/pkg/utils/metadata"
 	"context"
 	"fmt"
@@ -12,8 +14,6 @@ import (
 	"log/slog"
 
 	"github.com/google/uuid"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type GrpcCakeHandler struct {
@@ -39,15 +39,14 @@ func NewCakeHandler(
 func (h *GrpcCakeHandler) Cake(ctx context.Context, in *gen.CakeRequest) (*gen.CakeResponse, error) {
 	cakeID, err := uuid.Parse(in.CakeId)
 	if err != nil {
-		h.log.Error("Ошибка парсинга CakeID", "CakeID", in.CakeId, "error", err)
-		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Некорректный формат CakeID: %s", in.CakeId))
+		return nil, errs.ConvertToGrpcError(ctx, h.log, errs.ErrInvalidUUIDFormat, "'cake_id' must be a valid UUID")
 	}
 
-	res, err := h.usecase.Cake(ctx, en.GetCakeReq{
+	res, err := h.usecase.Cake(ctx, dto.GetCakeReq{
 		CakeID: cakeID,
 	})
-	if err = models.HandleError(err); err != nil {
-		return nil, err
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to fetch cake")
 	}
 
 	// Формируем CakeResponse
@@ -57,26 +56,17 @@ func (h *GrpcCakeHandler) Cake(ctx context.Context, in *gen.CakeRequest) (*gen.C
 }
 
 func (h *GrpcCakeHandler) CreateCake(ctx context.Context, in *gen.CreateCakeRequest) (*gen.CreateCakeResponse, error) {
-	accessToken, err := h.mdProvider.GetValue(ctx, md.KeyAuthorization)
+	// Получаем токен из метаданных
+	accessToken, err := h.mdProvider.GetValue(ctx, domains.KeyAuthorization)
 	if err != nil {
-		h.log.Error(err.Error())
-		return nil, status.Error(codes.InvalidArgument, err.Error())
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err,
+			fmt.Sprintf("missing required metadata: %s", domains.KeyAuthorization),
+		)
 	}
 
-	res, err := h.usecase.CreateCake(ctx, en.CreateCakeReq{
-		Name:          in.Name,
-		ImageData:     in.ImageData,
-		KgPrice:       in.KgPrice,
-		Rating:        in.Rating,
-		Description:   in.Description,
-		Mass:          in.Mass,
-		IsOpenForSale: in.IsOpenForSale,
-		FillingIDs:    in.FillingIds,
-		CategoryIDs:   in.CategoryIds,
-		AccessToken:   accessToken,
-	})
-	if err = models.HandleError(err); err != nil {
-		return nil, err
+	res, err := h.usecase.CreateCake(ctx, dto.NewCreateCakeReq(in, accessToken))
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to create cake")
 	}
 
 	return &gen.CreateCakeResponse{
@@ -85,15 +75,24 @@ func (h *GrpcCakeHandler) CreateCake(ctx context.Context, in *gen.CreateCakeRequ
 }
 
 func (h *GrpcCakeHandler) CreateFilling(ctx context.Context, in *gen.CreateFillingRequest) (*gen.CreateFillingResponse, error) {
-	res, err := h.usecase.CreateFilling(ctx, en.CreateFillingReq{
+	// Получаем токен из метаданных
+	accessToken, err := h.mdProvider.GetValue(ctx, domains.KeyAuthorization)
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err,
+			fmt.Sprintf("missing required metadata: %s", domains.KeyAuthorization),
+		)
+	}
+
+	res, err := h.usecase.CreateFilling(ctx, dto.CreateFillingReq{
 		Name:        in.Name,
 		ImageData:   in.ImageData,
 		Content:     in.Content,
 		KgPrice:     in.KgPrice,
 		Description: in.Description,
+		AccessToken: accessToken,
 	})
-	if err = models.HandleError(err); err != nil {
-		return nil, err
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to create filling")
 	}
 
 	return &gen.CreateFillingResponse{
@@ -102,12 +101,21 @@ func (h *GrpcCakeHandler) CreateFilling(ctx context.Context, in *gen.CreateFilli
 }
 
 func (h *GrpcCakeHandler) CreateCategory(ctx context.Context, in *gen.CreateCategoryRequest) (*gen.CreateCategoryResponse, error) {
-	res, err := h.usecase.CreateCategory(ctx, &en.CreateCategoryReq{
-		Name:      in.Name,
-		ImageData: in.ImageData,
+	// Получаем токен из метаданных
+	accessToken, err := h.mdProvider.GetValue(ctx, domains.KeyAuthorization)
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err,
+			fmt.Sprintf("missing required metadata: %s", domains.KeyAuthorization),
+		)
+	}
+
+	res, err := h.usecase.CreateCategory(ctx, &dto.CreateCategoryReq{
+		Name:        in.Name,
+		ImageData:   in.ImageData,
+		AccessToken: accessToken,
 	})
-	if err = models.HandleError(err); err != nil {
-		return nil, err
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to create category")
 	}
 
 	return &gen.CreateCategoryResponse{
@@ -117,8 +125,8 @@ func (h *GrpcCakeHandler) CreateCategory(ctx context.Context, in *gen.CreateCate
 
 func (h *GrpcCakeHandler) Categories(ctx context.Context, _ *emptypb.Empty) (*gen.CategoriesResponse, error) {
 	categories, err := h.usecase.Categories(ctx)
-	if err = models.HandleError(err); err != nil {
-		return nil, err
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to fetch categories")
 	}
 
 	categoriesGRPC := make([]*gen.Category, len(*categories))
@@ -133,8 +141,8 @@ func (h *GrpcCakeHandler) Categories(ctx context.Context, _ *emptypb.Empty) (*ge
 
 func (h *GrpcCakeHandler) Fillings(ctx context.Context, _ *emptypb.Empty) (*gen.FillingsResponse, error) {
 	fillings, err := h.usecase.Fillings(ctx)
-	if err = models.HandleError(err); err != nil {
-		return nil, err
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to fetch fillings")
 	}
 
 	fillingsGRPC := make([]*gen.Filling, len(*fillings))
@@ -149,8 +157,8 @@ func (h *GrpcCakeHandler) Fillings(ctx context.Context, _ *emptypb.Empty) (*gen.
 
 func (h *GrpcCakeHandler) Cakes(ctx context.Context, _ *emptypb.Empty) (*gen.CakesResponse, error) {
 	cakes, err := h.usecase.Cakes(ctx)
-	if err = models.HandleError(err); err != nil {
-		return nil, err
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to fetch cakes")
 	}
 
 	cakesGRPC := make([]*gen.Cake, len(*cakes))
@@ -160,5 +168,47 @@ func (h *GrpcCakeHandler) Cakes(ctx context.Context, _ *emptypb.Empty) (*gen.Cak
 
 	return &gen.CakesResponse{
 		Cakes: cakesGRPC,
+	}, nil
+}
+
+func (h *GrpcCakeHandler) GetCategoriesByGenderName(ctx context.Context, in *gen.GetCategoriesByGenderNameReq) (*gen.GetCategoriesByGenderNameRes, error) {
+	catGen, err := models.ConvertToCategoryGenderFromGrpc(in.CategoryGender)
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "unspecified category gender")
+	}
+
+	categories, err := h.usecase.CategoryIDsByGenderName(ctx, catGen)
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to fetch category genders")
+	}
+
+	res := make([]*gen.Category, len(categories))
+	for i, it := range categories {
+		res[i] = it.ConvertToCategoryGRPC()
+	}
+
+	return &gen.GetCategoriesByGenderNameRes{
+		Categories: res,
+	}, nil
+}
+
+func (h *GrpcCakeHandler) CategoryPreviewCakes(ctx context.Context, in *gen.CategoryPreviewCakesReq) (*gen.CategoryPreviewCakesRes, error) {
+	categoryID, err := uuid.Parse(in.CategoryID)
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "parsing category id")
+	}
+
+	previewCakes, err := h.usecase.CategoryPreviewCakes(ctx, categoryID)
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to fetch preview cakes")
+	}
+
+	res := make([]*gen.PreviewCake, len(previewCakes))
+	for i, it := range previewCakes {
+		res[i] = it.ConvertToGrpcModel()
+	}
+
+	return &gen.CategoryPreviewCakesRes{
+		PreviewCakes: res,
 	}, nil
 }
