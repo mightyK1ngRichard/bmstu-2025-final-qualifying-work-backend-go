@@ -6,7 +6,9 @@ import (
 	chatRepo "2025_CakeLand_API/internal/pkg/chat/repo"
 	"2025_CakeLand_API/internal/pkg/config"
 	"2025_CakeLand_API/internal/pkg/utils"
+	"2025_CakeLand_API/internal/pkg/utils/jwt"
 	"2025_CakeLand_API/internal/pkg/utils/logger"
+	md "2025_CakeLand_API/internal/pkg/utils/metadata"
 	"fmt"
 	_ "github.com/lib/pq"
 	"google.golang.org/grpc"
@@ -45,14 +47,15 @@ func run() error {
 	// Создаём Logger
 	l := logger.NewLogger(conf.Env)
 
+	mdProvider := md.NewMetadataProvider()
+	tokenator := jwt.NewTokenator()
 	grpcServer := grpc.NewServer()
 	repo := chatRepo.NewChatRepository(db)
-	chatProvider := chat.NewChatProvider(l, repo)
+	chatProvider := chat.NewChatProvider(l, mdProvider, tokenator, repo)
 	generated.RegisterChatServiceServer(grpcServer, chatProvider)
 
 	l.Info("Starting chat gRPC service", slog.String("port", chatPort))
 	if err = grpcServer.Serve(lis); err != nil {
-		log.Fatalf("serve error: %v", err)
 		return err
 	}
 
