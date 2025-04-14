@@ -20,14 +20,18 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ChatService_Chat_FullMethodName      = "/chat.ChatService/Chat"
-	ChatService_UserChats_FullMethodName = "/chat.ChatService/UserChats"
+	ChatService_ChatHistory_FullMethodName = "/chat.ChatService/ChatHistory"
+	ChatService_Chat_FullMethodName        = "/chat.ChatService/Chat"
+	ChatService_UserChats_FullMethodName   = "/chat.ChatService/UserChats"
 )
 
 // ChatServiceClient is the client API for ChatService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// ################# ChatService #################
 type ChatServiceClient interface {
+	ChatHistory(ctx context.Context, in *ChatHistoryRequest, opts ...grpc.CallOption) (*ChatHistoryResponse, error)
 	Chat(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ChatMessage, ChatMessage], error)
 	UserChats(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*UserChatsResponse, error)
 }
@@ -38,6 +42,16 @@ type chatServiceClient struct {
 
 func NewChatServiceClient(cc grpc.ClientConnInterface) ChatServiceClient {
 	return &chatServiceClient{cc}
+}
+
+func (c *chatServiceClient) ChatHistory(ctx context.Context, in *ChatHistoryRequest, opts ...grpc.CallOption) (*ChatHistoryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ChatHistoryResponse)
+	err := c.cc.Invoke(ctx, ChatService_ChatHistory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *chatServiceClient) Chat(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ChatMessage, ChatMessage], error) {
@@ -66,7 +80,10 @@ func (c *chatServiceClient) UserChats(ctx context.Context, in *emptypb.Empty, op
 // ChatServiceServer is the server API for ChatService service.
 // All implementations must embed UnimplementedChatServiceServer
 // for forward compatibility.
+//
+// ################# ChatService #################
 type ChatServiceServer interface {
+	ChatHistory(context.Context, *ChatHistoryRequest) (*ChatHistoryResponse, error)
 	Chat(grpc.BidiStreamingServer[ChatMessage, ChatMessage]) error
 	UserChats(context.Context, *emptypb.Empty) (*UserChatsResponse, error)
 	mustEmbedUnimplementedChatServiceServer()
@@ -79,6 +96,9 @@ type ChatServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedChatServiceServer struct{}
 
+func (UnimplementedChatServiceServer) ChatHistory(context.Context, *ChatHistoryRequest) (*ChatHistoryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ChatHistory not implemented")
+}
 func (UnimplementedChatServiceServer) Chat(grpc.BidiStreamingServer[ChatMessage, ChatMessage]) error {
 	return status.Errorf(codes.Unimplemented, "method Chat not implemented")
 }
@@ -104,6 +124,24 @@ func RegisterChatServiceServer(s grpc.ServiceRegistrar, srv ChatServiceServer) {
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&ChatService_ServiceDesc, srv)
+}
+
+func _ChatService_ChatHistory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChatHistoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).ChatHistory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_ChatHistory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).ChatHistory(ctx, req.(*ChatHistoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _ChatService_Chat_Handler(srv interface{}, stream grpc.ServerStream) error {
@@ -138,6 +176,10 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "chat.ChatService",
 	HandlerType: (*ChatServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ChatHistory",
+			Handler:    _ChatService_ChatHistory_Handler,
+		},
 		{
 			MethodName: "UserChats",
 			Handler:    _ChatService_UserChats_Handler,

@@ -8,17 +8,30 @@ option go_package = "2025_CakeLand_API/internal/pkg/chat/delivery/grpc/generated
 
 package chat;
 
+/* ################# UserChatsResponse ################# */
+message UserChatsResponse {
+  repeated cake.User users = 1;
+}
+
+/* ################# ChatHistory ################# */
+message ChatHistoryRequest {
+  string interlocutorID = 1;
+}
+
+message ChatHistoryResponse {
+  repeated ChatMessage messages = 1;
+}
+
+/* ################# ChatService ################# */
 service ChatService {
+  rpc ChatHistory(ChatHistoryRequest) returns (ChatHistoryResponse);
   rpc Chat(stream ChatMessage) returns (stream ChatMessage);
   rpc UserChats(google.protobuf.Empty) returns (UserChatsResponse);
 }
 
 message ChatMessage {
-  string receiverID = 1;
-  string text = 2;
-  google.protobuf.Timestamp dateCreation = 3;
-}
-
-message UserChatsResponse {
-  repeated cake.User users = 1;
+  string id = 1;
+  string receiverID = 2;
+  string text = 3;
+  google.protobuf.Timestamp dateCreation = 4;
 }

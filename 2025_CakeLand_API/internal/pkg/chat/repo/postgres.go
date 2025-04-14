@@ -24,12 +24,14 @@ const (
 		FROM "user"
 		WHERE id = $1;
 	`
+	queryUserHistory = `SELECT id, text, date_creation, owner_id, receiver_id FROM message WHERE owner_id = $1 AND receiver_id = $2`
 )
 
 type IChatRepository interface {
 	AddMessage(context.Context, models.Message) error
 	UserInterlocutors(context.Context, string) ([]string, error)
 	UserByID(context.Context, string) (*models.User, error)
+	ChatHistory(ctx context.Context, ownerID, interlocutorID string) ([]*models.Message, error)
 }
 
 type ChatRepository struct {
@@ -73,6 +75,37 @@ func (r *ChatRepository) UserByID(ctx context.Context, userID string) (*models.U
 	}
 
 	return &user, nil
+}
+
+func (r *ChatRepository) ChatHistory(ctx context.Context, ownerID, interlocutorID string) ([]*models.Message, error) {
+	methodName := "[Repo.GetChatHistory]"
+
+	rows, err := r.db.QueryContext(ctx, queryUserHistory, ownerID, interlocutorID)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", errs.ErrDB, methodName)
+	}
+	defer rows.Close()
+
+	var messages []*models.Message
+	for rows.Next() {
+		var message models.Message
+		if err = rows.Scan(
+			&message.ID,
+			&message.Text,
+			&message.DateCreation,
+			&message.OwnerID,
+			&message.ReceiverID,
+		); err != nil {
+			return nil, fmt.Errorf("%w: %s", errs.ErrDB, methodName)
+		}
+		messages = append(messages, &message)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("%w: %s", errs.ErrDB, methodName)
+	}
+
+	return messages, nil
 }
 
 func (r *ChatRepository) UserInterlocutors(ctx context.Context, userID string) ([]string, error) {

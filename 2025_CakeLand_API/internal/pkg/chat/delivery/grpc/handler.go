@@ -179,6 +179,33 @@ func (p *ChatProvider) UserChats(ctx context.Context, _ *emptypb.Empty) (*gen.Us
 	}, nil
 }
 
+func (p *ChatProvider) ChatHistory(ctx context.Context, in *gen.ChatHistoryRequest) (*gen.ChatHistoryResponse, error) {
+	// Получаем токен из метаданных
+	accessToken, err := p.mdProvider.GetValue(ctx, domains.KeyAuthorization)
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, p.log, err, fmt.Sprintf("missing required metadata: %s", domains.KeyAuthorization))
+	}
+
+	// Получаем UserID из токена
+	userID, err := p.tokenator.GetUserIDFromToken(accessToken, false)
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, p.log, err, "failed to fetch user id from token")
+	}
+
+	messages, err := p.repo.ChatHistory(ctx, userID, in.InterlocutorID)
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, p.log, err, "failed to fetch chat messages")
+	}
+
+	gprcMessages := make([]*gen.ChatMessage, len(messages))
+	for index, message := range messages {
+		gprcMessages[index] = message.ConvertToGrpcModel()
+	}
+	return &gen.ChatHistoryResponse{
+		Messages: gprcMessages,
+	}, nil
+}
+
 func (p *ChatProvider) removeClient(id string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
