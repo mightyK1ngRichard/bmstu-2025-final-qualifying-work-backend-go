@@ -587,6 +587,7 @@ func (r *CakeRepository) PreviewCakeByID(ctx context.Context, cakeID uuid.UUID) 
 		&previewCake.DateCreation,
 		&previewCake.IsOpenForSale,
 		&previewCake.Owner.ID,
+		&previewCake.Owner.FIO,
 		&previewCake.Owner.Address,
 		&previewCake.Owner.Nickname,
 		&previewCake.Owner.ImageURL,
