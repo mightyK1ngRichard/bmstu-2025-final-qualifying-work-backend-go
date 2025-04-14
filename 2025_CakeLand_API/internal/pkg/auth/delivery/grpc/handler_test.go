@@ -6,6 +6,7 @@ import (
 	"2025_CakeLand_API/internal/pkg/auth/dto"
 	"2025_CakeLand_API/internal/pkg/auth/mocks"
 	"2025_CakeLand_API/internal/pkg/utils"
+	"2025_CakeLand_API/internal/pkg/utils/logger"
 	md "2025_CakeLand_API/internal/pkg/utils/metadata"
 	"context"
 	"github.com/golang/mock/gomock"
@@ -25,9 +26,10 @@ func TestRegisterHandler(t *testing.T) {
 	mockAuthUsecase := mocks.NewMockIAuthUsecase(ctrl)
 
 	// Создаём gRPC-хэндлер с мокнутым usecase
+	log := logger.NewLogger("local")
 	validator := utils.NewValidator()
 	mdProvider := md.NewMetadataProvider()
-	h := handler.NewGrpcAuthHandler(validator, mockAuthUsecase, mdProvider)
+	h := handler.NewGrpcAuthHandler(log, validator, mockAuthUsecase, mdProvider)
 
 	// Настроим мок: если вызывается Register, он возвращает успешный результат
 	mockAuthUsecase.EXPECT().

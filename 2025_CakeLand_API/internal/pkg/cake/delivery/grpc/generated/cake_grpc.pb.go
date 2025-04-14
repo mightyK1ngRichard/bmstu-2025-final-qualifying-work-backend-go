@@ -27,15 +27,15 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CakeService_CreateCake_FullMethodName             = "/cake.CakeService/CreateCake"
-	CakeService_Cake_FullMethodName                   = "/cake.CakeService/Cake"
-	CakeService_Cakes_FullMethodName                  = "/cake.CakeService/Cakes"
-	CakeService_CategoryPreviewCakes_FullMethodName   = "/cake.CakeService/CategoryPreviewCakes"
-	CakeService_CreateFilling_FullMethodName          = "/cake.CakeService/CreateFilling"
-	CakeService_Fillings_FullMethodName               = "/cake.CakeService/Fillings"
-	CakeService_CreateCategory_FullMethodName         = "/cake.CakeService/CreateCategory"
-	CakeService_Categories_FullMethodName             = "/cake.CakeService/Categories"
-	CakeService_GetCategoryIDsByGender_FullMethodName = "/cake.CakeService/GetCategoryIDsByGender"
+	CakeService_CreateCake_FullMethodName                = "/cake.CakeService/CreateCake"
+	CakeService_Cake_FullMethodName                      = "/cake.CakeService/Cake"
+	CakeService_Cakes_FullMethodName                     = "/cake.CakeService/Cakes"
+	CakeService_CategoryPreviewCakes_FullMethodName      = "/cake.CakeService/CategoryPreviewCakes"
+	CakeService_CreateFilling_FullMethodName             = "/cake.CakeService/CreateFilling"
+	CakeService_Fillings_FullMethodName                  = "/cake.CakeService/Fillings"
+	CakeService_CreateCategory_FullMethodName            = "/cake.CakeService/CreateCategory"
+	CakeService_Categories_FullMethodName                = "/cake.CakeService/Categories"
+	CakeService_GetCategoriesByGenderName_FullMethodName = "/cake.CakeService/GetCategoriesByGenderName"
 )
 
 // CakeServiceClient is the client API for CakeService service.
@@ -50,7 +50,7 @@ type CakeServiceClient interface {
 	Fillings(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*FillingsResponse, error)
 	CreateCategory(ctx context.Context, in *CreateCategoryRequest, opts ...grpc.CallOption) (*CreateCategoryResponse, error)
 	Categories(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*CategoriesResponse, error)
-	GetCategoryIDsByGender(ctx context.Context, in *GetCategoryIDsByGenderReq, opts ...grpc.CallOption) (*GetCategoryIDsByGenderRes, error)
+	GetCategoriesByGenderName(ctx context.Context, in *GetCategoriesByGenderNameReq, opts ...grpc.CallOption) (*GetCategoriesByGenderNameRes, error)
 }
 
 type cakeServiceClient struct {
@@ -141,10 +141,10 @@ func (c *cakeServiceClient) Categories(ctx context.Context, in *emptypb.Empty, o
 	return out, nil
 }
 
-func (c *cakeServiceClient) GetCategoryIDsByGender(ctx context.Context, in *GetCategoryIDsByGenderReq, opts ...grpc.CallOption) (*GetCategoryIDsByGenderRes, error) {
+func (c *cakeServiceClient) GetCategoriesByGenderName(ctx context.Context, in *GetCategoriesByGenderNameReq, opts ...grpc.CallOption) (*GetCategoriesByGenderNameRes, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetCategoryIDsByGenderRes)
-	err := c.cc.Invoke(ctx, CakeService_GetCategoryIDsByGender_FullMethodName, in, out, cOpts...)
+	out := new(GetCategoriesByGenderNameRes)
+	err := c.cc.Invoke(ctx, CakeService_GetCategoriesByGenderName_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +163,7 @@ type CakeServiceServer interface {
 	Fillings(context.Context, *emptypb.Empty) (*FillingsResponse, error)
 	CreateCategory(context.Context, *CreateCategoryRequest) (*CreateCategoryResponse, error)
 	Categories(context.Context, *emptypb.Empty) (*CategoriesResponse, error)
-	GetCategoryIDsByGender(context.Context, *GetCategoryIDsByGenderReq) (*GetCategoryIDsByGenderRes, error)
+	GetCategoriesByGenderName(context.Context, *GetCategoriesByGenderNameReq) (*GetCategoriesByGenderNameRes, error)
 	mustEmbedUnimplementedCakeServiceServer()
 }
 
@@ -198,8 +198,8 @@ func (UnimplementedCakeServiceServer) CreateCategory(context.Context, *CreateCat
 func (UnimplementedCakeServiceServer) Categories(context.Context, *emptypb.Empty) (*CategoriesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Categories not implemented")
 }
-func (UnimplementedCakeServiceServer) GetCategoryIDsByGender(context.Context, *GetCategoryIDsByGenderReq) (*GetCategoryIDsByGenderRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetCategoryIDsByGender not implemented")
+func (UnimplementedCakeServiceServer) GetCategoriesByGenderName(context.Context, *GetCategoriesByGenderNameReq) (*GetCategoriesByGenderNameRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetCategoriesByGenderName not implemented")
 }
 func (UnimplementedCakeServiceServer) mustEmbedUnimplementedCakeServiceServer() {}
 func (UnimplementedCakeServiceServer) testEmbeddedByValue()                     {}
@@ -366,20 +366,20 @@ func _CakeService_Categories_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CakeService_GetCategoryIDsByGender_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetCategoryIDsByGenderReq)
+func _CakeService_GetCategoriesByGenderName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCategoriesByGenderNameReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CakeServiceServer).GetCategoryIDsByGender(ctx, in)
+		return srv.(CakeServiceServer).GetCategoriesByGenderName(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: CakeService_GetCategoryIDsByGender_FullMethodName,
+		FullMethod: CakeService_GetCategoriesByGenderName_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CakeServiceServer).GetCategoryIDsByGender(ctx, req.(*GetCategoryIDsByGenderReq))
+		return srv.(CakeServiceServer).GetCategoriesByGenderName(ctx, req.(*GetCategoriesByGenderNameReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -424,8 +424,8 @@ var CakeService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _CakeService_Categories_Handler,
 		},
 		{
-			MethodName: "GetCategoryIDsByGender",
-			Handler:    _CakeService_GetCategoryIDsByGender_Handler,
+			MethodName: "GetCategoriesByGenderName",
+			Handler:    _CakeService_GetCategoriesByGenderName_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

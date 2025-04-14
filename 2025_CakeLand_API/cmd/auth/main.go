@@ -46,7 +46,9 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(logger.LoggingUnaryInterceptor(l)),
+	)
 
 	rep := repo.NewAuthRepository(db)
 	validator := utils.NewValidator()

@@ -6,7 +6,7 @@ import (
 	"2025_CakeLand_API/internal/models/errs"
 	"2025_CakeLand_API/internal/pkg/cake"
 	gen "2025_CakeLand_API/internal/pkg/cake/delivery/grpc/generated"
-	en "2025_CakeLand_API/internal/pkg/cake/dto"
+	"2025_CakeLand_API/internal/pkg/cake/dto"
 	md "2025_CakeLand_API/internal/pkg/utils/metadata"
 	"context"
 	"fmt"
@@ -42,7 +42,7 @@ func (h *GrpcCakeHandler) Cake(ctx context.Context, in *gen.CakeRequest) (*gen.C
 		return nil, errs.ConvertToGrpcError(ctx, h.log, errs.ErrInvalidUUIDFormat, "'cake_id' must be a valid UUID")
 	}
 
-	res, err := h.usecase.Cake(ctx, en.GetCakeReq{
+	res, err := h.usecase.Cake(ctx, dto.GetCakeReq{
 		CakeID: cakeID,
 	})
 	if err != nil {
@@ -64,7 +64,7 @@ func (h *GrpcCakeHandler) CreateCake(ctx context.Context, in *gen.CreateCakeRequ
 		)
 	}
 
-	res, err := h.usecase.CreateCake(ctx, en.NewCreateCakeReq(in, accessToken))
+	res, err := h.usecase.CreateCake(ctx, dto.NewCreateCakeReq(in, accessToken))
 	if err != nil {
 		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to create cake")
 	}
@@ -83,7 +83,7 @@ func (h *GrpcCakeHandler) CreateFilling(ctx context.Context, in *gen.CreateFilli
 		)
 	}
 
-	res, err := h.usecase.CreateFilling(ctx, en.CreateFillingReq{
+	res, err := h.usecase.CreateFilling(ctx, dto.CreateFillingReq{
 		Name:        in.Name,
 		ImageData:   in.ImageData,
 		Content:     in.Content,
@@ -109,7 +109,7 @@ func (h *GrpcCakeHandler) CreateCategory(ctx context.Context, in *gen.CreateCate
 		)
 	}
 
-	res, err := h.usecase.CreateCategory(ctx, &en.CreateCategoryReq{
+	res, err := h.usecase.CreateCategory(ctx, &dto.CreateCategoryReq{
 		Name:        in.Name,
 		ImageData:   in.ImageData,
 		AccessToken: accessToken,
@@ -171,8 +171,12 @@ func (h *GrpcCakeHandler) Cakes(ctx context.Context, _ *emptypb.Empty) (*gen.Cak
 	}, nil
 }
 
-func (h *GrpcCakeHandler) GetCategoryIDsByGender(ctx context.Context, in *gen.GetCategoryIDsByGenderReq) (*gen.GetCategoryIDsByGenderRes, error) {
-	catGen := models.ConvertToCategoryGenderFromGrpc(in.CategoryGender)
+func (h *GrpcCakeHandler) GetCategoriesByGenderName(ctx context.Context, in *gen.GetCategoriesByGenderNameReq) (*gen.GetCategoriesByGenderNameRes, error) {
+	catGen, err := models.ConvertToCategoryGenderFromGrpc(in.CategoryGender)
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "unspecified category gender")
+	}
+
 	categories, err := h.usecase.CategoryIDsByGenderName(ctx, catGen)
 	if err != nil {
 		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to fetch category genders")
@@ -183,7 +187,7 @@ func (h *GrpcCakeHandler) GetCategoryIDsByGender(ctx context.Context, in *gen.Ge
 		res[i] = it.ConvertToCategoryGRPC()
 	}
 
-	return &gen.GetCategoryIDsByGenderRes{
+	return &gen.GetCategoriesByGenderNameRes{
 		Categories: res,
 	}, nil
 }

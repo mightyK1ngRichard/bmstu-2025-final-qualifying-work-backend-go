@@ -87,13 +87,13 @@ message CakesResponse {
   repeated Cake cakes = 1;
 }
 
-/* ############### GetCategoryIDsByGender ############### */
+/* ############### GetCategoriesByGenderName ############### */
 
-message GetCategoryIDsByGenderReq {
+message GetCategoriesByGenderNameReq {
   CategoryGender categoryGender = 1;
 }
 
-message GetCategoryIDsByGenderRes {
+message GetCategoriesByGenderNameRes {
   repeated Category categories = 1;
 }
 
@@ -120,7 +120,7 @@ service CakeService {
 
   rpc CreateCategory (CreateCategoryRequest) returns (CreateCategoryResponse);
   rpc Categories (google.protobuf.Empty) returns (CategoriesResponse);
-  rpc GetCategoryIDsByGender(GetCategoryIDsByGenderReq) returns (GetCategoryIDsByGenderRes);
+  rpc GetCategoriesByGenderName(GetCategoriesByGenderNameReq) returns (GetCategoriesByGenderNameRes);
 }
 
 // Информация о торте

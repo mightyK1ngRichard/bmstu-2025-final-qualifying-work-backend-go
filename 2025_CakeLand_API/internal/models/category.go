@@ -1,6 +1,7 @@
 package models
 
 import (
+	"2025_CakeLand_API/internal/models/errs"
 	"2025_CakeLand_API/internal/pkg/cake/delivery/grpc/generated"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
@@ -28,16 +29,16 @@ func (c CategoryGender) ConvertToGRPCCategoryGender() generated.CategoryGender {
 	}
 }
 
-func ConvertToCategoryGenderFromGrpc(categoryGen generated.CategoryGender) CategoryGender {
+func ConvertToCategoryGenderFromGrpc(categoryGen generated.CategoryGender) (CategoryGender, error) {
 	switch categoryGen {
 	case generated.CategoryGender_MALE:
-		return GenderMale
+		return GenderMale, nil
 	case generated.CategoryGender_FEMALE:
-		return GenderFemale
+		return GenderFemale, nil
 	case generated.CategoryGender_CHILD:
-		return GenderChild
+		return GenderChild, nil
 	default:
-		return GenderUnspecified
+		return GenderUnspecified, errs.ErrNoMessage
 	}
 }
 

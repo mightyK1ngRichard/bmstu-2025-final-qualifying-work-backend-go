@@ -24,6 +24,7 @@ var (
 	ErrClaimIsMissing         = errors.New("claim is missing")
 	ErrPreviewImageNotFound   = errors.New("preview image not found")
 	ErrDB                     = errors.New("database error")
+	ErrNoMessage              = errors.New("no message")
 )
 
 func ConvertToGrpcError(ctx context.Context, log *slog.Logger, err error, description string) error {
@@ -37,17 +38,20 @@ func ConvertToGrpcError(ctx context.Context, log *slog.Logger, err error, descri
 	case errors.Is(err, ErrDB):
 		return status.Error(codes.Internal, "internal server error")
 
+	case errors.Is(err, ErrNoMessage):
+		return status.Error(codes.InvalidArgument, fmt.Sprintf("%v: %s", err, description))
+
 	case errors.Is(err, ErrPreviewImageNotFound):
-		return status.Error(codes.Internal, fmt.Sprintf("%s: %v", description, err))
+		return status.Error(codes.Internal, fmt.Sprintf("%v: %s", err, description))
 
 	case errors.Is(err, ErrTokenIsExpired):
-		return status.Error(codes.Unauthenticated, fmt.Sprintf("%s: %v", description, err))
+		return status.Error(codes.Unauthenticated, fmt.Sprintf("%v: %s", err, description))
 
 	case errors.Is(err, ErrClaimIsMissing):
-		return status.Error(codes.Internal, fmt.Sprintf("%s: %v", description, err))
+		return status.Error(codes.Internal, fmt.Sprintf("%v: %s", err, description))
 
 	case errors.Is(err, ErrNotFound):
-		return status.Error(codes.NotFound, fmt.Sprintf("%s: %v", description, err))
+		return status.Error(codes.NotFound, fmt.Sprintf("%v: %s", err, description))
 
 	case errors.Is(err, ErrAlreadyExists):
 		return status.Error(codes.AlreadyExists, fmt.Sprintf("%v: %s", err, description))

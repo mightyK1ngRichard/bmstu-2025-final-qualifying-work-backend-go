@@ -57,6 +57,7 @@ func run() error {
 	}
 
 	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(logger.LoggingUnaryInterceptor(l)),
 		grpc.MaxRecvMsgSize(200*1024*1024), // 200MB для входящих сообщений
 		grpc.MaxSendMsgSize(200*1024*1024), // 200MB для исходящих сообщений
 	)
