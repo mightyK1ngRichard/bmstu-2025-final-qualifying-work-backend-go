@@ -24,7 +24,11 @@ const (
 		FROM "user"
 		WHERE id = $1;
 	`
-	queryUserHistory = `SELECT id, text, date_creation, owner_id, receiver_id FROM message WHERE owner_id = $1 AND receiver_id = $2`
+	queryUserHistory = `
+		SELECT id, text, date_creation, owner_id, receiver_id 
+		FROM message 
+		WHERE (owner_id = $1 AND receiver_id = $2) OR (owner_id = $2 AND receiver_id = $1)
+	`
 )
 
 type IChatRepository interface {

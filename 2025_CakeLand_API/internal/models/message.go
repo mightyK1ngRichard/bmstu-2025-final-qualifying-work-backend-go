@@ -16,9 +16,10 @@ type Message struct {
 
 func (m *Message) ConvertToGrpcModel() *gen.ChatMessage {
 	return &gen.ChatMessage{
-		Id:           m.ID,
-		ReceiverID:   m.ReceiverID,
-		Text:         m.Text,
-		DateCreation: timestamppb.New(m.DateCreation),
+		Id:             m.ID,
+		InterlocutorID: m.ReceiverID,
+		SenderID:       m.OwnerID,
+		Text:           m.Text,
+		DateCreation:   timestamppb.New(m.DateCreation),
 	}
 }

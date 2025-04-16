@@ -30,8 +30,9 @@ service ChatService {
 }
 
 message ChatMessage {
-  string id = 1;
-  string receiverID = 2;
-  string text = 3;
-  google.protobuf.Timestamp dateCreation = 4;
+  string id = 1;                              // Код сообщения
+  string interlocutorID = 2;                  // Код собеседника
+  string senderID = 3;                        // Отправитель сообщения
+  string text = 4;                            // Текст сообщения
+  google.protobuf.Timestamp dateCreation = 5; // Дата отправки сообщения
 }

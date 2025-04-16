@@ -6,7 +6,6 @@ import (
 	"2025_CakeLand_API/internal/models/errs"
 	"fmt"
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/pkg/errors"
 	"os"
 	"time"
 )
@@ -129,7 +128,7 @@ func getTokenClaims(tokenString string, secret []byte) (jwt.MapClaims, error) {
 		return secret, nil
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, errs.ErrParsingToken.Error())
+		return nil, fmt.Errorf("%w: %v", errs.ErrParsingToken, err)
 	}
 
 	// Извлечение claims и валидация токена

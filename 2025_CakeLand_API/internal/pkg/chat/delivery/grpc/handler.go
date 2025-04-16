@@ -68,6 +68,7 @@ func (p *ChatProvider) Chat(stream gen.ChatService_ChatServer) error {
 			return nil
 		}
 		if err != nil {
+			p.removeClient(fromID)
 			return errs.ConvertToGrpcError(stream.Context(), p.log, err, "error receiving message from server")
 		}
 
@@ -75,10 +76,11 @@ func (p *ChatProvider) Chat(stream gen.ChatService_ChatServer) error {
 		if fromID == "" {
 			fromID = ownerID
 			p.addClient(fromID, stream)
+			p.log.Info(fmt.Sprintf("[ADD]: добавил клиента: %s", ownerID))
 		}
 
 		// Если нет адресата, ничего не делаем
-		if msg.ReceiverID == "" {
+		if msg.InterlocutorID == "" {
 			continue
 		}
 
@@ -91,13 +93,20 @@ func (p *ChatProvider) Chat(stream gen.ChatService_ChatServer) error {
 		}
 		msg.DateCreation = timestamppb.New(creationTime)
 
+		if msg.Id == "" {
+			msg.Id = uuid.NewString()
+		}
+		if msg.SenderID == "" {
+			msg.SenderID = ownerID
+		}
+
 		// Сохраняем в бд
 		go func() {
 			message := models.Message{
-				ID:           uuid.NewString(),
+				ID:           msg.Id,
 				Text:         msg.Text,
-				OwnerID:      ownerID,
-				ReceiverID:   msg.ReceiverID,
+				OwnerID:      msg.SenderID,
+				ReceiverID:   msg.InterlocutorID,
 				DateCreation: creationTime,
 			}
 
@@ -107,10 +116,10 @@ func (p *ChatProvider) Chat(stream gen.ChatService_ChatServer) error {
 		}()
 
 		p.mu.Lock()
-		if client, ok := p.clients[msg.ReceiverID]; ok {
+		if client, ok := p.clients[msg.InterlocutorID]; ok {
 			client.Send(msg)
 		} else {
-			p.log.Warn(fromID, "client not found", msg.ReceiverID)
+			p.log.Warn(fromID, "interlocutor not found id:", msg.InterlocutorID)
 		}
 		p.mu.Unlock()
 	}
@@ -210,6 +219,7 @@ func (p *ChatProvider) removeClient(id string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
+	p.log.Info(fmt.Sprintf("[DELETE]: удалили клиента: %s", id))
 	delete(p.clients, id)
 }
 
