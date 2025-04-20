@@ -7,7 +7,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"github.com/google/uuid"
 )
 
@@ -42,7 +41,7 @@ func NewProfileRepository(db *sql.DB) *ProfileRepository {
 }
 
 func (r *ProfileRepository) UserInfo(ctx context.Context, userID uuid.UUID) (*dto.Profile, error) {
-	methodName := "[Repo.UserInfo]"
+	const methodName = "[Repo.UserInfo]"
 
 	var user dto.Profile
 	if err := r.db.QueryRowContext(ctx, querySelectProfileByID, userID).Scan(
@@ -59,18 +58,18 @@ func (r *ProfileRepository) UserInfo(ctx context.Context, userID uuid.UUID) (*dt
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errs.ErrNotFound
 		}
-		return nil, fmt.Errorf("%w: %s: %w", errs.ErrDB, methodName, err)
+		return nil, errs.WrapDBError(methodName, err)
 	}
 
 	return &user, nil
 }
 
 func (r *ProfileRepository) CakesByUserID(ctx context.Context, userID uuid.UUID) ([]cakeDto.PreviewCakeDB, error) {
-	methodName := "[Repo.CakesByUserID]"
+	const methodName = "[Repo.CakesByUserID]"
 
 	rows, err := r.db.QueryContext(ctx, querySelectCakesByUserID, userID)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s: %w", errs.ErrDB, methodName, err)
+		return nil, errs.WrapDBError(methodName, err)
 	}
 
 	defer rows.Close()
@@ -91,14 +90,14 @@ func (r *ProfileRepository) CakesByUserID(ctx context.Context, userID uuid.UUID)
 			&previewCake.IsOpenForSale,
 			&previewCake.OwnerID,
 		); err != nil {
-			return nil, fmt.Errorf("%w: %s: %w", errs.ErrDB, methodName, err)
+			return nil, errs.WrapDBError(methodName, err)
 		}
 
 		cakes = append(cakes, previewCake)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("%w: %s: %w", errs.ErrDB, methodName, err)
+		return nil, errs.WrapDBError(methodName, err)
 	}
 
 	return cakes, nil

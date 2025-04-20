@@ -8,6 +8,7 @@ import (
 	md "2025_CakeLand_API/internal/pkg/utils/metadata"
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"log/slog"
 )
@@ -46,5 +47,21 @@ func (h *GrpcProfileHandler) GetUserInfo(ctx context.Context, _ *emptypb.Empty) 
 
 	return &gen.GetUserInfoRes{
 		UserInfo: userInfo.ConvertToGrpcModel(),
+	}, nil
+}
+
+func (h *GrpcProfileHandler) GetUserInfoByID(ctx context.Context, req *gen.GetUserInfoByIDReq) (*gen.GetUserInfoByIDRes, error) {
+	userID, err := uuid.Parse(req.UserID)
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, fmt.Errorf("%w: %w", errs.ErrInvalidUUIDFormat, err), "invalid user id format")
+	}
+
+	userInfo, err := h.usecase.UserInfoByID(ctx, userID)
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to fetch user info")
+	}
+
+	return &gen.GetUserInfoByIDRes{
+		User: userInfo.ConvertToGRPCProfile(),
 	}, nil
 }

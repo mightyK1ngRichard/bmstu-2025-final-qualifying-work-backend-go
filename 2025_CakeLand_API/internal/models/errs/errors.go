@@ -93,3 +93,7 @@ func logGRPCError(ctx context.Context, log *slog.Logger, err error, description 
 		slog.String("error", err.Error()),
 	)
 }
+
+func WrapDBError(method string, err error) error {
+	return fmt.Errorf("%w: %s: %w", ErrDB, method, err)
+}
