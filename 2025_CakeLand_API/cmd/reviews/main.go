@@ -72,6 +72,6 @@ func run() error {
 	usecase := usecase.NewReviewsUsecase(userClient, repository)
 	handler := handler.NewReviewsHandler(l, usecase, mdProvider, tokenator)
 	gen.RegisterReviewServiceServer(grpcServer, handler)
-	l.Info("Starting profile gRPC service", slog.String("port", fmt.Sprintf(":%d", conf.GRPC.ProfilePort)))
+	l.Info("Starting reviews gRPC service", slog.String("port", fmt.Sprintf(":%d", conf.GRPC.ReviewsPort)))
 	return grpcServer.Serve(listener)
 }

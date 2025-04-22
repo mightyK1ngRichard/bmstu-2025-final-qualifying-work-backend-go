@@ -10,8 +10,7 @@ import (
 	md "2025_CakeLand_API/internal/pkg/utils/metadata"
 	"context"
 	"fmt"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"github.com/google/uuid"
 	"log/slog"
 )
 
@@ -50,6 +49,15 @@ func (h *GrpcReviewsHandler) AddFeedback(ctx context.Context, in *gen.AddFeedbac
 		return nil, errs.ConvertToGrpcError(ctx, h.log, err, fmt.Sprintf("missing required token: %s", domains.KeyAuthorization))
 	}
 
+	// Валидация
+	if in.Text == "" {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, errs.ErrInvalidInput, "text is required")
+	}
+	if !(in.Rating > 0 && in.Rating < 6) {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, errs.ErrInvalidInput, "rating must be between 1 and 5")
+	}
+
+	// Бизнес логика
 	request, err := entities.NewCreateFeedbackReq(in, userID)
 	if err != nil {
 		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to create request")
@@ -60,11 +68,29 @@ func (h *GrpcReviewsHandler) AddFeedback(ctx context.Context, in *gen.AddFeedbac
 		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to create request")
 	}
 
+	// Ответ
 	return &gen.AddFeedbackResponse{
 		Feedback: feedback.ConvertToGRPC(),
 	}, nil
 }
 
 func (h *GrpcReviewsHandler) ProductFeedbacks(ctx context.Context, in *gen.ProductFeedbacksRequest) (*gen.ProductFeedbacksResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ProductFeedbacks not implemented")
+	cakeID, err := uuid.Parse(in.CakeID)
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, errs.ErrInvalidUUIDFormat, "invalid cake id")
+	}
+
+	feedbacks, err := h.usecase.ProductFeedbacks(ctx, cakeID)
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to create request")
+	}
+
+	response := make([]*gen.Feedback, len(feedbacks))
+	for i, feedback := range feedbacks {
+		response[i] = feedback.ConvertToGRPC()
+	}
+
+	return &gen.ProductFeedbacksResponse{
+		Feedbacks: response,
+	}, nil
 }
