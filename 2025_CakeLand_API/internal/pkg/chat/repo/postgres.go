@@ -11,8 +11,16 @@ import (
 
 const (
 	queryAddMessage        = "INSERT INTO message (id, text, date_creation, owner_id, receiver_id) VALUES ($1, $2, $3, $4, $5)"
-	queryUserInterlocutors = `SELECT receiver_id FROM message WHERE owner_id = $1`
-	queryUserByID          = `
+	queryUserInterlocutors = `
+		SELECT DISTINCT CASE
+			WHEN owner_id = $1 THEN receiver_id
+			ELSE owner_id
+			END AS chat_partner
+		FROM message
+		WHERE (owner_id = $1 OR receiver_id = $1)
+		AND owner_id != receiver_id;
+	`
+	queryUserByID = `
 		SELECT id,
 			   fio,
 			   address,

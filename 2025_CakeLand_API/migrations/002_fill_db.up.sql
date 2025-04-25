@@ -483,3 +483,20 @@ VALUES ('e4c49a8f-1c99-4a7a-aef6-7be1b22959c9',
         4,
         '550e8400-e29b-41d4-a716-446655441201',
         '709a8321-fbc7-45c9-8414-9df4c9f454e3');
+
+INSERT INTO cake_images (id, image_url, cake_id)
+VALUES ('2d7a4db3-5a1d-41ab-af99-75392a8752d9',
+        'https://i.pinimg.com/originals/a1/56/ff/a156ff80b6dfe9ba98c66769126566df.jpg',
+        '4f8537c9-8464-4e55-bcc8-16f79a0760bd'),
+       ('0a62dd1d-0432-4e91-afac-d1b808b05294',
+        'https://avatars.mds.yandex.net/i?id=3ae43a6e06712de8313c60a5d29d050e_l-9851898-images-thumbs&n=13',
+        '4f8537c9-8464-4e55-bcc8-16f79a0760bd'),
+       ('630c92bf-fb25-476a-8fcd-3a9ce7943f88',
+        'https://cdn-img.perekrestok.ru/i/800x800-fit/xdelivery/files/77/75/75e84aa21ec6dc966ffcfac3772b.jpg',
+        '550e8400-e29b-41d4-a716-446655441203'),
+       ('630c92bf-fb25-476a-8fcd-3a9ce7943f89',
+        'https://i.ytimg.com/vi/YNR8ZYrt5wk/maxresdefault.jpg',
+        '550e8400-e29b-41d4-a716-446655441205'),
+       ('630c92bf-fb25-476a-8fcd-3a9ce7943f90',
+        'https://i.pinimg.com/736x/1d/0e/43/1d0e431d692232a2386323ca8d746107.jpg',
+        '550e8400-e29b-41d4-a716-446655441201');
