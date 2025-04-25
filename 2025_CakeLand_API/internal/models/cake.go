@@ -14,7 +14,8 @@ type Cake struct {
 	Name            string      // Название
 	PreviewImageURL string      // Картинка товара
 	KgPrice         float64     // Цена за кг
-	Rating          int         // Рейтинг (от 0 до 5)
+	ReviewsCount    int32       // Количество отзывов
+	StarsSum        int32       // Сумма звёзд
 	Description     string      // Описание
 	Mass            float64     // Масса торта
 	IsOpenForSale   bool        // Флаг возможности продажи торта
@@ -44,6 +45,7 @@ func (c *Cake) ConvertToCakeGRPC() *gen.Cake {
 	for i, it := range c.Fillings {
 		grpcFillings[i] = it.ConvertToFillingGRPC()
 	}
+
 	grpcCategories := make([]*gen.Category, len(c.Categories))
 	for i, it := range c.Categories {
 		grpcCategories[i] = it.ConvertToCategoryGRPC()
@@ -65,12 +67,18 @@ func (c *Cake) ConvertToCakeGRPC() *gen.Cake {
 		cakeImages[i] = it.ConvertToCakeImageGRPC()
 	}
 
+	// рейтинг = сумма / кол-во
+	var rating int32 = 0
+	if c.ReviewsCount != 0 {
+		rating = c.StarsSum / c.ReviewsCount
+	}
+
 	return &gen.Cake{
 		Id:              c.ID.String(),
 		Name:            c.Name,
 		ImageUrl:        c.PreviewImageURL,
 		KgPrice:         c.KgPrice,
-		Rating:          int32(c.Rating),
+		Rating:          rating,
 		Description:     c.Description,
 		Mass:            c.Mass,
 		IsOpenForSale:   c.IsOpenForSale,
@@ -81,5 +89,6 @@ func (c *Cake) ConvertToCakeGRPC() *gen.Cake {
 		DiscountEndTime: discountEndTime,
 		DateCreation:    timestamppb.New(c.DateCreation),
 		Images:          cakeImages,
+		ReviewsCount:    c.ReviewsCount,
 	}
 }

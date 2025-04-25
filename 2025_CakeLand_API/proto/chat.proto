@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+import "cake.proto";
+
+option go_package = "2025_CakeLand_API/internal/pkg/chat/delivery/grpc/generated";
+
+package chat;
+
+/* ################# UserChatsResponse ################# */
+message UserChatsResponse {
+  repeated cake.User users = 1;
+}
+
+/* ################# ChatHistory ################# */
+message ChatHistoryRequest {
+  string interlocutorID = 1;
+}
+
+message ChatHistoryResponse {
+  repeated ChatMessage messages = 1;
+}
+
+/* ################# ChatService ################# */
+service ChatService {
+  rpc ChatHistory(ChatHistoryRequest) returns (ChatHistoryResponse);
+  rpc Chat(stream ChatMessage) returns (stream ChatMessage);
+  rpc UserChats(google.protobuf.Empty) returns (UserChatsResponse);
+}
+
+message ChatMessage {
+  string id = 1;                              // Код сообщения
+  string interlocutorID = 2;                  // Код собеседника
+  string senderID = 3;                        // Отправитель сообщения
+  string text = 4;                            // Текст сообщения
+  google.protobuf.Timestamp dateCreation = 5; // Дата отправки сообщения
+}

@@ -5,18 +5,26 @@ import "google/protobuf/wrappers.proto";
 import "cake.proto";
 
 package profile;
-option go_package = "internal/pkg/profile/delivery/grpc/generated";
+option go_package = "2025_CakeLand_API/internal/pkg/profile/delivery/grpc/generated";
 
 /* ############### GetUserInfo ############### */
-
 message GetUserInfoRes {
   UserInfo userInfo = 1;
 }
 
-/* ############### ProfileService ############### */
+/* ############### GetUserInfoByID ############### */
+message GetUserInfoByIDReq {
+  string userID = 1;
+}
 
+message GetUserInfoByIDRes {
+  Profile user = 1;
+}
+
+/* ############### ProfileService ############### */
 service ProfileService {
   rpc GetUserInfo(google.protobuf.Empty) returns (GetUserInfoRes);
+  rpc GetUserInfoByID(GetUserInfoByIDReq) returns (GetUserInfoByIDRes);
 }
 
 message Profile {

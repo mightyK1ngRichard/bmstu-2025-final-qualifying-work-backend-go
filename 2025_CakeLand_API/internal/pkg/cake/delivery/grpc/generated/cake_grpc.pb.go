@@ -4,13 +4,6 @@
 // - protoc             v5.29.3
 // source: cake.proto
 
-//
-//protoc --go_out=./../internal/pkg/cake/delivery/grpc/generated \
-//--go-grpc_out=./../internal/pkg/cake/delivery/grpc/generated \
-//--go-grpc_opt=paths=source_relative \
-//--go_opt=paths=source_relative \
-//cake.proto
-
 package generated
 
 import (
@@ -41,6 +34,8 @@ const (
 // CakeServiceClient is the client API for CakeService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// ############### CakeService ###############
 type CakeServiceClient interface {
 	CreateCake(ctx context.Context, in *CreateCakeRequest, opts ...grpc.CallOption) (*CreateCakeResponse, error)
 	Cake(ctx context.Context, in *CakeRequest, opts ...grpc.CallOption) (*CakeResponse, error)
@@ -154,6 +149,8 @@ func (c *cakeServiceClient) GetCategoriesByGenderName(ctx context.Context, in *G
 // CakeServiceServer is the server API for CakeService service.
 // All implementations must embed UnimplementedCakeServiceServer
 // for forward compatibility.
+//
+// ############### CakeService ###############
 type CakeServiceServer interface {
 	CreateCake(context.Context, *CreateCakeRequest) (*CreateCakeResponse, error)
 	Cake(context.Context, *CakeRequest) (*CakeResponse, error)

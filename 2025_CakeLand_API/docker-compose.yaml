@@ -1,4 +1,3 @@
-version: "3.8"
 x-minio-common: &minio-common
   image: quay.io/minio/minio:RELEASE.2022-10-15T19-57-03Z
   command: server --console-address ":9001" http://minio{1...4}/data{1...2}

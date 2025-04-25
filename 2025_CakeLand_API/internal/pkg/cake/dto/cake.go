@@ -15,7 +15,8 @@ type PreviewCake struct {
 	Name            string
 	PreviewImageURL string
 	KgPrice         float64
-	Rating          uint
+	ReviewsCount    uint
+	StarsSum        uint
 	Description     null.String
 	Mass            float64
 	DiscountKgPrice null.Float
@@ -30,7 +31,8 @@ type PreviewCakeDB struct {
 	Name            string
 	PreviewImageURL string
 	KgPrice         float64
-	Rating          uint
+	ReviewsCount    uint
+	StarsSum        uint
 	Description     null.String
 	Mass            float64
 	DiscountKgPrice null.Float
@@ -56,12 +58,18 @@ func (pc PreviewCake) ConvertToGrpcModel() *generated.PreviewCake {
 		discountEndTime = timestamppb.New(pc.DiscountEndTime.Time)
 	}
 
+	// рейтинг = сумма / кол-во
+	var rating uint32 = 0
+	if pc.ReviewsCount != 0 {
+		rating = uint32(pc.StarsSum / pc.ReviewsCount)
+	}
+
 	return &generated.PreviewCake{
 		Id:              pc.ID.String(),
 		Name:            pc.Name,
 		PreviewImageUrl: pc.PreviewImageURL,
 		KgPrice:         pc.KgPrice,
-		Rating:          uint32(pc.Rating),
+		Rating:          rating,
 		Description:     description,
 		Mass:            pc.Mass,
 		DiscountKgPrice: discountKgPrice,
@@ -78,7 +86,8 @@ func (pc *PreviewCakeDB) ConvertToPreviewCake(owner Owner) PreviewCake {
 		Name:            pc.Name,
 		PreviewImageURL: pc.PreviewImageURL,
 		KgPrice:         pc.KgPrice,
-		Rating:          pc.Rating,
+		StarsSum:        pc.StarsSum,
+		ReviewsCount:    pc.ReviewsCount,
 		Description:     pc.Description,
 		Mass:            pc.Mass,
 		DiscountKgPrice: pc.DiscountKgPrice,

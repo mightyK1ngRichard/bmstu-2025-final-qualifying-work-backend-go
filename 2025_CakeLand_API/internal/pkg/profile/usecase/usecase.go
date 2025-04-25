@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"2025_CakeLand_API/internal/models"
 	dto2 "2025_CakeLand_API/internal/pkg/cake/dto"
 	"2025_CakeLand_API/internal/pkg/minio"
 	"2025_CakeLand_API/internal/pkg/profile"
@@ -110,6 +111,25 @@ func (u *ProfileUseсase) UserInfo(ctx context.Context, accessToken string) (*dt
 	userInfo := dto.UserInfo{
 		User:  *user,
 		Cakes: cakes,
+	}
+	return &userInfo, nil
+}
+
+func (u *ProfileUseсase) UserInfoByID(ctx context.Context, userID uuid.UUID) (*models.UserInfo, error) {
+	profileInfo, err := u.repo.UserInfo(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	userInfo := models.UserInfo{
+		ID:             profileInfo.ID.String(),
+		FIO:            profileInfo.FIO,
+		Address:        profileInfo.Address,
+		Nickname:       profileInfo.Nickname,
+		ImageURL:       profileInfo.ImageURL,
+		HeaderImageURL: profileInfo.HeaderImageURL,
+		Mail:           profileInfo.Mail,
+		Phone:          profileInfo.Phone,
 	}
 	return &userInfo, nil
 }

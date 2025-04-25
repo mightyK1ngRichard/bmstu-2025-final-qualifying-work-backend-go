@@ -2,6 +2,8 @@ run:
 	go run cmd/cake/main.go & \
     	go run cmd/profile/main.go & \
     	go run cmd/auth/main.go & \
+    	go run cmd/chat/main.go & \
+    	go run cmd/reviews/main.go & \
     	wait
 
 tests:
@@ -44,3 +46,25 @@ profile_proto:
 	protoc --swift_out=../internal/pkg/profile/delivery/grpc/generated \
 	       --grpc-swift_out=../internal/pkg/profile/delivery/grpc/generated \
 	       profile.proto
+
+chat_proto:
+	cd proto && \
+	protoc --go_out=../internal/pkg/chat/delivery/grpc/generated \
+	       --go-grpc_out=../internal/pkg/chat/delivery/grpc/generated \
+	       --go_opt=paths=source_relative \
+	       --go-grpc_opt=paths=source_relative \
+	       chat.proto && \
+	protoc --swift_out=../internal/pkg/chat/delivery/grpc/generated \
+	       --grpc-swift_out=../internal/pkg/chat/delivery/grpc/generated \
+	       chat.proto
+
+feedback_proto:
+	cd proto && \
+	protoc --go_out=../internal/pkg/reviews/delivery/grpc/generated \
+	       --go-grpc_out=../internal/pkg/reviews/delivery/grpc/generated \
+	       --go_opt=paths=source_relative \
+	       --go-grpc_opt=paths=source_relative \
+	       feedback.proto && \
+	protoc --swift_out=../internal/pkg/reviews/delivery/grpc/generated \
+	       --grpc-swift_out=../internal/pkg/reviews/delivery/grpc/generated \
+	       feedback.proto
