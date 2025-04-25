@@ -189,7 +189,7 @@ func (u *CakeUseсase) CreateCake(ctx context.Context, in dto.CreateCakeReq) (*d
 	}
 
 	// Добавляем изображение в хранилище
-	images := make(map[ms.ImageID][]byte, len(in.Images)+1) // Size это фотографии тортов + превью фотография
+	images := make(map[ms.ImageID][]byte, len(in.Images)+1) // Size = фотографии тортов + превью фотография
 	for _, imageData := range in.Images {
 		cakeID := ms.ImageID(uuid.New().String())
 		images[cakeID] = imageData
