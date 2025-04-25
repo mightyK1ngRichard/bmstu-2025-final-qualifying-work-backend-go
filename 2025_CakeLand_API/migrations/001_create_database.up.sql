@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS cake
 (
     id                UUID PRIMARY KEY,
     name              VARCHAR(150)                        NOT NULL,
-    image_url         VARCHAR(200),
+    image_url         VARCHAR(500),
     kg_price          DOUBLE PRECISION                    NOT NULL,
     reviews_count     INT       DEFAULT 0 CHECK (reviews_count >= 0),
     stars_sum         INT       DEFAULT 0 CHECK (stars_sum >= 0),
