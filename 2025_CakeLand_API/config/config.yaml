@@ -4,4 +4,5 @@ grpc:
   authPort: 44045
   profilePort: 44046
   chatPort: 44047
+  reviewsPort: 44048
   timeout: 5s

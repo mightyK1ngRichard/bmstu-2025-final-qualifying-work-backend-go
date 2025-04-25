@@ -29,7 +29,7 @@ func NewAuthRepository(db *sql.DB) *AuthRepository {
 }
 
 func (r *AuthRepository) CreateUser(ctx context.Context, in dto.CreateUserReq) error {
-	methodName := "[Repo.CreateUser]"
+	const methodName = "[Repo.CreateUser]"
 
 	// Проверка существования пользователя с таким email
 	var exists bool
@@ -37,7 +37,7 @@ func (r *AuthRepository) CreateUser(ctx context.Context, in dto.CreateUserReq) e
 		if errors.Is(err, sql.ErrNoRows) {
 			return errs.ErrNotFound
 		}
-		return fmt.Errorf("%w: %s: %w", errs.ErrDB, methodName, err)
+		return errs.WrapDBError(methodName, err)
 	}
 	if exists {
 		return errs.ErrAlreadyExists
@@ -58,14 +58,14 @@ func (r *AuthRepository) CreateUser(ctx context.Context, in dto.CreateUserReq) e
 		in.PasswordHash,
 		refreshTokensJSON,
 	); err != nil {
-		return fmt.Errorf("%w: %s: %w", errs.ErrDB, methodName, err)
+		return errs.WrapDBError(methodName, err)
 	}
 
 	return nil
 }
 
 func (r *AuthRepository) GetUserByEmail(ctx context.Context, in dto.GetUserByEmailReq) (*dto.GetUserByEmailRes, error) {
-	methodName := "[Repo.GetUserByEmail]"
+	const methodName = "[Repo.GetUserByEmail]"
 
 	row := r.db.QueryRowContext(ctx, getUserByEmailCommand, in.Email)
 	var res dto.GetUserByEmailRes
@@ -73,14 +73,14 @@ func (r *AuthRepository) GetUserByEmail(ctx context.Context, in dto.GetUserByEma
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errs.ErrNotFound
 		}
-		return nil, fmt.Errorf("%w: %s: %w", errs.ErrDB, methodName, err)
+		return nil, errs.WrapDBError(methodName, err)
 	}
 
 	return &res, nil
 }
 
 func (r *AuthRepository) UpdateUserRefreshTokens(ctx context.Context, in dto.UpdateUserRefreshTokensReq) error {
-	methodName := "[Repo.UpdateUserRefreshTokens]"
+	const methodName = "[Repo.UpdateUserRefreshTokens]"
 
 	// Сериализация RefreshTokensMap в JSON
 	refreshTokensJSON, err := json.Marshal(in.RefreshTokensMap)
@@ -90,14 +90,14 @@ func (r *AuthRepository) UpdateUserRefreshTokens(ctx context.Context, in dto.Upd
 
 	// Выполнение команды обновления токенов
 	if _, err = r.db.ExecContext(ctx, updateUserRefreshTokensCommand, refreshTokensJSON, in.UserID); err != nil {
-		return fmt.Errorf("%w: %s: %w", errs.ErrDB, methodName, err)
+		return errs.WrapDBError(methodName, err)
 	}
 
 	return nil
 }
 
 func (r *AuthRepository) GetUserRefreshTokens(ctx context.Context, in dto.GetUserRefreshTokensReq) (*dto.GetUserRefreshTokensRes, error) {
-	methodName := "[Repo.GetUserRefreshTokens]"
+	const methodName = "[Repo.GetUserRefreshTokens]"
 
 	var refreshTokens []byte
 	row := r.db.QueryRowContext(ctx, getUserRefreshTokensCommand, in.UserID)
@@ -105,7 +105,7 @@ func (r *AuthRepository) GetUserRefreshTokens(ctx context.Context, in dto.GetUse
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errs.ErrNotFound
 		}
-		return nil, fmt.Errorf("%w: %s: %w", errs.ErrDB, methodName, err)
+		return nil, errs.WrapDBError(methodName, err)
 	}
 
 	var refreshTokensMap map[string]string

@@ -25,6 +25,7 @@ var (
 	ErrPreviewImageNotFound   = errors.New("preview image not found")
 	ErrDB                     = errors.New("database error")
 	ErrNoMessage              = errors.New("no message")
+	ErrInvalidInput           = errors.New("invalid input")
 )
 
 func ConvertToGrpcError(ctx context.Context, log *slog.Logger, err error, description string) error {
@@ -66,6 +67,7 @@ func ConvertToGrpcError(ctx context.Context, log *slog.Logger, err error, descri
 		return status.Error(codes.InvalidArgument, fmt.Sprintf("%v: %s", err, description))
 
 	case errors.Is(err, ErrInvalidUUIDFormat),
+		errors.Is(err, ErrInvalidInput),
 		errors.Is(err, ErrInvalidRefreshToken):
 		return status.Error(codes.InvalidArgument, fmt.Sprintf("%v: %s", err, description))
 
@@ -92,4 +94,8 @@ func logGRPCError(ctx context.Context, log *slog.Logger, err error, description 
 		slog.String("description", description),
 		slog.String("error", err.Error()),
 	)
+}
+
+func WrapDBError(method string, err error) error {
+	return fmt.Errorf("%w: %s: %w", ErrDB, method, err)
 }

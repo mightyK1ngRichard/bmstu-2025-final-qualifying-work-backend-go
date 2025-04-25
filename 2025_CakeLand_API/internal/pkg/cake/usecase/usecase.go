@@ -37,6 +37,7 @@ func (u *CakeUseсase) Cake(ctx context.Context, in dto.GetCakeReq) (*dto.GetCak
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	// Получаем информацию торта
 	res, err := u.repo.CakeByID(ctx, in)
 	if err != nil {
 		return nil, err
@@ -193,6 +194,7 @@ func (u *CakeUseсase) CreateCake(ctx context.Context, in dto.CreateCakeReq) (*d
 		cakeID := ms.ImageID(uuid.New().String())
 		images[cakeID] = imageData
 	}
+
 	previewImageID := ms.ImageID(uuid.New().String())
 	images[previewImageID] = in.PreviewImageData
 	res, err := u.imageStore.SaveImages(ctx, u.bucketName, images)
@@ -205,6 +207,9 @@ func (u *CakeUseсase) CreateCake(ctx context.Context, in dto.CreateCakeReq) (*d
 	if !ok {
 		return nil, errs.ErrPreviewImageNotFound
 	}
+
+	// Удаляем превью из общего списка
+	delete(res, previewImageID)
 
 	// Создаём торт в бд
 	cakeID := uuid.New()

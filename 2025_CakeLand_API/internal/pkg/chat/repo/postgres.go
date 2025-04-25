@@ -52,7 +52,7 @@ func (r *ChatRepository) AddMessage(ctx context.Context, msg models.Message) err
 	methodName := "[Repo.AddMessage]"
 	_, err := r.db.ExecContext(ctx, queryAddMessage, msg.ID, msg.Text, msg.DateCreation, msg.OwnerID, msg.ReceiverID)
 	if err != nil {
-		return fmt.Errorf("%w: %s", errs.ErrDB, methodName)
+		return errs.WrapDBError(methodName, err)
 	}
 
 	return nil
@@ -75,7 +75,7 @@ func (r *ChatRepository) UserByID(ctx context.Context, userID string) (*models.U
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errs.ErrNotFound
 		}
-		return nil, fmt.Errorf("%w: %s: %w", errs.ErrDB, methodName, err)
+		return nil, errs.WrapDBError(methodName, err)
 	}
 
 	return &user, nil
@@ -86,10 +86,10 @@ func (r *ChatRepository) ChatHistory(ctx context.Context, ownerID, interlocutorI
 
 	rows, err := r.db.QueryContext(ctx, queryUserHistory, ownerID, interlocutorID)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", errs.ErrDB, methodName)
+		return nil, errs.WrapDBError(methodName, err)
 	}
-	defer rows.Close()
 
+	defer rows.Close()
 	var messages []*models.Message
 	for rows.Next() {
 		var message models.Message
@@ -106,7 +106,7 @@ func (r *ChatRepository) ChatHistory(ctx context.Context, ownerID, interlocutorI
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("%w: %s", errs.ErrDB, methodName)
+		return nil, errs.WrapDBError(methodName, err)
 	}
 
 	return messages, nil
@@ -117,15 +117,15 @@ func (r *ChatRepository) UserInterlocutors(ctx context.Context, userID string) (
 
 	rows, err := r.db.QueryContext(ctx, queryUserInterlocutors, userID)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s: %w", errs.ErrDB, methodName, err)
+		return nil, errs.WrapDBError(methodName, err)
 	}
-	defer rows.Close()
 
+	defer rows.Close()
 	var ids []string
 	for rows.Next() {
 		var id string
 		if err = rows.Scan(&id); err != nil {
-			return nil, fmt.Errorf("%w: %s: %w", errs.ErrDB, methodName, err)
+			return nil, errs.WrapDBError(methodName, err)
 		}
 		ids = append(ids, id)
 	}

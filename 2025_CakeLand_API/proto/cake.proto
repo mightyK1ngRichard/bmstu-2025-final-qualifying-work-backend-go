@@ -4,19 +4,10 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
 import "google/protobuf/timestamp.proto";
 
-/*
-protoc --go_out=./../internal/pkg/cake/delivery/grpc/generated \
---go-grpc_out=./../internal/pkg/cake/delivery/grpc/generated \
---go-grpc_opt=paths=source_relative \
---go_opt=paths=source_relative \
-cake.proto
-*/
-
 package cake;
 option go_package = "2025_CakeLand_API/internal/pkg/cake/delivery/grpc/generated";
 
 /* ############### Cake ############### */
-
 message CakeRequest {
   string cake_id = 1;
 }
@@ -26,18 +17,18 @@ message CakeResponse {
 }
 
 /* ############### CreateCake ############### */
-
 message CreateCakeRequest {
-  string name = 1;                   // Название торта
-  bytes preview_image_data = 2;      // Данные preview изображения торта
-  double kg_price = 3;               // Цена за кг
-  int32 rating = 4;                  // Рейтинг (0-5)
-  string description = 5;            // Описание торта
-  double mass = 6;                   // Масса торта
-  bool is_open_for_sale = 7;         // Доступен ли для продажи
-  repeated string filling_ids = 8;   // Список ID начинок
-  repeated string category_ids = 9;  // Список ID категорий
-  repeated bytes images = 10;        // Все фотографии торта
+  string name = 1;                                                // Название торта
+  bytes preview_image_data = 2;                                   // Данные preview изображения торта
+  double kg_price = 3;                                            // Цена за кг
+  string description = 4;                                         // Описание торта
+  double mass = 5;                                                // Масса торта
+  bool is_open_for_sale = 6;                                      // Доступен ли для продажи
+  repeated string filling_ids = 7;                                // Список ID начинок
+  repeated string category_ids = 8;                               // Список ID категорий
+  repeated bytes images = 9;                                      // Все фотографии торта
+  optional google.protobuf.DoubleValue discount_kg_price = 10;    // Скидочная цена за кг (nullable)
+  optional google.protobuf.Timestamp discount_end_time = 11;      // Время окончания скидки (nullable)
 }
 
 message CreateCakeResponse {
@@ -45,7 +36,6 @@ message CreateCakeResponse {
 }
 
 /* ############### CreateFilling ############### */
-
 message CreateFillingRequest {
   string name = 1;        // Название начинки
   bytes image_data = 2;   // Данные изображения начинки
@@ -59,7 +49,6 @@ message CreateFillingResponse {
 }
 
 /* ############### CreateCategory ############### */
-
 message CreateCategoryRequest {
   string name = 1;
   bytes image_data = 2;
@@ -70,25 +59,21 @@ message CreateCategoryResponse {
 }
 
 /* ############### Categories ############### */
-
 message CategoriesResponse {
   repeated Category categories = 1;
 }
 
 /* ############### Fillings ############### */
-
 message FillingsResponse {
   repeated Filling fillings = 1;
 }
 
 /* ############### CakesResponse ############### */
-
 message CakesResponse {
   repeated Cake cakes = 1;
 }
 
 /* ############### GetCategoriesByGenderName ############### */
-
 message GetCategoriesByGenderNameReq {
   CategoryGender categoryGender = 1;
 }
@@ -98,7 +83,6 @@ message GetCategoriesByGenderNameRes {
 }
 
 /* ############### CategoryPreviewCakes ############### */
-
 message CategoryPreviewCakesReq {
   string categoryID = 1;
 }
@@ -108,7 +92,6 @@ message CategoryPreviewCakesRes {
 }
 
 /* ############### CakeService ############### */
-
 service CakeService {
   rpc CreateCake (CreateCakeRequest) returns (CreateCakeResponse);
   rpc Cake (CakeRequest) returns (CakeResponse);
@@ -140,6 +123,7 @@ message Cake {
   optional google.protobuf.Timestamp discount_end_time = 13; // Время окончания акции (ISO 8601)
   google.protobuf.Timestamp date_creation = 14;              // Дата создания торта (ISO 8601)
   repeated CakeImage images = 15;                            // Фотографии торта
+  int32 reviewsCount = 16;                                   // Число отзывов
 
   message CakeImage {
     string id = 1;
@@ -185,16 +169,17 @@ enum CategoryGender {
 }
 
 message PreviewCake {
-  string id = 1;                    // UUID
-  string name = 2;                  // Название
-  string preview_image_url = 3;     // URL изображения
-  double kg_price = 4;              // Цена за килограмм
-  uint32 rating = 5;                // Рейтинг
-  google.protobuf.StringValue description = 6;  // Описание (nullable)
-  double mass = 7;                  // Масса
-  google.protobuf.DoubleValue discount_kg_price = 8; // Скидочная цена за кг (nullable)
-  google.protobuf.Timestamp discount_end_time = 9;  // Время окончания скидки (nullable)
-  google.protobuf.Timestamp date_creation = 10;      // Время создания
-  bool is_open_for_sale = 11;      // Продается ли
-  User owner = 12;                 // Владелец
+  string id = 1;                                        // UUID
+  string name = 2;                                      // Название
+  string preview_image_url = 3;                         // URL изображения
+  double kg_price = 4;                                  // Цена за килограмм
+  uint32 rating = 5;                                    // Рейтинг
+  google.protobuf.StringValue description = 6;          // Описание (nullable)
+  double mass = 7;                                      // Масса
+  google.protobuf.DoubleValue discount_kg_price = 8;    // Скидочная цена за кг (nullable)
+  google.protobuf.Timestamp discount_end_time = 9;      // Время окончания скидки (nullable)
+  google.protobuf.Timestamp date_creation = 10;         // Время создания
+  bool is_open_for_sale = 11;                           // Продается ли
+  User owner = 12;                                      // Владелец
+  int32 reviewsCount = 13;                              // Число отзывов
 }
