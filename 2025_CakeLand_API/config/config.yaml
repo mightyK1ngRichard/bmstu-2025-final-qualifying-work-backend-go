@@ -1,4 +1,8 @@
 env: "local"
 grpc:
-  port: 44044
+  cakePort: 44044
+  authPort: 44045
+  profilePort: 44046
+  chatPort: 44047
+  reviewsPort: 44048
   timeout: 5s

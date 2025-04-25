@@ -2,14 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/joho/godotenv"
-	"log"
-	"os"
-
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	"log"
+	"os"
 )
 
 // go run ./cmd/migrations/main.go

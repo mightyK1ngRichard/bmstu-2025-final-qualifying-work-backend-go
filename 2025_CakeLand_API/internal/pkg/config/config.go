@@ -1,6 +1,7 @@
 package config
 
 import (
+	"2025_CakeLand_API/internal/pkg/utils/logger"
 	"flag"
 	"fmt"
 	"os"
@@ -12,15 +13,19 @@ import (
 )
 
 type Config struct {
-	Env   string         `yaml:"env" env-default:"local"`
+	Env   logger.EnvKind `yaml:"env" env-default:"local"`
 	GRPC  GRPCConfig     `yaml:"grpc"`
 	DB    DatabaseConfig `yaml:"database"`
 	MinIO MinioConfig    `yaml:"minio"`
 }
 
 type GRPCConfig struct {
-	Port    int           `yaml:"port"`
-	Timeout time.Duration `yaml:"timeout"`
+	CakePort    int           `yaml:"cakePort"`
+	ChatPort    int           `yaml:"chatPort"`
+	AuthPort    int           `yaml:"authPort"`
+	ProfilePort int           `yaml:"profilePort"`
+	ReviewsPort int           `yaml:"reviewsPort"`
+	Timeout     time.Duration `yaml:"timeout"`
 }
 
 type DatabaseConfig struct {
@@ -94,5 +99,6 @@ func fetchConfigPath() string {
 	if res == "" {
 		res = "./config/config.yaml"
 	}
+
 	return res
 }

@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+import "profile.proto";
+
+option go_package = "2025_CakeLand_API/internal/pkg/feedback/delivery/grpc/generated";
+
+package feedback;
+
+/* ################# AddFeedback ################# */
+message AddFeedbackRequest {
+  string text = 1;
+  int32 rating = 2;
+  string cakeID = 3;
+}
+
+message AddFeedbackResponse {
+  Feedback feedback = 1;
+}
+
+/* ################# AddFeedback ################# */
+message ProductFeedbacksRequest {
+  string cakeID = 1;
+}
+
+message ProductFeedbacksResponse {
+  repeated Feedback feedbacks = 1;
+}
+
+/* ################# ReviewService ################# */
+service ReviewService {
+  rpc AddFeedback(AddFeedbackRequest) returns (AddFeedbackResponse);
+  rpc ProductFeedbacks(ProductFeedbacksRequest) returns (ProductFeedbacksResponse);
+}
+
+message Feedback {
+  string id = 1;
+  string text = 2;
+  google.protobuf.Timestamp date_creation = 3;
+  int32 rating = 4;
+  string cake_id = 5;
+  profile.Profile author = 6;
+}
