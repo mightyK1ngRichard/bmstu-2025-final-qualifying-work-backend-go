@@ -19,54 +19,36 @@ const (
 	queryGetCategoryByID      = `SELECT id, name, image_url, gender_tags FROM category WHERE id = $1`
 	queryGetCakeImages        = `SELECT id, image_url FROM cake_images WHERE cake_id = $1`
 	queryGetCakeByID          = `
-		SELECT c.id,
-			   c.name,
-			   c.image_url,
-			   c.kg_price,
-			   c.rating,
-			   c.description,
-			   c.mass,
-			   c.is_open_for_sale,
-			   c.date_creation,
-			   c.discount_kg_price,
-			   c.discount_end_time,
-			   u.id AS owner_id,
-			   u.fio,
-			   u.address,
-			   u.nickname,
-			   u.image_url,
-			   u.mail,
-			   u.phone,
-			   u.header_image_url
+		SELECT c.id, c.name, c.image_url, c.kg_price, c.reviews_count, c.stars_sum,
+			   c.description, c.mass, c.is_open_for_sale, c.date_creation, c.discount_kg_price, c.discount_end_time,
+			   u.id AS owner_id, u.fio, u.address, u.nickname, u.image_url, u.mail, u.phone, u.header_image_url
 		FROM "cake" c
 				 LEFT JOIN "user" u ON c.owner_id = u.id
 		WHERE c.id = $1
 	`
 	queryGetCakes = `
-        SELECT c.id, c.name, c.image_url, c.kg_price, c.rating, c.description, c.mass, c.is_open_for_sale,
+        SELECT c.id, c.name, c.image_url, c.kg_price, c.reviews_count, c.stars_sum, c.description, c.mass, c.is_open_for_sale,
                c.date_creation, c.discount_kg_price, c.discount_end_time,
                u.id AS owner_id, u.fio, u.nickname, u.mail,
                f.id AS filling_id, f.name AS filling_name, f.image_url AS filling_image,
                f.content AS filling_content, f.kg_price AS filling_price_per_kg, f.description AS filling_description,
                cat.id AS category_id, cat.name AS category_name, cat.image_url AS category_image
         FROM "cake" c
-                 LEFT JOIN "user" u ON c.owner_id = u.id
-                 LEFT JOIN "cake_filling" cf ON c.id = cf.cake_id
-                 LEFT JOIN "filling" f ON cf.filling_id = f.id
-                 LEFT JOIN "cake_category" cc ON c.id = cc.cake_id
-                 LEFT JOIN "category" cat ON cc.category_id = cat.id
+			LEFT JOIN "user" u ON c.owner_id = u.id
+			LEFT JOIN "cake_filling" cf ON c.id = cf.cake_id
+			LEFT JOIN "filling" f ON cf.filling_id = f.id
+			LEFT JOIN "cake_category" cc ON c.id = cc.cake_id
+			LEFT JOIN "category" cat ON cc.category_id = cat.id
+        WHERE c.is_open_for_sale;
     `
 	queryCreateFilling = `
 		INSERT INTO "filling" (id, name, image_url, content, kg_price, description)
 		VALUES ($1, $2, $3, $4, $5, $6);
 	`
-	queryCreateCategory = `
-		INSERT INTO "category" (id, name, image_url)
-		VALUES ($1, $2, $3);
-	`
-	queryCreateCake = `
-		INSERT INTO "cake" (id, name, image_url, kg_price, rating, description, mass, is_open_for_sale, owner_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
+	queryCreateCategory = `INSERT INTO "category" (id, name, image_url) VALUES ($1, $2, $3);`
+	queryCreateCake     = `
+		INSERT INTO "cake" (id, name, image_url, kg_price, discount_kg_price, discount_end_time, description, mass, is_open_for_sale, owner_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
 	`
 	queryAddCakeImages   = `INSERT INTO "cake_images" (id, cake_id, image_url) VALUES ($1, $2, $3);`
 	queryAddCateCategory = `
@@ -86,7 +68,8 @@ const (
 			   c.name,
 			   c.image_url,
 			   c.kg_price,
-			   c.rating,
+			   c.reviews_count,
+			   c.stars_sum,
 			   c.description,
 			   c.mass,
 			   c.discount_kg_price,
@@ -122,9 +105,9 @@ func (r *CakeRepository) CakeByID(ctx context.Context, in dto.GetCakeReq) (*dto.
 
 	var cake models.Cake
 	if err := r.db.QueryRowContext(ctx, queryGetCakeByID, in.CakeID).Scan(
-		&cake.ID, &cake.Name, &cake.PreviewImageURL, &cake.KgPrice, &cake.Rating, &cake.Description,
-		&cake.Mass, &cake.IsOpenForSale, &cake.DateCreation, &cake.DiscountKgPrice,
-		&cake.DiscountEndTime, &cake.Owner.ID, &cake.Owner.FIO, &cake.Owner.Address,
+		&cake.ID, &cake.Name, &cake.PreviewImageURL, &cake.KgPrice, &cake.ReviewsCount, &cake.StarsSum, &cake.Description,
+		&cake.Mass, &cake.IsOpenForSale, &cake.DateCreation, &cake.DiscountKgPrice, &cake.DiscountEndTime,
+		&cake.Owner.ID, &cake.Owner.FIO, &cake.Owner.Address,
 		&cake.Owner.Nickname, &cake.Owner.ImageURL, &cake.Owner.Mail, &cake.Owner.Phone,
 		&cake.Owner.HeaderImageURL,
 	); err != nil {
@@ -266,11 +249,10 @@ func (r *CakeRepository) CreateCake(ctx context.Context, in dto.CreateCakeDBReq)
 	}
 
 	// Создаём торт
-	_, err = tx.ExecContext(ctx, queryCreateCake,
-		in.ID, in.Name, in.PreviewImageURL, in.KgPrice, in.Rating,
+	if _, err = tx.ExecContext(ctx, queryCreateCake,
+		in.ID, in.Name, in.PreviewImageURL, in.KgPrice, in.DiscountedKgPrice, in.DiscountedPriceEndDate,
 		in.Description, in.Mass, in.IsOpenForSale, in.OwnerID,
-	)
-	if err != nil {
+	); err != nil {
 		_ = tx.Rollback()
 		return errs.WrapDBError(methodName, err)
 	}
@@ -456,7 +438,7 @@ func (r *CakeRepository) Cakes(ctx context.Context) (*[]models.Cake, error) {
 
 		// Чтение данных
 		if err = rows.Scan(
-			&cake.ID, &cake.Name, &cake.PreviewImageURL, &cake.KgPrice, &cake.Rating, &cake.Description, &cake.Mass,
+			&cake.ID, &cake.Name, &cake.PreviewImageURL, &cake.KgPrice, &cake.ReviewsCount, &cake.StarsSum, &cake.Description, &cake.Mass,
 			&cake.IsOpenForSale, &cake.DateCreation, &cake.DiscountKgPrice, &cake.DiscountEndTime,
 			&owner.ID, &owner.FIO, &owner.Nickname, &owner.Mail,
 			&dbFilling.ID, &dbFilling.Name, &dbFilling.ImageURL, &dbFilling.Content, &dbFilling.KgPrice, &dbFilling.Description,
@@ -577,7 +559,8 @@ func (r *CakeRepository) PreviewCakeByID(ctx context.Context, cakeID uuid.UUID) 
 		&previewCake.Name,
 		&previewCake.PreviewImageURL,
 		&previewCake.KgPrice,
-		&previewCake.Rating,
+		&previewCake.ReviewsCount,
+		&previewCake.StarsSum,
 		&previewCake.Description,
 		&previewCake.Mass,
 		&previewCake.DiscountKgPrice,

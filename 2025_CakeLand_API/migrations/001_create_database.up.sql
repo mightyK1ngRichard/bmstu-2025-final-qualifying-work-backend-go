@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS cake
     name              VARCHAR(150)                        NOT NULL,
     image_url         VARCHAR(200),
     kg_price          DOUBLE PRECISION                    NOT NULL,
-    rating            INT       DEFAULT 0 CHECK (rating >= 0 AND rating <= 5),
+    reviews_count     INT       DEFAULT 0 CHECK (reviews_count >= 0),
+    stars_sum         INT       DEFAULT 0 CHECK (stars_sum >= 0),
     description       TEXT                                NOT NULL,
     mass              DOUBLE PRECISION                    NOT NULL,
     discount_kg_price DOUBLE PRECISION CHECK (discount_kg_price >= 0),
@@ -133,3 +134,24 @@ CREATE TABLE IF NOT EXISTS "order"
     FOREIGN KEY (customer_id) REFERENCES "user" (id),
     FOREIGN KEY (seller_id) REFERENCES "user" (id)
 );
+
+-- Триггеры
+CREATE OR REPLACE FUNCTION update_cake_review_stats()
+    RETURNS TRIGGER AS
+$$
+BEGIN
+    UPDATE cake
+    SET reviews_count = reviews_count + 1,
+        stars_sum     = stars_sum + NEW.rating
+    WHERE id = NEW.cake_id;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Функция к триггеру добавления отзыва
+CREATE TRIGGER trigger_update_cake_reviews
+    AFTER INSERT
+    ON feedback
+    FOR EACH ROW
+EXECUTE FUNCTION update_cake_review_stats();

@@ -34,8 +34,7 @@ func (u *ReviewsUseсase) CreateFeedback(ctx context.Context, req entities.Creat
 		CakeID:   req.CakeID,
 		Rating:   req.Rating,
 	}
-	err := u.repo.AddFeedback(ctx, &dbFeedback)
-	if err != nil {
+	if err := u.repo.AddFeedback(ctx, &dbFeedback); err != nil {
 		return nil, err
 	}
 
@@ -50,6 +49,7 @@ func (u *ReviewsUseсase) CreateFeedback(ctx context.Context, req entities.Creat
 		}
 	}
 
+	// Ответ
 	feedback := dbFeedback.ConvertToFeedback(userInfo)
 	return &feedback, err
 }
