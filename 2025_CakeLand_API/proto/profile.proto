@@ -21,10 +21,42 @@ message GetUserInfoByIDRes {
   Profile user = 1;
 }
 
+/* ############### GetUserAddresses ############### */
+message GetUserAddressesRes {
+  repeated Address addresses = 1;
+}
+
+/* ############### UpdateUserAddresses ############### */
+message UpdateUserAddressesReq {
+  string addressID = 1;               // Код адреса
+  optional string entrance = 6;       // Подъезд (опционально)
+  optional string floor = 7;          // Этаж (опционально)
+  optional string apartment = 8;      // Квартира (опционально)
+  optional string comment = 9;        // Комментарий к доставке
+}
+
+message UpdateUserAddressesRes {
+  Address address = 1;
+}
+
+/* ############### CreateAddress ############### */
+message CreateAddressReq {
+  double latitude = 1;
+  double longitude = 2;
+  string formattedAddress = 3;
+}
+
+message CreateAddressRes {
+    Address address = 1;
+}
+
 /* ############### ProfileService ############### */
 service ProfileService {
   rpc GetUserInfo(google.protobuf.Empty) returns (GetUserInfoRes);
   rpc GetUserInfoByID(GetUserInfoByIDReq) returns (GetUserInfoByIDRes);
+  rpc GetUserAddresses(google.protobuf.Empty) returns (GetUserAddressesRes);
+  rpc UpdateUserAddresses(UpdateUserAddressesReq) returns (UpdateUserAddressesRes);
+  rpc CreateAddress(CreateAddressReq) returns (CreateAddressRes);
 }
 
 message Profile {
@@ -42,4 +74,16 @@ message Profile {
 message UserInfo {
   Profile user = 1;
   repeated cake.PreviewCake cakes = 2;
+}
+
+// Сообщение для адреса
+message Address {
+  string id = 1;                      // UUID адреса
+  double latitude = 3;                // Широта
+  double longitude = 4;               // Долгота
+  string formattedAddress = 5;        // Форматированный адрес
+  optional string entrance = 6;       // Подъезд (опционально)
+  optional string floor = 7;          // Этаж (опционально)
+  optional string apartment = 8;      // Квартира (опционально)
+  optional string comment = 9;        // Комментарий к доставке
 }

@@ -5,6 +5,7 @@ import (
 	dto2 "2025_CakeLand_API/internal/pkg/cake/dto"
 	"2025_CakeLand_API/internal/pkg/minio"
 	"2025_CakeLand_API/internal/pkg/profile"
+	gen "2025_CakeLand_API/internal/pkg/profile/delivery/grpc/generated"
 	"2025_CakeLand_API/internal/pkg/profile/dto"
 	"2025_CakeLand_API/internal/pkg/utils/jwt"
 	"context"
@@ -30,17 +31,53 @@ func NewProfileUsecase(
 	}
 }
 
+func (u *ProfileUseсase) UpdateUserAddresses(ctx context.Context, accessToken string, req *gen.UpdateUserAddressesReq) (models.Address, error) {
+	// Достаём UserID
+	userID, err := u.getUserUUID(accessToken)
+	if err != nil {
+		return models.Address{}, err
+	}
+
+	// Обновляем адрес в репозитории
+	return u.repo.UpdateUserAddresses(ctx, userID, req)
+}
+
+func (u *ProfileUseсase) GetUserAddresses(ctx context.Context, accessToken string) ([]models.Address, error) {
+	// Достаём UserID
+	userID, err := u.getUserUUID(accessToken)
+	if err != nil {
+		return nil, err
+	}
+
+	// Получаем адреса из БД
+	return u.repo.GetUserAddresses(ctx, userID)
+}
+
+func (u *ProfileUseсase) CreateAddress(ctx context.Context, accessToken string, address *models.Address) (*models.Address, error) {
+	// Достаём UserID
+	userID, err := u.getUserUUID(accessToken)
+	if err != nil {
+		return nil, err
+	}
+
+	// Создаём адрес в БД
+	address.ID = uuid.New()
+	address.UserID = userID
+
+	if err = u.repo.CreateAddress(ctx, address); err != nil {
+		return nil, err
+	}
+
+	// Ответ
+	return address, err
+}
+
 func (u *ProfileUseсase) UserInfo(ctx context.Context, accessToken string) (*dto.UserInfo, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	// Достаём UserID
-	userIDStr, err := u.tokenator.GetUserIDFromToken(accessToken, false)
-	if err != nil {
-		return nil, err
-	}
-
-	userID, err := uuid.Parse(userIDStr)
+	userID, err := u.getUserUUID(accessToken)
 	if err != nil {
 		return nil, err
 	}
@@ -141,4 +178,19 @@ func trySendError(err error, errCh chan<- error, cancel context.CancelFunc) {
 	default:
 		// Если ошибка уже есть - игнорируем (сохраняем первую)
 	}
+}
+
+func (u *ProfileUseсase) getUserUUID(accessToken string) (uuid.UUID, error) {
+	// Достаём UserID
+	userIDStr, err := u.tokenator.GetUserIDFromToken(accessToken, false)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	return userID, nil
 }
