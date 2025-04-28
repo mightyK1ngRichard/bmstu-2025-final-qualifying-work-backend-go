@@ -20,7 +20,7 @@ message MakeOrderReq {
 }
 
 message MakeOrderRes {
-  Order order = 1;
+  string orderID = 1;
 }
 
 /* ################# OrderService ################# */

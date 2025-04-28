@@ -4,6 +4,7 @@ run:
     	go run cmd/auth/main.go & \
     	go run cmd/chat/main.go & \
     	go run cmd/reviews/main.go & \
+    	go run cmd/order/main.go & \
     	wait
 
 tests:
