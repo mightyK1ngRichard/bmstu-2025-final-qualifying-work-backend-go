@@ -25,6 +25,7 @@ type GRPCConfig struct {
 	AuthPort    int           `yaml:"authPort"`
 	ProfilePort int           `yaml:"profilePort"`
 	ReviewsPort int           `yaml:"reviewsPort"`
+	OrderPort   int           `yaml:"orderPort"`
 	Timeout     time.Duration `yaml:"timeout"`
 }
 

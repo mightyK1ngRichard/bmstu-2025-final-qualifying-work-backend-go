@@ -111,6 +111,24 @@ CREATE TABLE IF NOT EXISTS message
     FOREIGN KEY (receiver_id) REFERENCES "user" (id)
 );
 
+-- Адреса пользователя
+CREATE TABLE IF NOT EXISTS address
+(
+    id                UUID PRIMARY KEY,                       -- Код адреса
+    user_id           UUID             NOT NULL,              -- Ссылка на пользователя, которому принадлежит адрес
+    latitude          DOUBLE PRECISION NOT NULL,              -- Географическая широта
+    longitude         DOUBLE PRECISION NOT NULL,              -- Географическая долгота
+    formatted_address TEXT             NOT NULL,              -- Человеко-читаемый адрес (например, от Google Maps)
+    entrance          TEXT,                                   -- Подъезд (необязательное поле)
+    floor             TEXT,                                   -- Этаж (необязательное поле)
+    apartment         TEXT,                                   -- Квартира (необязательное поле)
+    comment           TEXT,                                   -- Комментарий к доставке (например: "оставить у охраны")
+    created_at        TIMESTAMP WITH TIME ZONE DEFAULT now(), -- Дата и время создания записи
+    updated_at        TIMESTAMP WITH TIME ZONE DEFAULT now(), -- Дата и время последнего обновления
+
+    FOREIGN KEY (user_id) REFERENCES "user" (id)
+);
+
 -- Статус заказа
 CREATE TYPE order_status AS ENUM (
     'pending', -- Ожидает выполнения
@@ -119,20 +137,32 @@ CREATE TYPE order_status AS ENUM (
     'cancelled' -- Отменён
     );
 
+-- Перечисление способов оплаты
+CREATE TYPE payment_method AS ENUM (
+    'cash', -- Наличные
+    'io_money' -- ЮMoney
+    );
+
 -- Заказ
 CREATE TABLE IF NOT EXISTS "order"
 (
-    id               uuid PRIMARY KEY,
-    price            DOUBLE PRECISION CHECK (price > 0),
-    delivery_address TEXT,
-    delivery_date    DATE,
-    customer_id      UUID         NOT NULL,
-    seller_id        UUID         NOT NULL,
-    cake_id          UUID         NOT NULL,
-    status           order_status NOT NULL DEFAULT 'pending',
+    id                  uuid PRIMARY KEY,
+    total_price         DOUBLE PRECISION CHECK (total_price > 0) NOT NULL,
+    delivery_address_id UUID                                     NOT NULL,
+    mass                DOUBLE PRECISION                         NOT NULL,
+    filling_id          UUID                                     NOT NULL,
+    delivery_date       DATE,
+    customer_id         UUID                                     NOT NULL,
+    seller_id           UUID                                     NOT NULL,
+    cake_id             UUID                                     NOT NULL,
+    payment_method      payment_method                           NOT NULL DEFAULT 'cash',
+    status              order_status                             NOT NULL DEFAULT 'pending',
+
+    FOREIGN KEY (delivery_address_id) REFERENCES "address" (id),
     FOREIGN KEY (cake_id) REFERENCES "cake" (id),
     FOREIGN KEY (customer_id) REFERENCES "user" (id),
-    FOREIGN KEY (seller_id) REFERENCES "user" (id)
+    FOREIGN KEY (seller_id) REFERENCES "user" (id),
+    FOREIGN KEY (filling_id) REFERENCES "filling" (id)
 );
 
 -- Триггеры

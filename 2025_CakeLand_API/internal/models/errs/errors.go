@@ -26,6 +26,8 @@ var (
 	ErrDB                     = errors.New("database error")
 	ErrNoMessage              = errors.New("no message")
 	ErrInvalidInput           = errors.New("invalid input")
+	ErrTotalPriceIncorrect    = errors.New("total price incorrect")
+	ErrMassNotExists          = errors.New("non-existent mass")
 )
 
 func ConvertToGrpcError(ctx context.Context, log *slog.Logger, err error, description string) error {
@@ -68,6 +70,8 @@ func ConvertToGrpcError(ctx context.Context, log *slog.Logger, err error, descri
 
 	case errors.Is(err, ErrInvalidUUIDFormat),
 		errors.Is(err, ErrInvalidInput),
+		errors.Is(err, ErrTotalPriceIncorrect),
+		errors.Is(err, ErrMassNotExists),
 		errors.Is(err, ErrInvalidRefreshToken):
 		return status.Error(codes.InvalidArgument, fmt.Sprintf("%v: %s", err, description))
 
