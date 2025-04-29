@@ -8,6 +8,7 @@ import (
 type CreateUserReq struct {
 	UUID             uuid.UUID
 	Email            string
+	Nickname         string
 	PasswordHash     []byte
 	RefreshTokensMap models.RefreshTokenMap
 }

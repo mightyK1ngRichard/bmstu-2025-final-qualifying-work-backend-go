@@ -29,7 +29,7 @@ func NewAuthRepository(db *sql.DB) *AuthRepository {
 }
 
 func (r *AuthRepository) CreateUser(ctx context.Context, in dto.CreateUserReq) error {
-	const methodName = "[Repo.CreateUser]"
+	const methodName = "[AuthRepository.CreateUser]"
 
 	// Проверка существования пользователя с таким email
 	var exists bool
@@ -53,7 +53,7 @@ func (r *AuthRepository) CreateUser(ctx context.Context, in dto.CreateUserReq) e
 	if _, err = r.db.ExecContext(ctx,
 		createUserCommand,
 		in.UUID,
-		in.UUID, // изначально username пользователя равен его id
+		in.Nickname,
 		in.Email,
 		in.PasswordHash,
 		refreshTokensJSON,
@@ -65,7 +65,7 @@ func (r *AuthRepository) CreateUser(ctx context.Context, in dto.CreateUserReq) e
 }
 
 func (r *AuthRepository) GetUserByEmail(ctx context.Context, in dto.GetUserByEmailReq) (*dto.GetUserByEmailRes, error) {
-	const methodName = "[Repo.GetUserByEmail]"
+	const methodName = "[AuthRepository.GetUserByEmail]"
 
 	row := r.db.QueryRowContext(ctx, getUserByEmailCommand, in.Email)
 	var res dto.GetUserByEmailRes
@@ -80,7 +80,7 @@ func (r *AuthRepository) GetUserByEmail(ctx context.Context, in dto.GetUserByEma
 }
 
 func (r *AuthRepository) UpdateUserRefreshTokens(ctx context.Context, in dto.UpdateUserRefreshTokensReq) error {
-	const methodName = "[Repo.UpdateUserRefreshTokens]"
+	const methodName = "[AuthRepository.UpdateUserRefreshTokens]"
 
 	// Сериализация RefreshTokensMap в JSON
 	refreshTokensJSON, err := json.Marshal(in.RefreshTokensMap)
@@ -97,7 +97,7 @@ func (r *AuthRepository) UpdateUserRefreshTokens(ctx context.Context, in dto.Upd
 }
 
 func (r *AuthRepository) GetUserRefreshTokens(ctx context.Context, in dto.GetUserRefreshTokensReq) (*dto.GetUserRefreshTokensRes, error) {
-	const methodName = "[Repo.GetUserRefreshTokens]"
+	const methodName = "[AuthRepository.GetUserRefreshTokens]"
 
 	var refreshTokens []byte
 	row := r.db.QueryRowContext(ctx, getUserRefreshTokensCommand, in.UserID)

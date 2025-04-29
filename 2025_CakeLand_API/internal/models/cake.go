@@ -28,6 +28,12 @@ type Cake struct {
 	Images          []CakeImage // Фотографии торта
 }
 
+type CakeColor struct {
+	ID        uuid.UUID
+	HexString string
+	CakeID    uuid.UUID
+}
+
 type CakeImage struct {
 	ID       uuid.UUID
 	ImageURL null.String

@@ -88,6 +88,8 @@ const (
 				 LEFT JOIN "user" u ON u.id = c.owner_id
 		WHERE c.id = $1
 	`
+	queryGetColors    = `SELECT DISTINCT hex_color FROM cake_color`
+	queryAddCakeColor = `INSERT INTO cake_color (id, cake_id, hex_color) VALUES ($1, $2, $3)`
 )
 
 type CakeRepository struct {
@@ -100,8 +102,18 @@ func NewCakeRepository(db *sql.DB) *CakeRepository {
 	}
 }
 
+func (r *CakeRepository) AddCakeColor(ctx context.Context, in models.CakeColor) error {
+	const methodName = "[CakeRepository.AddCakeColor]"
+
+	if _, err := r.db.ExecContext(ctx, queryAddCakeColor, in.ID, in.CakeID, in.HexString); err != nil {
+		return errs.WrapDBError(methodName, err)
+	}
+
+	return nil
+}
+
 func (r *CakeRepository) CakeByID(ctx context.Context, in dto.GetCakeReq) (*dto.GetCakeRes, error) {
-	const methodName = "[Repo.CakeByID]"
+	const methodName = "[CakeRepository.CakeByID]"
 
 	var cake models.Cake
 	if err := r.db.QueryRowContext(ctx, queryGetCakeByID, in.CakeID).Scan(
@@ -120,6 +132,32 @@ func (r *CakeRepository) CakeByID(ctx context.Context, in dto.GetCakeReq) (*dto.
 	return &dto.GetCakeRes{
 		Cake: cake,
 	}, nil
+}
+
+func (r *CakeRepository) GetColors(ctx context.Context) ([]string, error) {
+	const methodName = "[CakeRepository.GetColors]"
+
+	rows, err := r.db.QueryContext(ctx, queryGetColors)
+	if err != nil {
+		return nil, errs.WrapDBError(methodName, err)
+	}
+	defer rows.Close()
+
+	hexStrings := make([]string, 0, 22)
+	for rows.Next() {
+		var hexString string
+		if err = rows.Scan(&hexString); err != nil {
+			return nil, errs.WrapDBError(methodName, err)
+		}
+
+		hexStrings = append(hexStrings, hexString)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, errs.WrapDBError(methodName, err)
+	}
+
+	return hexStrings, nil
 }
 
 func (r *CakeRepository) CakeCategoriesIDs(ctx context.Context, cakeID uuid.UUID) ([]uuid.UUID, error) {

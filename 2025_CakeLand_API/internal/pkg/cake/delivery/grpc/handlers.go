@@ -36,6 +36,32 @@ func NewCakeHandler(
 	}
 }
 
+func (h *GrpcCakeHandler) AddCakeColors(ctx context.Context, in *gen.AddCakeColorsReq) (*emptypb.Empty, error) {
+	cakeID, err := uuid.Parse(in.CakeID)
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, fmt.Errorf("%w: %w", errs.ErrInvalidUUIDFormat, err), "failed to parse cake id")
+	}
+
+	if err = h.usecase.AddCakeColor(ctx, cakeID, in.ColorsHex); err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to add color")
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (h *GrpcCakeHandler) GetColors(ctx context.Context, _ *emptypb.Empty) (*gen.CakeColorsRes, error) {
+	// Бизнес логика
+	colors, err := h.usecase.GetColors(ctx)
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to get colors")
+	}
+
+	// Ответ
+	return &gen.CakeColorsRes{
+		ColorsHex: colors,
+	}, nil
+}
+
 func (h *GrpcCakeHandler) Cake(ctx context.Context, in *gen.CakeRequest) (*gen.CakeResponse, error) {
 	// Параметры
 	cakeID, err := uuid.Parse(in.CakeId)

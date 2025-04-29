@@ -33,6 +33,34 @@ func NewCakeUsecase(
 	}
 }
 
+func (u *CakeUseсase) AddCakeColor(ctx context.Context, cakeID uuid.UUID, hexStrings []string) error {
+	wg := &sync.WaitGroup{}
+	for _, hexString := range hexStrings {
+		wg.Add(1)
+		hex := hexString
+		go func() {
+			defer wg.Done()
+			if ctx.Err() != nil {
+				return
+			}
+
+			_ = u.repo.AddCakeColor(ctx, models.CakeColor{
+				ID:        uuid.New(),
+				CakeID:    cakeID,
+				HexString: hex,
+			})
+		}()
+	}
+
+	wg.Wait()
+
+	return nil
+}
+
+func (u *CakeUseсase) GetColors(ctx context.Context) ([]string, error) {
+	return u.repo.GetColors(ctx)
+}
+
 func (u *CakeUseсase) Cake(ctx context.Context, in dto.GetCakeReq) (*dto.GetCakeRes, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()

@@ -91,6 +91,19 @@ message CategoryPreviewCakesRes {
   repeated PreviewCake previewCakes = 1;
 }
 
+/* ############### AddCakeColors ############### */
+
+message AddCakeColorsReq {
+  string cakeID = 1;
+  repeated string colorsHex = 2;
+}
+
+/* ############### CakeColors ############### */
+
+message CakeColorsRes {
+  repeated string colorsHex = 1;
+}
+
 /* ############### CakeService ############### */
 service CakeService {
   rpc CreateCake (CreateCakeRequest) returns (CreateCakeResponse);
@@ -100,6 +113,8 @@ service CakeService {
 
   rpc CreateFilling (CreateFillingRequest) returns (CreateFillingResponse);
   rpc Fillings (google.protobuf.Empty) returns (FillingsResponse);
+  rpc AddCakeColors(AddCakeColorsReq) returns (google.protobuf.Empty);
+  rpc GetColors(google.protobuf.Empty) returns (CakeColorsRes);
 
   rpc CreateCategory (CreateCategoryRequest) returns (CreateCategoryResponse);
   rpc Categories (google.protobuf.Empty) returns (CategoriesResponse);

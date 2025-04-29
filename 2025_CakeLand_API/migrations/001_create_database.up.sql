@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS filling
 -- Начинки торта (М-М)
 CREATE TABLE IF NOT EXISTS cake_filling
 (
-    id         uuid PRIMARY KEY,
+    id         UUID PRIMARY KEY,
     cake_id    UUID NOT NULL,
     filling_id UUID NOT NULL,
     FOREIGN KEY (cake_id) REFERENCES "cake" (id),
@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS cake_filling
 -- Сообщение
 CREATE TABLE IF NOT EXISTS message
 (
-    id            uuid PRIMARY KEY,
+    id            UUID PRIMARY KEY,
     text          TEXT,
     date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     owner_id      UUID NOT NULL,
@@ -146,7 +146,7 @@ CREATE TYPE payment_method AS ENUM (
 -- Заказ
 CREATE TABLE IF NOT EXISTS "order"
 (
-    id                  uuid PRIMARY KEY,
+    id                  UUID PRIMARY KEY,
     total_price         DOUBLE PRECISION CHECK (total_price > 0) NOT NULL,
     delivery_address_id UUID                                     NOT NULL,
     mass                DOUBLE PRECISION                         NOT NULL,
@@ -163,6 +163,17 @@ CREATE TABLE IF NOT EXISTS "order"
     FOREIGN KEY (customer_id) REFERENCES "user" (id),
     FOREIGN KEY (seller_id) REFERENCES "user" (id),
     FOREIGN KEY (filling_id) REFERENCES "filling" (id)
+);
+
+-- Цвет торта
+CREATE TABLE IF NOT EXISTS cake_color
+(
+    id        UUID PRIMARY KEY,
+    cake_id   UUID,
+    hex_color VARCHAR(7),
+
+    FOREIGN KEY (cake_id) REFERENCES "cake" (id),
+    UNIQUE (cake_id, hex_color)
 );
 
 -- Триггеры
