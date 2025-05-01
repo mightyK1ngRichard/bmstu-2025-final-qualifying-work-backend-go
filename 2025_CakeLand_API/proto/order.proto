@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+import "cake.proto";
+
+option go_package = "2025_CakeLand_API/internal/pkg/order/delivery/grpc/generated";
+
+package order;
+
+/* ################# MakeOrder ################# */
+message MakeOrderReq {
+  double totalPrice = 1;
+  string deliveryAddressID = 2;
+  double mass = 3;
+  PaymentMethod paymentMethod = 4;
+  google.protobuf.Timestamp deliveryDate = 5;
+  string fillingID = 6;
+  string sellerID = 7;
+  string cakeID = 8;
+}
+
+message MakeOrderRes {
+  string orderID = 1;
+}
+
+/* ################# OrderService ################# */
+service OrderService {
+  rpc MakeOrder(MakeOrderReq) returns (MakeOrderRes);
+}
+
+message Order {
+  string id = 1;
+  double totalPrice = 2;
+  Address deliveryAddress = 3;
+  double mass = 4;
+  cake.Filling filling = 5;
+  google.protobuf.Timestamp deliveryDate = 6;
+  string sellerID = 8;
+  string cakeID = 9;
+  PaymentMethod paymentMethod = 10;
+  OrderStatus status = 11;
+  google.protobuf.Timestamp createdAt = 12;
+  google.protobuf.Timestamp updatedAt = 13;
+}
+
+enum PaymentMethod {
+  CASH = 0;
+  IOMoney = 1;
+}
+
+enum OrderStatus {
+  PENDING = 0;     // В ожидании
+  PROCESSING = 1;  // В обработке
+  COMPLETED = 2;   // Завершён
+  CANCELLED = 3;   // Отменён
+}
+
+message Address {
+  string id = 1;                         // UUID адреса
+  double latitude = 3;                   // Географическая широта
+  double longitude = 4;                  // Географическая долгота
+  string formattedAddress = 5;          // Человеко-читаемый адрес (от Google Maps)
+  string entrance = 6;                  // Подъезд (необязательно)
+  string floor = 7;                     // Этаж (необязательно)
+  string apartment = 8;                 // Квартира (необязательно)
+  string comment = 9;                   // Комментарий к доставке
+}

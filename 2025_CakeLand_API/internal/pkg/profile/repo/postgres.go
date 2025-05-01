@@ -1,8 +1,10 @@
 package repo
 
 import (
+	"2025_CakeLand_API/internal/models"
 	"2025_CakeLand_API/internal/models/errs"
 	cakeDto "2025_CakeLand_API/internal/pkg/cake/dto"
+	gen "2025_CakeLand_API/internal/pkg/profile/delivery/grpc/generated"
 	"2025_CakeLand_API/internal/pkg/profile/dto"
 	"context"
 	"database/sql"
@@ -11,7 +13,9 @@ import (
 )
 
 const (
-	querySelectProfileByID   = `SELECT id, fio, address, nickname, header_image_url, image_url, mail, phone, card_number FROM "user" WHERE id = $1 LIMIT 1`
+	querySelectProfileByID = `
+		SELECT id, fio, address, nickname, header_image_url, image_url, mail, phone, card_number FROM "user" WHERE id = $1 LIMIT 1
+	`
 	querySelectCakesByUserID = `
 		SELECT id,
 			   name,
@@ -29,6 +33,33 @@ const (
 		FROM cake
 		WHERE owner_id = $1;
     `
+	queryCreateAddress = `
+		INSERT INTO address (id, user_id, latitude, longitude, formatted_address) VALUES ($1, $2, $3, $4, $5)
+	`
+	queryGetUserAddresses = `
+		SELECT id,
+			   user_id,
+			   latitude,
+			   longitude,
+			   formatted_address,
+			   entrance,
+			   floor,
+			   apartment,
+			   comment
+		FROM address
+		WHERE user_id = $1
+	`
+	queryUpdateUserAddress = `
+		UPDATE address
+		SET 
+			entrance = COALESCE($1, entrance),
+			floor = COALESCE($2, floor),
+			apartment = COALESCE($3, apartment),
+			comment = COALESCE($4, comment),
+			updated_at = now()
+		WHERE id = $5 AND user_id = $6
+		RETURNING id, user_id, latitude, longitude, formatted_address, entrance, floor, apartment, comment
+	`
 )
 
 type ProfileRepository struct {
@@ -41,8 +72,90 @@ func NewProfileRepository(db *sql.DB) *ProfileRepository {
 	}
 }
 
+func (r *ProfileRepository) UpdateUserAddresses(ctx context.Context, userID uuid.UUID, req *gen.UpdateUserAddressesReq) (models.Address, error) {
+	const methodName = "[ProfileRepository.UpdateUserAddresses]"
+
+	row := r.db.QueryRowContext(ctx, queryUpdateUserAddress,
+		req.Entrance,
+		req.Floor,
+		req.Apartment,
+		req.Comment,
+		req.AddressID,
+		userID,
+	)
+
+	var addr models.Address
+	if err := row.Scan(
+		&addr.ID,
+		&addr.UserID,
+		&addr.Latitude,
+		&addr.Longitude,
+		&addr.FormattedAddress,
+		&addr.Entrance,
+		&addr.Floor,
+		&addr.Apartment,
+		&addr.Comment,
+	); err != nil {
+		return models.Address{}, errs.WrapDBError(methodName, err)
+	}
+
+	return addr, nil
+}
+
+func (r *ProfileRepository) GetUserAddresses(ctx context.Context, userID uuid.UUID) ([]models.Address, error) {
+	const methodName = "[ProfileRepository.GetUserAddresses]"
+
+	rows, err := r.db.QueryContext(ctx, queryGetUserAddresses, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var addresses []models.Address
+	for rows.Next() {
+		var addr models.Address
+		if err = rows.Scan(
+			&addr.ID,
+			&addr.UserID,
+			&addr.Latitude,
+			&addr.Longitude,
+			&addr.FormattedAddress,
+			&addr.Entrance,
+			&addr.Floor,
+			&addr.Apartment,
+			&addr.Comment,
+		); err != nil {
+			return nil, errs.WrapDBError(methodName, err)
+		}
+
+		addresses = append(addresses, addr)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, errs.WrapDBError(methodName, err)
+	}
+
+	return addresses, nil
+}
+
+func (r *ProfileRepository) CreateAddress(ctx context.Context, address *models.Address) error {
+	const methodName = "[ProfileRepository.CreateAddress]"
+
+	if _, err := r.db.ExecContext(ctx, queryCreateAddress,
+		address.ID,
+		address.UserID,
+		address.Latitude,
+		address.Longitude,
+		address.FormattedAddress,
+	); err != nil {
+		return errs.WrapDBError(methodName, err)
+	}
+
+	return nil
+}
+
 func (r *ProfileRepository) UserInfo(ctx context.Context, userID uuid.UUID) (*dto.Profile, error) {
-	const methodName = "[Repo.UserInfo]"
+	const methodName = "[ProfileRepository.UserInfo]"
 
 	var user dto.Profile
 	if err := r.db.QueryRowContext(ctx, querySelectProfileByID, userID).Scan(
@@ -66,7 +179,7 @@ func (r *ProfileRepository) UserInfo(ctx context.Context, userID uuid.UUID) (*dt
 }
 
 func (r *ProfileRepository) CakesByUserID(ctx context.Context, userID uuid.UUID) ([]cakeDto.PreviewCakeDB, error) {
-	const methodName = "[Repo.CakesByUserID]"
+	const methodName = "[ProfileRepository.CakesByUserID]"
 
 	rows, err := r.db.QueryContext(ctx, querySelectCakesByUserID, userID)
 	if err != nil {

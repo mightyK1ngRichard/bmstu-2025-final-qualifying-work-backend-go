@@ -26,6 +26,8 @@ const (
 	CakeService_CategoryPreviewCakes_FullMethodName      = "/cake.CakeService/CategoryPreviewCakes"
 	CakeService_CreateFilling_FullMethodName             = "/cake.CakeService/CreateFilling"
 	CakeService_Fillings_FullMethodName                  = "/cake.CakeService/Fillings"
+	CakeService_AddCakeColors_FullMethodName             = "/cake.CakeService/AddCakeColors"
+	CakeService_GetColors_FullMethodName                 = "/cake.CakeService/GetColors"
 	CakeService_CreateCategory_FullMethodName            = "/cake.CakeService/CreateCategory"
 	CakeService_Categories_FullMethodName                = "/cake.CakeService/Categories"
 	CakeService_GetCategoriesByGenderName_FullMethodName = "/cake.CakeService/GetCategoriesByGenderName"
@@ -43,6 +45,8 @@ type CakeServiceClient interface {
 	CategoryPreviewCakes(ctx context.Context, in *CategoryPreviewCakesReq, opts ...grpc.CallOption) (*CategoryPreviewCakesRes, error)
 	CreateFilling(ctx context.Context, in *CreateFillingRequest, opts ...grpc.CallOption) (*CreateFillingResponse, error)
 	Fillings(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*FillingsResponse, error)
+	AddCakeColors(ctx context.Context, in *AddCakeColorsReq, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	GetColors(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*CakeColorsRes, error)
 	CreateCategory(ctx context.Context, in *CreateCategoryRequest, opts ...grpc.CallOption) (*CreateCategoryResponse, error)
 	Categories(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*CategoriesResponse, error)
 	GetCategoriesByGenderName(ctx context.Context, in *GetCategoriesByGenderNameReq, opts ...grpc.CallOption) (*GetCategoriesByGenderNameRes, error)
@@ -116,6 +120,26 @@ func (c *cakeServiceClient) Fillings(ctx context.Context, in *emptypb.Empty, opt
 	return out, nil
 }
 
+func (c *cakeServiceClient) AddCakeColors(ctx context.Context, in *AddCakeColorsReq, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, CakeService_AddCakeColors_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cakeServiceClient) GetColors(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*CakeColorsRes, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CakeColorsRes)
+	err := c.cc.Invoke(ctx, CakeService_GetColors_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *cakeServiceClient) CreateCategory(ctx context.Context, in *CreateCategoryRequest, opts ...grpc.CallOption) (*CreateCategoryResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateCategoryResponse)
@@ -158,6 +182,8 @@ type CakeServiceServer interface {
 	CategoryPreviewCakes(context.Context, *CategoryPreviewCakesReq) (*CategoryPreviewCakesRes, error)
 	CreateFilling(context.Context, *CreateFillingRequest) (*CreateFillingResponse, error)
 	Fillings(context.Context, *emptypb.Empty) (*FillingsResponse, error)
+	AddCakeColors(context.Context, *AddCakeColorsReq) (*emptypb.Empty, error)
+	GetColors(context.Context, *emptypb.Empty) (*CakeColorsRes, error)
 	CreateCategory(context.Context, *CreateCategoryRequest) (*CreateCategoryResponse, error)
 	Categories(context.Context, *emptypb.Empty) (*CategoriesResponse, error)
 	GetCategoriesByGenderName(context.Context, *GetCategoriesByGenderNameReq) (*GetCategoriesByGenderNameRes, error)
@@ -188,6 +214,12 @@ func (UnimplementedCakeServiceServer) CreateFilling(context.Context, *CreateFill
 }
 func (UnimplementedCakeServiceServer) Fillings(context.Context, *emptypb.Empty) (*FillingsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Fillings not implemented")
+}
+func (UnimplementedCakeServiceServer) AddCakeColors(context.Context, *AddCakeColorsReq) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddCakeColors not implemented")
+}
+func (UnimplementedCakeServiceServer) GetColors(context.Context, *emptypb.Empty) (*CakeColorsRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetColors not implemented")
 }
 func (UnimplementedCakeServiceServer) CreateCategory(context.Context, *CreateCategoryRequest) (*CreateCategoryResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateCategory not implemented")
@@ -327,6 +359,42 @@ func _CakeService_Fillings_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CakeService_AddCakeColors_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddCakeColorsReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CakeServiceServer).AddCakeColors(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CakeService_AddCakeColors_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CakeServiceServer).AddCakeColors(ctx, req.(*AddCakeColorsReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CakeService_GetColors_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CakeServiceServer).GetColors(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CakeService_GetColors_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CakeServiceServer).GetColors(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _CakeService_CreateCategory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateCategoryRequest)
 	if err := dec(in); err != nil {
@@ -411,6 +479,14 @@ var CakeService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Fillings",
 			Handler:    _CakeService_Fillings_Handler,
+		},
+		{
+			MethodName: "AddCakeColors",
+			Handler:    _CakeService_AddCakeColors_Handler,
+		},
+		{
+			MethodName: "GetColors",
+			Handler:    _CakeService_GetColors_Handler,
 		},
 		{
 			MethodName: "CreateCategory",

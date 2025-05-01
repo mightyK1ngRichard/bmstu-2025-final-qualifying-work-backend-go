@@ -8,6 +8,7 @@ import (
 	"context"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"strings"
 )
 
 type AuthUseсase struct {
@@ -103,7 +104,8 @@ func (u *AuthUseсase) Register(ctx context.Context, in dto.RegisterReq) (*dto.R
 	// Создаём пользователя
 	if err = u.repo.CreateUser(ctx, dto.CreateUserReq{
 		UUID:         userID,
-		Email:        in.Email,
+		Email:        strings.TrimSpace(in.Email),
+		Nickname:     strings.TrimSpace(in.Nickname),
 		PasswordHash: hashedPassword,
 		RefreshTokensMap: map[string]string{
 			in.Fingerprint: refreshToken.Token,

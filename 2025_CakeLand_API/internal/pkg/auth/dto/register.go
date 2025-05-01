@@ -5,6 +5,7 @@ import "time"
 type RegisterReq struct {
 	Email       string
 	Password    string
+	Nickname    string
 	Fingerprint string
 }
 

@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/google/uuid"
+	"github.com/guregu/null"
 	"github.com/lib/pq"
 	"sync"
 )
@@ -26,21 +27,6 @@ const (
 				 LEFT JOIN "user" u ON c.owner_id = u.id
 		WHERE c.id = $1
 	`
-	queryGetCakes = `
-        SELECT c.id, c.name, c.image_url, c.kg_price, c.reviews_count, c.stars_sum, c.description, c.mass, c.is_open_for_sale,
-               c.date_creation, c.discount_kg_price, c.discount_end_time,
-               u.id AS owner_id, u.fio, u.nickname, u.mail,
-               f.id AS filling_id, f.name AS filling_name, f.image_url AS filling_image,
-               f.content AS filling_content, f.kg_price AS filling_price_per_kg, f.description AS filling_description,
-               cat.id AS category_id, cat.name AS category_name, cat.image_url AS category_image
-        FROM "cake" c
-			LEFT JOIN "user" u ON c.owner_id = u.id
-			LEFT JOIN "cake_filling" cf ON c.id = cf.cake_id
-			LEFT JOIN "filling" f ON cf.filling_id = f.id
-			LEFT JOIN "cake_category" cc ON c.id = cc.cake_id
-			LEFT JOIN "category" cat ON cc.category_id = cat.id
-        WHERE c.is_open_for_sale;
-    `
 	queryCreateFilling = `
 		INSERT INTO "filling" (id, name, image_url, content, kg_price, description)
 		VALUES ($1, $2, $3, $4, $5, $6);
@@ -88,6 +74,37 @@ const (
 				 LEFT JOIN "user" u ON u.id = c.owner_id
 		WHERE c.id = $1
 	`
+	queryGetColors    = `SELECT DISTINCT hex_color FROM cake_color`
+	queryAddCakeColor = `INSERT INTO cake_color (id, cake_id, hex_color) VALUES ($1, $2, $3)`
+	queryGetAllCakes  = `
+		SELECT id,
+			   name,
+			   image_url,
+			   kg_price,
+			   reviews_count,
+			   stars_sum,
+			   description,
+			   mass,
+			   discount_kg_price,
+			   discount_end_time,
+			   date_creation,
+			   is_open_for_sale,
+			   owner_id
+		FROM cake
+	`
+	queryGetUser = `
+		SELECT id,
+			   fio,
+			   address,
+			   nickname,
+			   image_url,
+			   header_image_url,
+			   mail,
+			   phone
+		FROM "user"
+		WHERE id = $1
+	`
+	queryGetCakeColors = `SELECT id, cake_id, hex_color FROM cake_color WHERE cake_id = $1`
 )
 
 type CakeRepository struct {
@@ -100,8 +117,124 @@ func NewCakeRepository(db *sql.DB) *CakeRepository {
 	}
 }
 
+func (r *CakeRepository) GetCakeColorsByCakeID(ctx context.Context, cakeID uuid.UUID) ([]models.CakeColor, error) {
+	const methodName = "[CakeRepository.GetCakeColorsByCakeID]"
+
+	rows, err := r.db.QueryContext(ctx, queryGetCakeColors, cakeID)
+	if err != nil {
+		return nil, errs.WrapDBError(methodName, err)
+	}
+	defer rows.Close()
+
+	var colors []models.CakeColor
+	for rows.Next() {
+		var color models.CakeColor
+		if err = rows.Scan(&color.ID, &color.CakeID, &color.HexString); err != nil {
+			return nil, errs.WrapDBError(methodName, err)
+		}
+
+		colors = append(colors, color)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, errs.WrapDBError(methodName, err)
+	}
+
+	return colors, nil
+}
+
+func (r *CakeRepository) GetUserByID(ctx context.Context, userID uuid.UUID) (dto.Owner, error) {
+	const methodName = "[UserRepository.GetUserByID]"
+
+	row := r.db.QueryRowContext(ctx, queryGetUser, userID)
+
+	var user dto.Owner
+	if err := row.Scan(
+		&user.ID,
+		&user.FIO,
+		&user.Address,
+		&user.Nickname,
+		&user.ImageURL,
+		&user.HeaderImageURL,
+		&user.Mail,
+		&user.Phone,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return user, errs.WrapDBError(methodName, err)
+		}
+		return user, errs.WrapDBError(methodName, err)
+	}
+
+	return user, nil
+}
+
+func (r *CakeRepository) GetCakesPreview(ctx context.Context) ([]dto.PreviewCake, error) {
+	const methodName = "[CakeRepository.GetCakes]"
+
+	rows, err := r.db.QueryContext(ctx, queryGetAllCakes)
+	if err != nil {
+		return nil, errs.WrapDBError(methodName, err)
+	}
+	defer rows.Close()
+
+	var cakes []dto.PreviewCake
+	for rows.Next() {
+		var cake dto.PreviewCake
+		var discountKgPrice sql.NullFloat64
+		var discountEndTime sql.NullTime
+		var ownerID uuid.UUID
+
+		if err = rows.Scan(
+			&cake.ID,
+			&cake.Name,
+			&cake.PreviewImageURL,
+			&cake.KgPrice,
+			&cake.ReviewsCount,
+			&cake.StarsSum,
+			&cake.Description,
+			&cake.Mass,
+			&discountKgPrice,
+			&discountEndTime,
+			&cake.DateCreation,
+			&cake.IsOpenForSale,
+			&ownerID,
+		); err != nil {
+			return nil, errs.WrapDBError(methodName, err)
+		}
+
+		cake.DiscountKgPrice = null.FloatFromPtr(nil)
+		if discountKgPrice.Valid {
+			cake.DiscountKgPrice = null.FloatFrom(discountKgPrice.Float64)
+		}
+
+		cake.DiscountEndTime = null.TimeFromPtr(nil)
+		if discountEndTime.Valid {
+			cake.DiscountEndTime = null.TimeFrom(discountEndTime.Time)
+		}
+
+		cake.Owner.ID = ownerID
+		cakes = append(cakes, cake)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, errs.WrapDBError(methodName, err)
+	}
+
+	return cakes, nil
+}
+
+func (r *CakeRepository) AddCakeColor(ctx context.Context, in models.CakeColor) error {
+	const methodName = "[CakeRepository.AddCakeColor]"
+
+	if _, err := r.db.ExecContext(ctx, queryAddCakeColor, in.ID, in.CakeID, in.HexString); err != nil {
+		return errs.WrapDBError(methodName, err)
+	}
+
+	return nil
+}
+
 func (r *CakeRepository) CakeByID(ctx context.Context, in dto.GetCakeReq) (*dto.GetCakeRes, error) {
-	const methodName = "[Repo.CakeByID]"
+	const methodName = "[CakeRepository.CakeByID]"
 
 	var cake models.Cake
 	if err := r.db.QueryRowContext(ctx, queryGetCakeByID, in.CakeID).Scan(
@@ -120,6 +253,32 @@ func (r *CakeRepository) CakeByID(ctx context.Context, in dto.GetCakeReq) (*dto.
 	return &dto.GetCakeRes{
 		Cake: cake,
 	}, nil
+}
+
+func (r *CakeRepository) GetColors(ctx context.Context) ([]string, error) {
+	const methodName = "[CakeRepository.GetColors]"
+
+	rows, err := r.db.QueryContext(ctx, queryGetColors)
+	if err != nil {
+		return nil, errs.WrapDBError(methodName, err)
+	}
+	defer rows.Close()
+
+	hexStrings := make([]string, 0, 22)
+	for rows.Next() {
+		var hexString string
+		if err = rows.Scan(&hexString); err != nil {
+			return nil, errs.WrapDBError(methodName, err)
+		}
+
+		hexStrings = append(hexStrings, hexString)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, errs.WrapDBError(methodName, err)
+	}
+
+	return hexStrings, nil
 }
 
 func (r *CakeRepository) CakeCategoriesIDs(ctx context.Context, cakeID uuid.UUID) ([]uuid.UUID, error) {
@@ -411,81 +570,6 @@ func (r *CakeRepository) Fillings(ctx context.Context) (*[]models.Filling, error
 	}
 
 	return &fillings, nil
-}
-
-func (r *CakeRepository) Cakes(ctx context.Context) (*[]models.Cake, error) {
-	const methodName = "[Repo.Cakes]"
-
-	rows, err := r.db.QueryContext(ctx, queryGetCakes)
-	if err != nil {
-		return nil, errs.WrapDBError(methodName, err)
-	}
-	defer rows.Close()
-
-	// Map для уникальных
-	cakes := make(map[uuid.UUID]models.Cake)
-	fillingMap := make(map[string]bool)
-	categoryMap := make(map[string]bool)
-
-	// Обработка строк в запросе
-	for rows.Next() {
-		var cake models.Cake
-		var filling models.Filling
-		var dbFilling dto.DBFilling
-		var category models.Category
-		var dbCategory dto.DBCategory
-		var owner models.User
-
-		// Чтение данных
-		if err = rows.Scan(
-			&cake.ID, &cake.Name, &cake.PreviewImageURL, &cake.KgPrice, &cake.ReviewsCount, &cake.StarsSum, &cake.Description, &cake.Mass,
-			&cake.IsOpenForSale, &cake.DateCreation, &cake.DiscountKgPrice, &cake.DiscountEndTime,
-			&owner.ID, &owner.FIO, &owner.Nickname, &owner.Mail,
-			&dbFilling.ID, &dbFilling.Name, &dbFilling.ImageURL, &dbFilling.Content, &dbFilling.KgPrice, &dbFilling.Description,
-			&dbCategory.ID, &dbCategory.Name, &dbCategory.ImageURL,
-		); err != nil {
-			return nil, errs.WrapDBError(methodName, err)
-		}
-
-		filling = dbFilling.ConvertToFilling()
-		category = dbCategory.ConvertToCategory()
-
-		// Достаём торт если он есть или инициализируем отсканированный
-		savedCake, ok := cakes[cake.ID]
-		if !ok {
-			savedCake = cake
-		}
-
-		// Устанавливаем владельца только один раз, так как он одинаковый для всех строк
-		if savedCake.Owner.ID == uuid.Nil {
-			savedCake.Owner = owner
-		}
-
-		// Добавляем уникальные начинки
-		// Создаём ключ из ID торта и ID начинки для уникальности начинок для каждого торта
-		key := savedCake.ID.String() + filling.ID.String()
-		if filling.ID != uuid.Nil && !fillingMap[key] {
-			fillingMap[key] = true
-			savedCake.Fillings = append(savedCake.Fillings, filling)
-		}
-
-		// Добавляем уникальные категории
-		key = savedCake.ID.String() + category.ID.String()
-		if category.ID != uuid.Nil && !categoryMap[key] {
-			categoryMap[key] = true
-			savedCake.Categories = append(savedCake.Categories, category)
-		}
-
-		// Добавляем торт в общий список
-		cakes[savedCake.ID] = savedCake
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, errs.WrapDBError(methodName, err)
-	}
-
-	cakeSlice := mapToSlice(cakes)
-	return &cakeSlice, nil
 }
 
 func (r *CakeRepository) CategoryIDsByGenderName(ctx context.Context, genderTag models.CategoryGender) ([]dto.DBCategory, error) {

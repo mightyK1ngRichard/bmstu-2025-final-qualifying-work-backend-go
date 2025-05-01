@@ -4,6 +4,7 @@ run:
     	go run cmd/auth/main.go & \
     	go run cmd/chat/main.go & \
     	go run cmd/reviews/main.go & \
+    	go run cmd/order/main.go & \
     	wait
 
 tests:
@@ -68,3 +69,14 @@ feedback_proto:
 	protoc --swift_out=../internal/pkg/reviews/delivery/grpc/generated \
 	       --grpc-swift_out=../internal/pkg/reviews/delivery/grpc/generated \
 	       feedback.proto
+
+order_proto:
+	cd proto && \
+		protoc --go_out=../internal/pkg/order/delivery/grpc/generated \
+			   --go-grpc_out=../internal/pkg/order/delivery/grpc/generated \
+			   --go_opt=paths=source_relative \
+			   --go-grpc_opt=paths=source_relative \
+			   order.proto && \
+		protoc --swift_out=../internal/pkg/order/delivery/grpc/generated \
+			   --grpc-swift_out=../internal/pkg/order/delivery/grpc/generated \
+			   order.proto

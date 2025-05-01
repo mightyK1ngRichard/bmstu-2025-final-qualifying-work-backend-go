@@ -33,6 +33,34 @@ func NewCakeUsecase(
 	}
 }
 
+func (u *CakeUseсase) AddCakeColor(ctx context.Context, cakeID uuid.UUID, hexStrings []string) error {
+	wg := &sync.WaitGroup{}
+	for _, hexString := range hexStrings {
+		wg.Add(1)
+		hex := hexString
+		go func() {
+			defer wg.Done()
+			if ctx.Err() != nil {
+				return
+			}
+
+			_ = u.repo.AddCakeColor(ctx, models.CakeColor{
+				ID:        uuid.New(),
+				CakeID:    cakeID,
+				HexString: hex,
+			})
+		}()
+	}
+
+	wg.Wait()
+
+	return nil
+}
+
+func (u *CakeUseсase) GetColors(ctx context.Context) ([]string, error) {
+	return u.repo.GetColors(ctx)
+}
+
 func (u *CakeUseсase) Cake(ctx context.Context, in dto.GetCakeReq) (*dto.GetCakeRes, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -289,8 +317,75 @@ func (u *CakeUseсase) Fillings(ctx context.Context) (*[]models.Filling, error) 
 	return u.repo.Fillings(ctx)
 }
 
-func (u *CakeUseсase) Cakes(ctx context.Context) (*[]models.Cake, error) {
-	return u.repo.Cakes(ctx)
+func (u *CakeUseсase) GetCakesPreview(ctx context.Context) ([]dto.PreviewCake, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// Получение тортов
+	cakes, err := u.repo.GetCakesPreview(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	wg := sync.WaitGroup{}
+	mu := sync.Mutex{}
+	errChan := make(chan error, 1)
+
+	for i, cakeInfo := range cakes {
+		wg.Add(2)
+
+		// Получаем данные продавца
+		go func(i int) {
+			defer wg.Done()
+			if ctx.Err() != nil {
+				return
+			}
+
+			user, userErr := u.repo.GetUserByID(ctx, cakeInfo.Owner.ID)
+			if userErr != nil {
+				trySendError(userErr, errChan, cancel)
+				return
+			}
+
+			mu.Lock()
+			cakes[i].Owner = user
+			mu.Unlock()
+		}(i)
+
+		// Получаем цвета тортов
+		go func(i int) {
+			defer wg.Done()
+			if ctx.Err() != nil {
+				return
+			}
+
+			colors, colorsErr := u.repo.GetCakeColorsByCakeID(ctx, cakeInfo.ID)
+			if colorsErr != nil {
+				trySendError(colorsErr, errChan, cancel)
+				return
+			}
+
+			colorsHex := make([]string, len(colors))
+			for ind, color := range colors {
+				colorsHex[ind] = color.HexString
+			}
+
+			mu.Lock()
+			cakes[i].ColorsHex = colorsHex
+			mu.Unlock()
+		}(i)
+	}
+
+	go func() {
+		wg.Wait()
+		close(errChan)
+	}()
+
+	if err = <-errChan; err != nil {
+		return nil, err
+	}
+
+	return cakes, nil
 }
 
 func (u *CakeUseсase) CategoryIDsByGenderName(ctx context.Context, genTag models.CategoryGender) ([]models.Category, error) {

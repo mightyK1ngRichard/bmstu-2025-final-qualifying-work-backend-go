@@ -51,12 +51,15 @@ func (h *GrpcAuthHandler) Register(ctx context.Context, req *gen.RegisterRequest
 		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "invalid email format")
 	} else if err = h.validator.ValidatePassword(req.Password); err != nil {
 		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "invalid password format")
+	} else if req.Nickname == "" {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, errs.ErrNicknameIsRequired, "nickname is empty")
 	}
 
 	// Сохраняем пользователя в бд
 	res, err := h.usecase.Register(ctx, dto.RegisterReq{
 		Email:       req.Email,
 		Password:    req.Password,
+		Nickname:    req.Nickname,
 		Fingerprint: fingerprint,
 	})
 	if err != nil {
