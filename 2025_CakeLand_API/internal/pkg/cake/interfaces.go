@@ -17,7 +17,7 @@ type ICakeUsecase interface {
 	Fillings(context.Context) (*[]models.Filling, error)
 	AddCakeColor(context.Context, uuid.UUID, []string) error
 	GetColors(context.Context) ([]string, error)
-	Cakes(context.Context) (*[]models.Cake, error)
+	GetCakesPreview(context.Context) ([]dto.PreviewCake, error)
 	CategoryIDsByGenderName(context.Context, models.CategoryGender) ([]models.Category, error)
 	CategoryPreviewCakes(context.Context, uuid.UUID) ([]*dto.PreviewCake, error)
 }
@@ -36,9 +36,11 @@ type ICakeRepository interface {
 	GetColors(context.Context) ([]string, error)
 	AddCakeColor(context.Context, models.CakeColor) error
 
+	GetCakeColorsByCakeID(context.Context, uuid.UUID) ([]models.CakeColor, error)
+	GetUserByID(context.Context, uuid.UUID) (dto.Owner, error)
+	GetCakesPreview(context.Context) ([]dto.PreviewCake, error)
 	Categories(context.Context) (*[]models.Category, error)
 	Fillings(context.Context) (*[]models.Filling, error)
-	Cakes(context.Context) (*[]models.Cake, error)
 	CategoryIDsByGenderName(context.Context, models.CategoryGender) ([]dto.DBCategory, error)
 	CategoryCakesIDs(context.Context, uuid.UUID) ([]uuid.UUID, error)
 	PreviewCakeByID(context.Context, uuid.UUID) (*dto.PreviewCake, error)

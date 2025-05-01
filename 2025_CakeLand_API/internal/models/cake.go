@@ -26,6 +26,7 @@ type Cake struct {
 	Fillings        []Filling   // Слои торта
 	Categories      []Category  // Категории торта
 	Images          []CakeImage // Фотографии торта
+	CakeColor       []CakeColor // Цвета торта
 }
 
 type CakeColor struct {

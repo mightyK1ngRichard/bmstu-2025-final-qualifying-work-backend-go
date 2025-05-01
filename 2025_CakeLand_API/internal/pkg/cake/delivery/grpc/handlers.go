@@ -197,15 +197,15 @@ func (h *GrpcCakeHandler) Fillings(ctx context.Context, _ *emptypb.Empty) (*gen.
 
 func (h *GrpcCakeHandler) Cakes(ctx context.Context, _ *emptypb.Empty) (*gen.CakesResponse, error) {
 	// Бизнес логика
-	cakes, err := h.usecase.Cakes(ctx)
+	cakes, err := h.usecase.GetCakesPreview(ctx)
 	if err != nil {
 		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to fetch cakes")
 	}
 
 	// Маппинг
-	cakesGRPC := make([]*gen.Cake, len(*cakes))
-	for i, it := range *cakes {
-		cakesGRPC[i] = it.ConvertToCakeGRPC()
+	cakesGRPC := make([]*gen.PreviewCake, len(cakes))
+	for i, it := range cakes {
+		cakesGRPC[i] = it.ConvertToGrpcModel()
 	}
 
 	// Ответ

@@ -70,7 +70,7 @@ message FillingsResponse {
 
 /* ############### CakesResponse ############### */
 message CakesResponse {
-  repeated Cake cakes = 1;
+  repeated PreviewCake cakes = 1;
 }
 
 /* ############### GetCategoriesByGenderName ############### */
@@ -197,4 +197,5 @@ message PreviewCake {
   bool is_open_for_sale = 11;                           // Продается ли
   User owner = 12;                                      // Владелец
   int32 reviewsCount = 13;                              // Число отзывов
+  repeated string colorsHex = 14;                       // Hex цвета торта
 }

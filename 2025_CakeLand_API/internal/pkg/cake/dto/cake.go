@@ -24,6 +24,7 @@ type PreviewCake struct {
 	DateCreation    time.Time
 	IsOpenForSale   bool
 	Owner           Owner
+	ColorsHex       []string
 }
 
 type PreviewCakeDB struct {
@@ -77,6 +78,7 @@ func (pc PreviewCake) ConvertToGrpcModel() *generated.PreviewCake {
 		DateCreation:    timestamppb.New(pc.DateCreation),
 		IsOpenForSale:   pc.IsOpenForSale,
 		Owner:           pc.Owner.ConvertToGrpcUser(),
+		ColorsHex:       pc.ColorsHex,
 	}
 }
 
