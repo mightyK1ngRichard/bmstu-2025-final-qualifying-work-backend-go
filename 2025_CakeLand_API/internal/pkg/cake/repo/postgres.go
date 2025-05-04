@@ -160,7 +160,7 @@ func (r *CakeRepository) GetUserByID(ctx context.Context, userID uuid.UUID) (dto
 		&user.Phone,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return user, errs.WrapDBError(methodName, err)
+			return user, errs.ErrNotFound
 		}
 		return user, errs.WrapDBError(methodName, err)
 	}

@@ -55,6 +55,30 @@ CREATE TABLE IF NOT EXISTS feedback
     FOREIGN KEY (author_id) REFERENCES "user" (id)
 );
 
+-- Типы уведомлений
+CREATE TYPE notification_kind AS ENUM (
+    'message', -- Личное сообщение
+    'feedback', -- Отзыв
+    'order_update', -- Обновление по заказу
+    'system', -- Системное уведомление
+    'promo' -- Рекламное уведомление
+    );
+
+-- Таблица уведомлений
+CREATE TABLE IF NOT EXISTS notification
+(
+    id                UUID PRIMARY KEY,
+    title             TEXT              NOT NULL,
+    content           TEXT              NOT NULL,
+    date_creation     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    sender_id         UUID              NOT NULL, -- Отправитель
+    recipient_id      UUID              NOT NULL, -- Получатель
+    notification_kind notification_kind NOT NULL,
+
+    FOREIGN KEY (sender_id) REFERENCES "user" (id),
+    FOREIGN KEY (recipient_id) REFERENCES "user" (id)
+);
+
 -- Пол категории
 CREATE TYPE category_gender AS ENUM ('male', 'female', 'child');
 

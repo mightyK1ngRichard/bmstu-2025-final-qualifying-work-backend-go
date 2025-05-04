@@ -6,4 +6,5 @@ grpc:
   chatPort: 44047
   reviewsPort: 44048
   orderPort: 44049
+  notificationPort: 44050
   timeout: 5s
