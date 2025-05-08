@@ -25,6 +25,7 @@ type PreviewCake struct {
 	IsOpenForSale   bool
 	Owner           Owner
 	ColorsHex       []string
+	Model3DURL      null.String
 }
 
 type PreviewCakeDB struct {
@@ -41,6 +42,7 @@ type PreviewCakeDB struct {
 	DateCreation    time.Time
 	IsOpenForSale   bool
 	OwnerID         uuid.UUID
+	Model3DURL      null.String
 }
 
 func (pc PreviewCake) ConvertToGrpcModel() *generated.PreviewCake {
@@ -65,6 +67,11 @@ func (pc PreviewCake) ConvertToGrpcModel() *generated.PreviewCake {
 		rating = uint32(pc.StarsSum / pc.ReviewsCount)
 	}
 
+	var model3DURL *string
+	if pc.Model3DURL.Valid {
+		model3DURL = &pc.Model3DURL.String
+	}
+
 	return &generated.PreviewCake{
 		Id:              pc.ID.String(),
 		Name:            pc.Name,
@@ -79,6 +86,7 @@ func (pc PreviewCake) ConvertToGrpcModel() *generated.PreviewCake {
 		IsOpenForSale:   pc.IsOpenForSale,
 		Owner:           pc.Owner.ConvertToGrpcUser(),
 		ColorsHex:       pc.ColorsHex,
+		Model3DURL:      model3DURL,
 	}
 }
 
@@ -97,5 +105,6 @@ func (pc *PreviewCakeDB) ConvertToPreviewCake(owner Owner) PreviewCake {
 		DateCreation:    pc.DateCreation,
 		IsOpenForSale:   pc.IsOpenForSale,
 		Owner:           owner,
+		Model3DURL:      pc.Model3DURL,
 	}
 }

@@ -13,8 +13,9 @@ import (
 )
 
 type MinioProvider struct {
-	client *minio.Client
-	conf   *config.MinioConfig
+	client     *minio.Client
+	conf       *config.MinioConfig
+	bucketName string
 }
 
 type ImageID string
@@ -30,45 +31,44 @@ func NewMinioProvider(conf *config.MinioConfig) (*MinioProvider, error) {
 	}
 
 	return &MinioProvider{
-		client: client,
-		conf:   conf,
+		client:     client,
+		conf:       conf,
+		bucketName: conf.Bucket,
 	}, nil
 }
 
 func (m *MinioProvider) SaveImage(
 	ctx context.Context,
-	bucketName string,
 	objectName ImageID,
 	imageData []byte,
 ) (string, error) {
 	// Проверяем существование бакета
-	if err := m.ensureBucketExists(ctx, bucketName, m.conf.Region); err != nil {
-		return "", errors.Wrapf(err, fmt.Sprintf("ошибка при проверке или создании бакета %s", bucketName))
+	if err := m.ensureBucketExists(ctx, m.bucketName, m.conf.Region); err != nil {
+		return "", errors.Wrapf(err, fmt.Sprintf("ошибка при проверке или создании бакета %s", m.bucketName))
 	}
 
 	// Формируем путь
 	objectPath := string(objectName)
 
 	// Загружаем изображение
-	if _, err := m.client.PutObject(ctx, bucketName, objectPath, bytes.NewReader(imageData), int64(len(imageData)), minio.PutObjectOptions{
+	if _, err := m.client.PutObject(ctx, m.bucketName, objectPath, bytes.NewReader(imageData), int64(len(imageData)), minio.PutObjectOptions{
 		ContentType: "image/jpeg",
 	}); err != nil {
-		return "", errors.Wrapf(err, fmt.Sprintf("ошибка при загрузке изображения в MinIO в бакет %s с объектом %s", bucketName, objectPath))
+		return "", errors.Wrapf(err, fmt.Sprintf("ошибка при загрузке изображения в MinIO в бакет %s с объектом %s", m.bucketName, objectPath))
 	}
 
 	// Формируем URL
-	url := fmt.Sprintf("http://%s/%s/%s", m.client.EndpointURL().Host, bucketName, objectPath)
+	url := fmt.Sprintf("http://%s/%s/%s", m.client.EndpointURL().Host, m.bucketName, objectPath)
 	return url, nil
 }
 
 func (m *MinioProvider) SaveImages(
 	ctx context.Context,
-	bucketName string,
 	images map[ImageID][]byte,
 ) (map[ImageID]string, error) {
 	// Проверяем существование бакета
-	if err := m.ensureBucketExists(ctx, bucketName, m.conf.Region); err != nil {
-		return nil, errors.Wrapf(err, fmt.Sprintf("ошибка при проверке или создании бакета %s", bucketName))
+	if err := m.ensureBucketExists(ctx, m.bucketName, m.conf.Region); err != nil {
+		return nil, errors.Wrapf(err, fmt.Sprintf("ошибка при проверке или создании бакета %s", m.bucketName))
 	}
 
 	// Карта для хранения URL-ов загруженных изображений
@@ -86,16 +86,16 @@ func (m *MinioProvider) SaveImages(
 			objectPath := string(objectName)
 
 			// Загружаем изображение в бакет
-			_, err := m.client.PutObject(ctx, bucketName, objectPath, bytes.NewReader(imageData), int64(len(imageData)), minio.PutObjectOptions{
+			_, err := m.client.PutObject(ctx, m.bucketName, objectPath, bytes.NewReader(imageData), int64(len(imageData)), minio.PutObjectOptions{
 				ContentType: "image/jpeg",
 			})
 			if err != nil {
-				errs <- errors.Wrapf(err, fmt.Sprintf("ошибка при загрузке изображения в MinIO в бакет %s с объектом %s", bucketName, objectName))
+				errs <- errors.Wrapf(err, fmt.Sprintf("ошибка при загрузке изображения в MinIO в бакет %s с объектом %s", m.bucketName, objectName))
 				return
 			}
 
 			// Формируем URL и добавляем в карту
-			url := fmt.Sprintf("http://%s/%s/%s", m.client.EndpointURL().Host, bucketName, objectName)
+			url := fmt.Sprintf("http://%s/%s/%s", m.client.EndpointURL().Host, m.bucketName, objectName)
 			mu.Lock()
 			urls[objectName] = url
 			mu.Unlock()
@@ -113,6 +113,29 @@ func (m *MinioProvider) SaveImages(
 	}
 
 	return urls, nil
+}
+
+func (m *MinioProvider) SaveFile(
+	ctx context.Context,
+	objectName string,
+	data []byte,
+	contentType string,
+) (string, error) {
+	// Проверка/создание бакета
+	if err := m.ensureBucketExists(ctx, m.bucketName, m.conf.Region); err != nil {
+		return "", errors.Wrapf(err, "ошибка при проверке или создании бакета %s", m.bucketName)
+	}
+
+	// Загрузка файла
+	if _, err := m.client.PutObject(ctx, m.bucketName, objectName, bytes.NewReader(data), int64(len(data)), minio.PutObjectOptions{
+		ContentType: contentType,
+	}); err != nil {
+		return "", errors.Wrapf(err, "ошибка при загрузке файла в бакет %s с объектом %s", m.bucketName, objectName)
+	}
+
+	// Формирование URL
+	url := fmt.Sprintf("http://%s/%s/%s", m.client.EndpointURL().Host, m.bucketName, objectName)
+	return url, nil
 }
 
 // ensureBucketExists проверяет, существует ли бакет, и создает его, если нет

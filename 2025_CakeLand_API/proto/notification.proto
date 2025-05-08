@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "2025_CakeLand_API/internal/pkg/notification/delivery/grpc/generated";
+
+package notification;
+
+/* ################# CreateNotificationRequest ################# */
+message CreateNotificationRequest {
+  string title = 2;
+  string message = 3;
+  optional string cakeID = 4;
+  string recipientID = 5;
+  NotificationKind kind = 6;
+}
+
+message NotificationResponse {
+  Notification notification = 1;
+}
+
+/* ################# GetNotifications ################# */
+message GetNotificationsResponse {
+  repeated Notification notifications = 1;
+}
+
+/* ################# NotificationService ################# */
+service NotificationService {
+  rpc CreateNotification(CreateNotificationRequest) returns (NotificationResponse);
+  rpc GetNotifications(google.protobuf.Empty) returns (GetNotificationsResponse);
+  rpc StreamNotifications(google.protobuf.Empty) returns (stream NotificationResponse);
+}
+
+// Тип уведомления
+enum NotificationKind {
+  MESSAGE = 0;        // Личное сообщение
+  FEEDBACK = 1;       // Отзыв
+  ORDER_UPDATE = 2;   // Обновление по заказу
+  SYSTEM = 3;         // Системное уведомление
+  PROMO = 4;          // Рекламное уведомление
+}
+
+// Модель уведомления
+message Notification {
+  string id = 1;                              // Код уведомления
+  string title = 2;                           // Заголовок уведомления
+  string message = 3;                         // Текст уведомления
+  google.protobuf.Timestamp createdAt = 4;    // Дата и время создания
+  string senderID = 5;                        // Код отправителя уведомления
+  NotificationKind kind = 6;                  // Тип уведомления
+  optional string cakeID = 7;                 // Код торта
+}

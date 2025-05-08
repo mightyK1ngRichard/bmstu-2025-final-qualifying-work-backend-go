@@ -15,12 +15,17 @@ type IProfileUsecase interface {
 	CreateAddress(context.Context, string, *models.Address) (*models.Address, error)
 	GetUserAddresses(context.Context, string) ([]models.Address, error)
 	UpdateUserAddresses(context.Context, string, *gen.UpdateUserAddressesReq) (models.Address, error)
+	UpdateUserImage(context.Context, string, *gen.UpdateUserImageReq) (string, error)
+	UpdateUserData(context.Context, string, *gen.UpdateUserDataReq) error
 }
 
 type IProfileRepository interface {
 	UserInfo(context.Context, uuid.UUID) (*dto.Profile, error)
-	CakesByUserID(ctx context.Context, userID uuid.UUID) ([]cakeDto.PreviewCakeDB, error)
+	CakesByUserID(context.Context, uuid.UUID) ([]cakeDto.PreviewCakeDB, error)
 	CreateAddress(context.Context, *models.Address) error
 	GetUserAddresses(context.Context, uuid.UUID) ([]models.Address, error)
 	UpdateUserAddresses(context.Context, uuid.UUID, *gen.UpdateUserAddressesReq) (models.Address, error)
+	UpdateUserAvatar(context.Context, uuid.UUID, string) error
+	UpdateUserHeaderImage(context.Context, uuid.UUID, string) error
+	UpdateUserData(context.Context, uuid.UUID, *gen.UpdateUserDataReq) error
 }

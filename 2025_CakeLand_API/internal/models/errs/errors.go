@@ -29,6 +29,9 @@ var (
 	ErrTotalPriceIncorrect    = errors.New("total price incorrect")
 	ErrMassNotExists          = errors.New("non-existent mass")
 	ErrNicknameIsRequired     = errors.New("nickname is required")
+	ErrUnknownImageKind       = errors.New("unknown image kind")
+	ErrIncorrectUsername      = errors.New("incorrect username")
+	ErrIncorrectFIO           = errors.New("incorrect fio")
 )
 
 func ConvertToGrpcError(ctx context.Context, log *slog.Logger, err error, description string) error {
@@ -73,6 +76,9 @@ func ConvertToGrpcError(ctx context.Context, log *slog.Logger, err error, descri
 		errors.Is(err, ErrInvalidInput),
 		errors.Is(err, ErrTotalPriceIncorrect),
 		errors.Is(err, ErrMassNotExists),
+		errors.Is(err, ErrIncorrectFIO),
+		errors.Is(err, ErrIncorrectUsername),
+		errors.Is(err, ErrUnknownImageKind),
 		errors.Is(err, ErrNicknameIsRequired),
 		errors.Is(err, ErrInvalidRefreshToken):
 		return status.Error(codes.InvalidArgument, fmt.Sprintf("%v: %s", err, description))

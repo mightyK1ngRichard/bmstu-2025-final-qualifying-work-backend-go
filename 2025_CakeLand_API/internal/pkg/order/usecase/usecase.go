@@ -7,7 +7,6 @@ import (
 	"2025_CakeLand_API/internal/pkg/utils/jwt"
 	"context"
 	"github.com/google/uuid"
-	"math"
 	"time"
 )
 
@@ -45,17 +44,11 @@ func (u *OrderUsecase) MakeOrder(ctx context.Context, accessToken string, dbOrde
 
 	// Получаем актуальную цену торта
 	kgPrice := cake.KgPrice
-	mass := cake.Mass
 	if cake.DiscountKgPrice.Valid && cake.DiscountEndTime.Valid {
 		if cake.DiscountEndTime.Time.After(time.Now()) {
 			// Скидка активна
 			kgPrice = cake.DiscountKgPrice.Float64
 		}
-	}
-
-	// Проверяем, что масса кратна базовой массе
-	if math.Mod(dbOrder.Mass, mass) != 0 {
-		return nil, errs.ErrMassNotExists
 	}
 
 	// Сравниваем итоговую цену

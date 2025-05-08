@@ -22,7 +22,8 @@ const (
 	queryGetCakeByID          = `
 		SELECT c.id, c.name, c.image_url, c.kg_price, c.reviews_count, c.stars_sum,
 			   c.description, c.mass, c.is_open_for_sale, c.date_creation, c.discount_kg_price, c.discount_end_time,
-			   u.id AS owner_id, u.fio, u.address, u.nickname, u.image_url, u.mail, u.phone, u.header_image_url
+			   c.model_3d_url,
+			   u.id AS owner_id, u.fio, u.nickname, u.image_url, u.mail, u.phone, u.header_image_url
 		FROM "cake" c
 				 LEFT JOIN "user" u ON c.owner_id = u.id
 		WHERE c.id = $1
@@ -61,10 +62,10 @@ const (
 			   c.discount_kg_price,
 			   c.discount_end_time,
 			   c.date_creation,
+			   c.model_3d_url,
 			   c.is_open_for_sale,
 			   u.id,
 			   u.fio,
-			   u.address,
 			   u.nickname,
 			   u.image_url,
 			   u.mail,
@@ -89,13 +90,13 @@ const (
 			   discount_end_time,
 			   date_creation,
 			   is_open_for_sale,
-			   owner_id
+			   owner_id,
+			   model_3d_url
 		FROM cake
 	`
 	queryGetUser = `
 		SELECT id,
 			   fio,
-			   address,
 			   nickname,
 			   image_url,
 			   header_image_url,
@@ -105,6 +106,7 @@ const (
 		WHERE id = $1
 	`
 	queryGetCakeColors = `SELECT id, cake_id, hex_color FROM cake_color WHERE cake_id = $1`
+	queryUpdate3DModel = `UPDATE cake SET model_3d_url = $1 WHERE id = $2 AND owner_id = $3`
 )
 
 type CakeRepository struct {
@@ -152,7 +154,6 @@ func (r *CakeRepository) GetUserByID(ctx context.Context, userID uuid.UUID) (dto
 	if err := row.Scan(
 		&user.ID,
 		&user.FIO,
-		&user.Address,
 		&user.Nickname,
 		&user.ImageURL,
 		&user.HeaderImageURL,
@@ -160,7 +161,7 @@ func (r *CakeRepository) GetUserByID(ctx context.Context, userID uuid.UUID) (dto
 		&user.Phone,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return user, errs.WrapDBError(methodName, err)
+			return user, errs.ErrNotFound
 		}
 		return user, errs.WrapDBError(methodName, err)
 	}
@@ -198,6 +199,7 @@ func (r *CakeRepository) GetCakesPreview(ctx context.Context) ([]dto.PreviewCake
 			&cake.DateCreation,
 			&cake.IsOpenForSale,
 			&ownerID,
+			&cake.Model3DURL,
 		); err != nil {
 			return nil, errs.WrapDBError(methodName, err)
 		}
@@ -239,8 +241,8 @@ func (r *CakeRepository) CakeByID(ctx context.Context, in dto.GetCakeReq) (*dto.
 	var cake models.Cake
 	if err := r.db.QueryRowContext(ctx, queryGetCakeByID, in.CakeID).Scan(
 		&cake.ID, &cake.Name, &cake.PreviewImageURL, &cake.KgPrice, &cake.ReviewsCount, &cake.StarsSum, &cake.Description,
-		&cake.Mass, &cake.IsOpenForSale, &cake.DateCreation, &cake.DiscountKgPrice, &cake.DiscountEndTime,
-		&cake.Owner.ID, &cake.Owner.FIO, &cake.Owner.Address,
+		&cake.Mass, &cake.IsOpenForSale, &cake.DateCreation, &cake.DiscountKgPrice, &cake.DiscountEndTime, &cake.Model3DURL,
+		&cake.Owner.ID, &cake.Owner.FIO,
 		&cake.Owner.Nickname, &cake.Owner.ImageURL, &cake.Owner.Mail, &cake.Owner.Phone,
 		&cake.Owner.HeaderImageURL,
 	); err != nil {
@@ -635,7 +637,7 @@ func (r *CakeRepository) CategoryCakesIDs(ctx context.Context, categoryID uuid.U
 }
 
 func (r *CakeRepository) PreviewCakeByID(ctx context.Context, cakeID uuid.UUID) (*dto.PreviewCake, error) {
-	const methodName = "[Repo.PreviewCakeByID]"
+	const methodName = "[CakeRepository.PreviewCakeByID]"
 
 	var previewCake dto.PreviewCake
 	if err := r.db.QueryRowContext(ctx, queryPreviewCakeByID, cakeID).Scan(
@@ -650,10 +652,10 @@ func (r *CakeRepository) PreviewCakeByID(ctx context.Context, cakeID uuid.UUID) 
 		&previewCake.DiscountKgPrice,
 		&previewCake.DiscountEndTime,
 		&previewCake.DateCreation,
+		&previewCake.Model3DURL,
 		&previewCake.IsOpenForSale,
 		&previewCake.Owner.ID,
 		&previewCake.Owner.FIO,
-		&previewCake.Owner.Address,
 		&previewCake.Owner.Nickname,
 		&previewCake.Owner.ImageURL,
 		&previewCake.Owner.Mail,
@@ -669,11 +671,12 @@ func (r *CakeRepository) PreviewCakeByID(ctx context.Context, cakeID uuid.UUID) 
 	return &previewCake, nil
 }
 
-// Функция для преобразования map[uuid.UUID]Cake в []Cake
-func mapToSlice(cakes map[uuid.UUID]models.Cake) []models.Cake {
-	result := make([]models.Cake, 0, len(cakes))
-	for _, cake := range cakes {
-		result = append(result, cake)
+func (r *CakeRepository) Save3DModelURL(ctx context.Context, userID uuid.UUID, cakeID string, modelURL string) error {
+	const methodName = "[CakeRepository.Save3DModelURL]"
+
+	if _, err := r.db.ExecContext(ctx, queryUpdate3DModel, modelURL, cakeID, userID); err != nil {
+		return errs.WrapDBError(methodName, err)
 	}
-	return result
+
+	return nil
 }

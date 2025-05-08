@@ -25,6 +25,8 @@ const (
 	ProfileService_GetUserAddresses_FullMethodName    = "/profile.ProfileService/GetUserAddresses"
 	ProfileService_UpdateUserAddresses_FullMethodName = "/profile.ProfileService/UpdateUserAddresses"
 	ProfileService_CreateAddress_FullMethodName       = "/profile.ProfileService/CreateAddress"
+	ProfileService_UpdateUserData_FullMethodName      = "/profile.ProfileService/UpdateUserData"
+	ProfileService_UpdateUserImage_FullMethodName     = "/profile.ProfileService/UpdateUserImage"
 )
 
 // ProfileServiceClient is the client API for ProfileService service.
@@ -38,6 +40,8 @@ type ProfileServiceClient interface {
 	GetUserAddresses(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetUserAddressesRes, error)
 	UpdateUserAddresses(ctx context.Context, in *UpdateUserAddressesReq, opts ...grpc.CallOption) (*UpdateUserAddressesRes, error)
 	CreateAddress(ctx context.Context, in *CreateAddressReq, opts ...grpc.CallOption) (*CreateAddressRes, error)
+	UpdateUserData(ctx context.Context, in *UpdateUserDataReq, opts ...grpc.CallOption) (*UpdateUserDataRes, error)
+	UpdateUserImage(ctx context.Context, in *UpdateUserImageReq, opts ...grpc.CallOption) (*UpdateUserImageRes, error)
 }
 
 type profileServiceClient struct {
@@ -98,6 +102,26 @@ func (c *profileServiceClient) CreateAddress(ctx context.Context, in *CreateAddr
 	return out, nil
 }
 
+func (c *profileServiceClient) UpdateUserData(ctx context.Context, in *UpdateUserDataReq, opts ...grpc.CallOption) (*UpdateUserDataRes, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateUserDataRes)
+	err := c.cc.Invoke(ctx, ProfileService_UpdateUserData_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *profileServiceClient) UpdateUserImage(ctx context.Context, in *UpdateUserImageReq, opts ...grpc.CallOption) (*UpdateUserImageRes, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateUserImageRes)
+	err := c.cc.Invoke(ctx, ProfileService_UpdateUserImage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ProfileServiceServer is the server API for ProfileService service.
 // All implementations must embed UnimplementedProfileServiceServer
 // for forward compatibility.
@@ -109,6 +133,8 @@ type ProfileServiceServer interface {
 	GetUserAddresses(context.Context, *emptypb.Empty) (*GetUserAddressesRes, error)
 	UpdateUserAddresses(context.Context, *UpdateUserAddressesReq) (*UpdateUserAddressesRes, error)
 	CreateAddress(context.Context, *CreateAddressReq) (*CreateAddressRes, error)
+	UpdateUserData(context.Context, *UpdateUserDataReq) (*UpdateUserDataRes, error)
+	UpdateUserImage(context.Context, *UpdateUserImageReq) (*UpdateUserImageRes, error)
 	mustEmbedUnimplementedProfileServiceServer()
 }
 
@@ -133,6 +159,12 @@ func (UnimplementedProfileServiceServer) UpdateUserAddresses(context.Context, *U
 }
 func (UnimplementedProfileServiceServer) CreateAddress(context.Context, *CreateAddressReq) (*CreateAddressRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateAddress not implemented")
+}
+func (UnimplementedProfileServiceServer) UpdateUserData(context.Context, *UpdateUserDataReq) (*UpdateUserDataRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateUserData not implemented")
+}
+func (UnimplementedProfileServiceServer) UpdateUserImage(context.Context, *UpdateUserImageReq) (*UpdateUserImageRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateUserImage not implemented")
 }
 func (UnimplementedProfileServiceServer) mustEmbedUnimplementedProfileServiceServer() {}
 func (UnimplementedProfileServiceServer) testEmbeddedByValue()                        {}
@@ -245,6 +277,42 @@ func _ProfileService_CreateAddress_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProfileService_UpdateUserData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateUserDataReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProfileServiceServer).UpdateUserData(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProfileService_UpdateUserData_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProfileServiceServer).UpdateUserData(ctx, req.(*UpdateUserDataReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProfileService_UpdateUserImage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateUserImageReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProfileServiceServer).UpdateUserImage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProfileService_UpdateUserImage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProfileServiceServer).UpdateUserImage(ctx, req.(*UpdateUserImageReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ProfileService_ServiceDesc is the grpc.ServiceDesc for ProfileService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -271,6 +339,14 @@ var ProfileService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateAddress",
 			Handler:    _ProfileService_CreateAddress_Handler,
+		},
+		{
+			MethodName: "UpdateUserData",
+			Handler:    _ProfileService_UpdateUserData_Handler,
+		},
+		{
+			MethodName: "UpdateUserImage",
+			Handler:    _ProfileService_UpdateUserImage_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

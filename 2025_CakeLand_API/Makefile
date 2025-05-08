@@ -5,15 +5,13 @@ run:
     	go run cmd/chat/main.go & \
     	go run cmd/reviews/main.go & \
     	go run cmd/order/main.go & \
+    	go run cmd/notification/main.go & \
     	wait
 
 tests:
 	go test -v -p 2 \
 	./internal/pkg/auth/delivery/grpc \
 	./internal/pkg/auth/usecase
-
-db_restart:
-	docker compose up -d
 
 auth_proto:
 	cd proto && \
@@ -80,3 +78,14 @@ order_proto:
 		protoc --swift_out=../internal/pkg/order/delivery/grpc/generated \
 			   --grpc-swift_out=../internal/pkg/order/delivery/grpc/generated \
 			   order.proto
+
+notification_proto:
+	cd proto && \
+		protoc --go_out=../internal/pkg/notification/delivery/grpc/generated \
+			   --go-grpc_out=../internal/pkg/notification/delivery/grpc/generated \
+			   --go_opt=paths=source_relative \
+			   --go-grpc_opt=paths=source_relative \
+			   notification.proto && \
+		protoc --swift_out=../internal/pkg/notification/delivery/grpc/generated \
+			   --grpc-swift_out=../internal/pkg/notification/delivery/grpc/generated \
+			   notification.proto
