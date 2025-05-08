@@ -11,6 +11,7 @@ import (
 	"context"
 	"fmt"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"log/slog"
 )
 
@@ -35,6 +36,30 @@ func NewOrderHandler(
 		mdProvider: mdProvider,
 		nc:         nc,
 	}
+}
+
+func (h *OrderHandler) Orders(ctx context.Context, _ *emptypb.Empty) (*gen.OrdersRes, error) {
+	// Получаем токен из метаданных
+	accessToken, convertedErr := h.getAccessToken(ctx)
+	if convertedErr != nil {
+		return nil, convertedErr
+	}
+
+	// Бизнес логика
+	orders, err := h.usecase.Orders(ctx, accessToken)
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to fetch orders")
+	}
+
+	// Ответ
+	res := make([]*gen.Order, len(orders))
+	for i, orderItem := range orders {
+		res[i] = orderItem.ToProto()
+	}
+
+	return &gen.OrdersRes{
+		Orders: res,
+	}, nil
 }
 
 func (h *OrderHandler) MakeOrder(ctx context.Context, in *gen.MakeOrderReq) (*gen.MakeOrderRes, error) {

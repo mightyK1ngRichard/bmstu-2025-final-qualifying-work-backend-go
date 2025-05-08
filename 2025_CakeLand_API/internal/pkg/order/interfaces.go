@@ -8,9 +8,13 @@ import (
 
 type IOrderUsecase interface {
 	MakeOrder(context.Context, string, models.OrderDB) (*models.OrderDB, error)
+	Orders(context.Context, string) ([]models.Order, error)
 }
 
 type IOrderRepository interface {
 	CreateOrder(context.Context, models.OrderDB) error
 	CakeInfo(context.Context, uuid.UUID) (models.Cake, error)
+	UserOrders(context.Context, uuid.UUID) ([]models.OrderDB, error)
+	AddressByID(context.Context, uuid.UUID) (*models.Address, error)
+	FillingByID(context.Context, uuid.UUID) (*models.Filling, error)
 }

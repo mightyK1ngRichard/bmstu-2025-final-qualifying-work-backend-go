@@ -1,7 +1,9 @@
 syntax = "proto3";
 
+import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 import "cake.proto";
+import "profile.proto";
 
 option go_package = "2025_CakeLand_API/internal/pkg/order/delivery/grpc/generated";
 
@@ -23,15 +25,21 @@ message MakeOrderRes {
   string orderID = 1;
 }
 
+/* ################# Orders ################# */
+message OrdersRes {
+  repeated Order orders = 1;
+}
+
 /* ################# OrderService ################# */
 service OrderService {
   rpc MakeOrder(MakeOrderReq) returns (MakeOrderRes);
+  rpc Orders(google.protobuf.Empty) returns (OrdersRes);
 }
 
 message Order {
   string id = 1;
   double totalPrice = 2;
-  Address deliveryAddress = 3;
+  profile.Address deliveryAddress = 3;
   double mass = 4;
   cake.Filling filling = 5;
   google.protobuf.Timestamp deliveryDate = 6;
@@ -49,19 +57,8 @@ enum PaymentMethod {
 }
 
 enum OrderStatus {
-  PENDING = 0;     // В ожидании
-  PROCESSING = 1;  // В обработке
-  COMPLETED = 2;   // Завершён
-  CANCELLED = 3;   // Отменён
-}
-
-message Address {
-  string id = 1;                         // UUID адреса
-  double latitude = 3;                   // Географическая широта
-  double longitude = 4;                  // Географическая долгота
-  string formattedAddress = 5;          // Человеко-читаемый адрес (от Google Maps)
-  string entrance = 6;                  // Подъезд (необязательно)
-  string floor = 7;                     // Этаж (необязательно)
-  string apartment = 8;                 // Квартира (необязательно)
-  string comment = 9;                   // Комментарий к доставке
+  PENDING = 0;    // В ожидании
+  SHIPPED = 1;    // Отправлен
+  DELIVERED = 2;  // Доставлен
+  CANCELLED = 3;  // Отменён
 }

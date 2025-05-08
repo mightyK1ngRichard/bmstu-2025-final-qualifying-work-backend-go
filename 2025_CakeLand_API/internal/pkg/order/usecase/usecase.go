@@ -7,6 +7,7 @@ import (
 	"2025_CakeLand_API/internal/pkg/utils/jwt"
 	"context"
 	"github.com/google/uuid"
+	"sync"
 	"time"
 )
 
@@ -23,6 +24,82 @@ func NewOrderUsecase(
 		tokenator: tokenator,
 		repo:      repo,
 	}
+}
+
+func (u *OrderUsecase) Orders(ctx context.Context, accessToken string) ([]models.Order, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// Достаём UserID
+	userID, err := u.getUserUUID(accessToken)
+	if err != nil {
+		return nil, err
+	}
+
+	// Получаем заказы из БД
+	dbOrders, err := u.repo.UserOrders(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	wg := sync.WaitGroup{}
+	mu := sync.Mutex{}
+	errChan := make(chan error, 1)
+	orders := make([]models.Order, len(dbOrders))
+
+	for i, dbOrder := range dbOrders {
+		orders[i] = models.MapOrderFromDB(dbOrder)
+		iCopy := i
+		dbOrderCopy := dbOrder
+		wg.Add(2)
+
+		// Получаем данные по адресу
+		go func() {
+			defer wg.Done()
+			if ctx.Err() != nil {
+				return
+			}
+
+			address, err2 := u.repo.AddressByID(ctx, dbOrderCopy.DeliveryAddressID)
+			if err2 != nil {
+				trySendError(err2, errChan, cancel)
+				return
+			}
+
+			mu.Lock()
+			orders[iCopy].DeliveryAddress = *address
+			mu.Unlock()
+		}()
+
+		// Получаем данные по начинке
+		go func() {
+			defer wg.Done()
+			if ctx.Err() != nil {
+				return
+			}
+
+			filling, err2 := u.repo.FillingByID(ctx, dbOrderCopy.FillingID)
+			if err2 != nil {
+				trySendError(err2, errChan, cancel)
+				return
+			}
+
+			mu.Lock()
+			orders[iCopy].Filling = *filling
+			mu.Unlock()
+		}()
+	}
+
+	go func() {
+		wg.Wait()
+		close(errChan)
+	}()
+
+	if err = <-errChan; err != nil {
+		return nil, err
+	}
+
+	return orders, nil
 }
 
 func (u *OrderUsecase) MakeOrder(ctx context.Context, accessToken string, dbOrder models.OrderDB) (*models.OrderDB, error) {
@@ -79,4 +156,13 @@ func (u *OrderUsecase) getUserUUID(accessToken string) (uuid.UUID, error) {
 	}
 
 	return userID, nil
+}
+
+func trySendError(err error, errCh chan<- error, cancel context.CancelFunc) {
+	select {
+	case errCh <- err:
+		cancel()
+	default:
+		// Если ошибка уже есть - игнорируем (сохраняем первую)
+	}
 }

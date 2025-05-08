@@ -28,6 +28,36 @@ const (
 		FROM cake
 		WHERE id = $1
 	`
+	queryUserOrders = `
+		SELECT id,
+			   total_price,
+			   delivery_address_id,
+			   mass,
+			   filling_id,
+			   delivery_date,
+			   customer_id,
+			   seller_id,
+			   payment_method,
+			   cake_id,
+			   status
+		FROM "order"
+		WHERE customer_id = $1
+		ORDER BY delivery_date DESC
+	`
+	queryAddressByID = `
+		SELECT id,
+			   user_id,
+			   latitude,
+			   longitude,
+			   formatted_address,
+			   entrance,
+			   floor,
+			   apartment,
+			   comment
+		FROM address
+		WHERE id = $1
+	`
+	queryGetFillingByID = `SELECT id, name, image_url, content, kg_price, description FROM filling WHERE id = $1`
 )
 
 type OrderRepo struct {
@@ -38,6 +68,91 @@ func NewOrderRepo(db *sql.DB) *OrderRepo {
 	return &OrderRepo{
 		db: db,
 	}
+}
+
+func (r *OrderRepo) FillingByID(ctx context.Context, fillingID uuid.UUID) (*models.Filling, error) {
+	const methodName = "[OrderRepo.FillingByID]"
+
+	var filling models.Filling
+	if err := r.db.QueryRowContext(ctx, queryGetFillingByID, fillingID).Scan(
+		&filling.ID,
+		&filling.Name,
+		&filling.ImageURL,
+		&filling.Content,
+		&filling.KgPrice,
+		&filling.Description,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.ErrNotFound
+		}
+
+		return nil, errs.WrapDBError(methodName, err)
+	}
+
+	return &filling, nil
+}
+
+func (r *OrderRepo) AddressByID(ctx context.Context, id uuid.UUID) (*models.Address, error) {
+	const methodName = "[OrderRepo.AddressByID]"
+
+	row := r.db.QueryRowContext(ctx, queryAddressByID, id)
+
+	var addr models.Address
+	if err := row.Scan(
+		&addr.ID,
+		&addr.UserID,
+		&addr.Latitude,
+		&addr.Longitude,
+		&addr.FormattedAddress,
+		&addr.Entrance,
+		&addr.Floor,
+		&addr.Apartment,
+		&addr.Comment,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.ErrNotFound
+		}
+		return nil, errs.WrapDBError(methodName, err)
+	}
+
+	return &addr, nil
+}
+
+func (r *OrderRepo) UserOrders(ctx context.Context, userID uuid.UUID) ([]models.OrderDB, error) {
+	const methodName = "[OrderRepo.UserOrders]"
+
+	rows, err := r.db.QueryContext(ctx, queryUserOrders, userID)
+	if err != nil {
+		return nil, errs.WrapDBError(methodName, err)
+	}
+	defer rows.Close()
+
+	var orders []models.OrderDB
+	for rows.Next() {
+		var o models.OrderDB
+		if err = rows.Scan(
+			&o.ID,
+			&o.TotalPrice,
+			&o.DeliveryAddressID,
+			&o.Mass,
+			&o.FillingID,
+			&o.DeliveryDate,
+			&o.CustomerID,
+			&o.SellerID,
+			&o.PaymentMethod,
+			&o.CakeID,
+			&o.Status,
+		); err != nil {
+			return nil, errs.WrapDBError(methodName, err)
+		}
+		orders = append(orders, o)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, errs.WrapDBError(methodName, err)
+	}
+
+	return orders, nil
 }
 
 func (r *OrderRepo) CreateOrder(ctx context.Context, in models.OrderDB) error {
