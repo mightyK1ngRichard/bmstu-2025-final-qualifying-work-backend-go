@@ -2,6 +2,7 @@ package cake
 
 import (
 	"2025_CakeLand_API/internal/models"
+	"2025_CakeLand_API/internal/pkg/cake/delivery/grpc/generated"
 	"2025_CakeLand_API/internal/pkg/cake/dto"
 	ms "2025_CakeLand_API/internal/pkg/minio"
 	"context"
@@ -20,6 +21,7 @@ type ICakeUsecase interface {
 	GetCakesPreview(context.Context) ([]dto.PreviewCake, error)
 	CategoryIDsByGenderName(context.Context, models.CategoryGender) ([]models.Category, error)
 	CategoryPreviewCakes(context.Context, uuid.UUID) ([]*dto.PreviewCake, error)
+	Add3DModel(context.Context, string, *generated.Add3DModelReq) (string, error)
 }
 
 type ICakeRepository interface {
@@ -35,6 +37,7 @@ type ICakeRepository interface {
 	CreateCategory(context.Context, *models.Category) error
 	GetColors(context.Context) ([]string, error)
 	AddCakeColor(context.Context, models.CakeColor) error
+	Save3DModelURL(context.Context, uuid.UUID, string, string) error
 
 	GetCakeColorsByCakeID(context.Context, uuid.UUID) ([]models.CakeColor, error)
 	GetUserByID(context.Context, uuid.UUID) (dto.Owner, error)
@@ -49,12 +52,10 @@ type ICakeRepository interface {
 type IImageStorage interface {
 	SaveImages(
 		ctx context.Context,
-		bucketName string,
 		images map[ms.ImageID][]byte,
 	) (map[ms.ImageID]string, error)
 	SaveImage(
 		ctx context.Context,
-		bucketName string,
 		objectName ms.ImageID,
 		imageData []byte,
 	) (string, error)

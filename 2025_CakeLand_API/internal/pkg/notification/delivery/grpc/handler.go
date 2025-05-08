@@ -11,6 +11,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/guregu/null"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"log/slog"
@@ -79,6 +80,9 @@ func (h *NotificationHandler) StreamNotifications(_ *emptypb.Empty, stream grpc.
 		select {
 		case <-notifStream.done:
 			return nil
+		case <-stream.Context().Done(): // клиент закрыл соединение
+			h.log.Info("client disconnected", slog.String("userID", userID))
+			return nil
 		case msg := <-notifStream.ch:
 			if err = stream.Send(msg); err != nil {
 				return err
@@ -126,6 +130,12 @@ func (h *NotificationHandler) CreateNotification(ctx context.Context, in *gen.Cr
 		RecipientID:      in.RecipientID,
 		SenderID:         userID,
 		NotificationKind: models.ConvertProtoNotificationKind(in.Kind),
+		CakeID: func(s *string) null.String {
+			if s != nil {
+				return null.StringFrom(*s)
+			}
+			return null.String{}
+		}(in.CakeID),
 	}
 	if err = h.repo.CreateNotification(ctx, notification); err != nil {
 		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to create notification")

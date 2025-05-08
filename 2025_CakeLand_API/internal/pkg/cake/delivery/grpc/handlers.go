@@ -263,3 +263,31 @@ func (h *GrpcCakeHandler) CategoryPreviewCakes(ctx context.Context, in *gen.Cate
 		PreviewCakes: res,
 	}, nil
 }
+
+func (h *GrpcCakeHandler) Add3DModel(ctx context.Context, in *gen.Add3DModelReq) (*gen.Add3DModelRes, error) {
+	// Получаем токен из метаданных
+	accessToken, convertedErr := h.getAccessToken(ctx)
+	if convertedErr != nil {
+		return nil, convertedErr
+	}
+
+	// Бизнес-логика
+	modelURL, err := h.usecase.Add3DModel(ctx, accessToken, in)
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to add model")
+	}
+
+	// Ответ
+	return &gen.Add3DModelRes{
+		Model3DURL: modelURL,
+	}, nil
+}
+
+func (h *GrpcCakeHandler) getAccessToken(ctx context.Context) (string, error) {
+	accessToken, err := h.mdProvider.GetValue(ctx, domains.KeyAuthorization)
+	if err != nil {
+		return "", errs.ConvertToGrpcError(ctx, h.log, err, fmt.Sprintf("missing required metadata: %s", domains.KeyAuthorization))
+	}
+
+	return accessToken, nil
+}

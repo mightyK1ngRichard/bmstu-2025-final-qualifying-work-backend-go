@@ -359,10 +359,9 @@ VALUES ('550e8400-e29b-41d4-a716-446655449001',
 
 
 -- Иванов Иван Иванович
-INSERT INTO "user" (id, fio, address, nickname, image_url, header_image_url, mail, password_hash, phone, card_number)
+INSERT INTO "user" (id, fio, nickname, image_url, header_image_url, mail, password_hash, phone, card_number)
 VALUES ('e9842bec-0da1-44df-8d15-f23abad016e1',
         'Иванов Иван Иванович',
-        'г. Москва, ул. Примерная, д. 1',
         'ivanov',
         'https://i.pinimg.com/736x/82/d1/02/82d102bdb9ab36835c16fa1c260240b4.jpg',
         'https://i.ytimg.com/vi/2jR7DcvC4Pk/maxresdefault.jpg',
@@ -372,10 +371,9 @@ VALUES ('e9842bec-0da1-44df-8d15-f23abad016e1',
         '1234567812345678');
 
 -- Петрова Анна Сергеевна
-INSERT INTO "user" (id, fio, address, nickname, image_url, header_image_url, mail, password_hash, phone, card_number)
+INSERT INTO "user" (id, fio, nickname, image_url, header_image_url, mail, password_hash, phone, card_number)
 VALUES ('709a8321-fbc7-45c9-8414-9df4c9f454e3',
         'Петрова Анна Сергеевна',
-        'г. Санкт-Петербург, пр. Примерный, д. 2',
         'petrova',
         'https://i.pinimg.com/originals/33/6f/b7/336fb7b8b172c737d7af6e8261c95a96.jpg',
         'https://avatars.mds.yandex.net/i?id=00a0ffc5361aeb54140f8521a30adcdeacf13c25-5485324-images-thumbs&n=13',
@@ -385,11 +383,10 @@ VALUES ('709a8321-fbc7-45c9-8414-9df4c9f454e3',
         '8765432187654321');
 
 -- Добавляем пользователя в таблицу "user"
-INSERT INTO "user" (id, fio, address, nickname, image_url, header_image_url, mail, password_hash, phone, card_number,
+INSERT INTO "user" (id, fio, nickname, image_url, header_image_url, mail, password_hash, phone, card_number,
                     refresh_tokens_map)
 VALUES ('1d4c8bda-158d-49c1-bf56-5c9339ab7683',
         'Иван Иванов',
-        'г. Москва, ул. Пушкина, д. 10',
         'ivanov123',
         'https://steamuserimages-a.akamaihd.net/ugc/2547430415513542316/A23BDFD8663F4B3917E23D67A64103F4DF1D27DF/',
         'https://avatars.mds.yandex.net/i?id=1bdc25a86e55e842456d5adf918f35d5_l-9148169-images-thumbs&n=13',

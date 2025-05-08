@@ -14,7 +14,7 @@ import (
 
 const (
 	querySelectProfileByID = `
-		SELECT id, fio, address, nickname, header_image_url, image_url, mail, phone, card_number FROM "user" WHERE id = $1 LIMIT 1
+		SELECT id, fio, nickname, header_image_url, image_url, mail, phone, card_number FROM "user" WHERE id = $1 LIMIT 1
 	`
 	querySelectCakesByUserID = `
 		SELECT id,
@@ -29,7 +29,8 @@ const (
 			   discount_end_time,
 			   date_creation,
 			   is_open_for_sale,
-			   owner_id
+			   owner_id,
+			   model_3d_url
 		FROM cake
 		WHERE owner_id = $1;
     `
@@ -60,6 +61,9 @@ const (
 		WHERE id = $5 AND user_id = $6
 		RETURNING id, user_id, latitude, longitude, formatted_address, entrance, floor, apartment, comment
 	`
+	queryUpdateUserAvatar = `UPDATE "user" SET image_url = $1 WHERE id = $2`
+	queryUpdateUserHeader = `UPDATE "user" SET header_image_url = $1 WHERE id = $2`
+	queryUpdateUserData   = `UPDATE "user" SET nickname = $1, fio = $2 WHERE id = $3`
 )
 
 type ProfileRepository struct {
@@ -161,7 +165,6 @@ func (r *ProfileRepository) UserInfo(ctx context.Context, userID uuid.UUID) (*dt
 	if err := r.db.QueryRowContext(ctx, querySelectProfileByID, userID).Scan(
 		&user.ID,
 		&user.FIO,
-		&user.Address,
 		&user.Nickname,
 		&user.HeaderImageURL,
 		&user.ImageURL,
@@ -204,6 +207,7 @@ func (r *ProfileRepository) CakesByUserID(ctx context.Context, userID uuid.UUID)
 			&previewCake.DateCreation,
 			&previewCake.IsOpenForSale,
 			&previewCake.OwnerID,
+			&previewCake.Model3DURL,
 		); err != nil {
 			return nil, errs.WrapDBError(methodName, err)
 		}
@@ -216,4 +220,38 @@ func (r *ProfileRepository) CakesByUserID(ctx context.Context, userID uuid.UUID)
 	}
 
 	return cakes, nil
+}
+
+func (r *ProfileRepository) UpdateUserAvatar(ctx context.Context, userID uuid.UUID, imageURL string) error {
+	const methodName = "[ProfileRepository.UpdateUserAvatar]"
+
+	if _, err := r.db.ExecContext(ctx, queryUpdateUserAvatar, imageURL, userID); err != nil {
+		return errs.WrapDBError(methodName, err)
+	}
+
+	return nil
+}
+
+func (r *ProfileRepository) UpdateUserHeaderImage(ctx context.Context, userID uuid.UUID, imageURL string) error {
+	const methodName = "[ProfileRepository.UpdateUserHeaderImage]"
+
+	if _, err := r.db.ExecContext(ctx, queryUpdateUserHeader, imageURL, userID); err != nil {
+		return errs.WrapDBError(methodName, err)
+	}
+
+	return nil
+}
+
+func (r *ProfileRepository) UpdateUserData(ctx context.Context, userID uuid.UUID, in *gen.UpdateUserDataReq) error {
+	const methodName = "[ProfileRepository.UpdateUserData]"
+
+	if _, err := r.db.ExecContext(ctx, queryUpdateUserData,
+		in.UpdatedUserName,
+		in.UpdatedFIO,
+		userID,
+	); err != nil {
+		return errs.WrapDBError(methodName, err)
+	}
+
+	return nil
 }

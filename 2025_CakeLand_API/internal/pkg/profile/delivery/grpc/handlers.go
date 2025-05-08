@@ -12,6 +12,18 @@ import (
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"log/slog"
+	"regexp"
+	"strings"
+)
+
+const (
+	validUsernamePattern = `^[a-zA-Z0-9_]+$`
+	validFIOPattern      = `^[\p{L}\s\-]+$` // \p{L} — любые буквы, включая кириллицу и латиницу
+)
+
+var (
+	validUsernameRegex = regexp.MustCompile(validUsernamePattern)
+	validFIORegex      = regexp.MustCompile(validFIOPattern)
 )
 
 type GrpcProfileHandler struct {
@@ -121,7 +133,7 @@ func (h *GrpcProfileHandler) GetUserInfo(ctx context.Context, _ *emptypb.Empty) 
 }
 
 func (h *GrpcProfileHandler) GetUserInfoByID(ctx context.Context, req *gen.GetUserInfoByIDReq) (*gen.GetUserInfoByIDRes, error) {
-	// Получаем токен из метаданных
+	// Получаем userID
 	userID, err := uuid.Parse(req.UserID)
 	if err != nil {
 		return nil, errs.ConvertToGrpcError(ctx, h.log, fmt.Errorf("%w: %w", errs.ErrInvalidUUIDFormat, err), "invalid user id format")
@@ -137,6 +149,57 @@ func (h *GrpcProfileHandler) GetUserInfoByID(ctx context.Context, req *gen.GetUs
 	return &gen.GetUserInfoByIDRes{
 		User: userInfo.ConvertToGRPCProfile(),
 	}, nil
+}
+
+func (h *GrpcProfileHandler) UpdateUserImage(ctx context.Context, in *gen.UpdateUserImageReq) (*gen.UpdateUserImageRes, error) {
+	// Получаем токен из метаданных
+	accessToken, convertedErr := h.getAccessToken(ctx)
+	if convertedErr != nil {
+		return nil, convertedErr
+	}
+
+	// Бизнес-логика
+	imageURL, err := h.usecase.UpdateUserImage(ctx, accessToken, in)
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to update user image")
+	}
+
+	// Ответ
+	return &gen.UpdateUserImageRes{
+		ImageURL: imageURL,
+	}, nil
+}
+
+func (h *GrpcProfileHandler) UpdateUserData(ctx context.Context, in *gen.UpdateUserDataReq) (*gen.UpdateUserDataRes, error) {
+	// Получаем токен из метаданных
+	accessToken, convertedErr := h.getAccessToken(ctx)
+	if convertedErr != nil {
+		return nil, convertedErr
+	}
+
+	// Валидация
+	if in.UpdatedUserName == "" {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, errs.ErrIncorrectUsername, "user name must not be empty")
+	}
+	if !validUsernameRegex.MatchString(in.UpdatedUserName) {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, errs.ErrIncorrectUsername, "user name must contain only latin letters, digits or underscore")
+	}
+	if in.UpdatedFIO != nil {
+		if strings.TrimSpace(*in.UpdatedFIO) == "" {
+			return nil, errs.ConvertToGrpcError(ctx, h.log, errs.ErrIncorrectFIO, "fio must not be empty")
+		}
+		if !validFIORegex.MatchString(*in.UpdatedFIO) {
+			return nil, errs.ConvertToGrpcError(ctx, h.log, errs.ErrIncorrectFIO, "fio must contain only letters, spaces, or dashes")
+		}
+	}
+
+	// Бизнес-логика
+	if err := h.usecase.UpdateUserData(ctx, accessToken, in); err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to update user data")
+	}
+
+	// Ответ
+	return &gen.UpdateUserDataRes{}, nil
 }
 
 func (h *GrpcProfileHandler) getAccessToken(ctx context.Context) (string, error) {

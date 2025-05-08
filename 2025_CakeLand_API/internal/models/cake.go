@@ -19,6 +19,7 @@ type Cake struct {
 	Description     string      // Описание
 	Mass            float64     // Масса торта
 	IsOpenForSale   bool        // Флаг возможности продажи торта
+	Model3DURL      null.String // Ссылка на 3D модель
 	DateCreation    time.Time   // Дата создания торта
 	DiscountKgPrice null.Float  // Скидочная цена за кг
 	DiscountEndTime null.Time   // Дата окончания скидки
@@ -80,6 +81,11 @@ func (c *Cake) ConvertToCakeGRPC() *gen.Cake {
 		rating = c.StarsSum / c.ReviewsCount
 	}
 
+	var model3DURL *string
+	if c.Model3DURL.Valid {
+		model3DURL = &c.Model3DURL.String
+	}
+
 	return &gen.Cake{
 		Id:              c.ID.String(),
 		Name:            c.Name,
@@ -97,5 +103,6 @@ func (c *Cake) ConvertToCakeGRPC() *gen.Cake {
 		DateCreation:    timestamppb.New(c.DateCreation),
 		Images:          cakeImages,
 		ReviewsCount:    c.ReviewsCount,
+		Model3DURL:      model3DURL,
 	}
 }

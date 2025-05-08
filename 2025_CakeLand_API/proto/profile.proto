@@ -47,7 +47,31 @@ message CreateAddressReq {
 }
 
 message CreateAddressRes {
-    Address address = 1;
+  Address address = 1;
+}
+
+/* ############### UpdateUserData ############### */
+message UpdateUserDataReq {
+  string updatedUserName = 1;
+  optional string updatedFIO = 2;
+}
+
+message UpdateUserDataRes {
+}
+
+/* ############### UpdateUserImage ############### */
+message UpdateUserImageReq {
+  bytes imageData = 1;
+  ImageKind imageKind = 2;
+
+  enum ImageKind {
+    AVATAR = 0;  // Аватар пользователя
+    HEADER = 1;  // Изображение для шапки профиля
+  }
+}
+
+message UpdateUserImageRes {
+  string imageURL = 1;
 }
 
 /* ############### ProfileService ############### */
@@ -57,12 +81,13 @@ service ProfileService {
   rpc GetUserAddresses(google.protobuf.Empty) returns (GetUserAddressesRes);
   rpc UpdateUserAddresses(UpdateUserAddressesReq) returns (UpdateUserAddressesRes);
   rpc CreateAddress(CreateAddressReq) returns (CreateAddressRes);
+  rpc UpdateUserData(UpdateUserDataReq) returns (UpdateUserDataRes);
+  rpc UpdateUserImage(UpdateUserImageReq) returns (UpdateUserImageRes);
 }
 
 message Profile {
   string id = 1;
   google.protobuf.StringValue fio = 2;
-  google.protobuf.StringValue address = 3;
   string nickname = 4;
   google.protobuf.StringValue image_url = 5;
   google.protobuf.StringValue header_image_url = 6;

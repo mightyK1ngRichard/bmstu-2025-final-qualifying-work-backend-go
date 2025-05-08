@@ -3,7 +3,6 @@ CREATE TABLE IF NOT EXISTS "user"
 (
     id                 UUID PRIMARY KEY,
     fio                VARCHAR(150),
-    address            TEXT,
     nickname           VARCHAR(50) UNIQUE  NOT NULL,
     image_url          VARCHAR(200),
     header_image_url   VARCHAR(200),
@@ -30,6 +29,7 @@ CREATE TABLE IF NOT EXISTS cake
     date_creation     TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     is_open_for_sale  BOOL      DEFAULT true,
     owner_id          UUID                                NOT NULL,
+    model_3d_url      VARCHAR(300),
     FOREIGN KEY (owner_id) REFERENCES "user" (id)
 );
 
@@ -73,10 +73,12 @@ CREATE TABLE IF NOT EXISTS notification
     date_creation     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     sender_id         UUID              NOT NULL, -- Отправитель
     recipient_id      UUID              NOT NULL, -- Получатель
+    cake_id           UUID,
     notification_kind notification_kind NOT NULL,
 
     FOREIGN KEY (sender_id) REFERENCES "user" (id),
-    FOREIGN KEY (recipient_id) REFERENCES "user" (id)
+    FOREIGN KEY (recipient_id) REFERENCES "user" (id),
+    FOREIGN KEY (cake_id) REFERENCES "cake" (id)
 );
 
 -- Пол категории

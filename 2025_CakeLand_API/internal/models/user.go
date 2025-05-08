@@ -15,7 +15,6 @@ type RefreshTokenMap map[string]string // key: fingerprint, value: refreshToken
 type User struct {
 	ID               uuid.UUID       // Код
 	FIO              null.String     // ФИО
-	Address          null.String     // Адрес
 	Nickname         string          // Уникальный псевдоним (default: id)
 	ImageURL         null.String     // Картинка
 	HeaderImageURL   null.String     // Картинка шапки профиля
@@ -46,10 +45,6 @@ func NewUserInfo(u *profileGen.Profile) *UserInfo {
 			u.GetFio().GetValue(),
 			u.Fio != nil,
 		),
-		Address: null.NewString(
-			u.GetAddress().GetValue(),
-			u.Address != nil,
-		),
 		Phone: null.NewString(
 			u.GetPhone().GetValue(),
 			u.Phone != nil,
@@ -69,11 +64,6 @@ func (u *User) ConvertToUserGRPC() *generated.User {
 	var fio *wrapperspb.StringValue
 	if u.FIO.Valid {
 		fio = wrapperspb.String(u.FIO.String)
-	}
-
-	var address *wrapperspb.StringValue
-	if u.Address.Valid {
-		address = wrapperspb.String(u.Address.String)
 	}
 
 	var phoneNumber *wrapperspb.StringValue
@@ -96,7 +86,6 @@ func (u *User) ConvertToUserGRPC() *generated.User {
 		Nickname:       u.Nickname,
 		Mail:           u.Mail,
 		Fio:            fio,
-		Address:        address,
 		Phone:          phoneNumber,
 		ImageURL:       imageURL,
 		HeaderImageURL: headerImageURL,
@@ -107,11 +96,6 @@ func (u *UserInfo) ConvertToGRPCProfile() *profileGen.Profile {
 	var fio *wrapperspb.StringValue
 	if u.FIO.Valid {
 		fio = wrapperspb.String(u.FIO.String)
-	}
-
-	var address *wrapperspb.StringValue
-	if u.Address.Valid {
-		address = wrapperspb.String(u.Address.String)
 	}
 
 	var phoneNumber *wrapperspb.StringValue
@@ -134,7 +118,6 @@ func (u *UserInfo) ConvertToGRPCProfile() *profileGen.Profile {
 		Nickname:       u.Nickname,
 		Mail:           u.Mail,
 		Fio:            fio,
-		Address:        address,
 		Phone:          phoneNumber,
 		ImageUrl:       imageURL,
 		HeaderImageUrl: headerImageURL,

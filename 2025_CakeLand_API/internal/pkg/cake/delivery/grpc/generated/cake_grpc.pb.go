@@ -28,6 +28,7 @@ const (
 	CakeService_Fillings_FullMethodName                  = "/cake.CakeService/Fillings"
 	CakeService_AddCakeColors_FullMethodName             = "/cake.CakeService/AddCakeColors"
 	CakeService_GetColors_FullMethodName                 = "/cake.CakeService/GetColors"
+	CakeService_Add3DModel_FullMethodName                = "/cake.CakeService/Add3DModel"
 	CakeService_CreateCategory_FullMethodName            = "/cake.CakeService/CreateCategory"
 	CakeService_Categories_FullMethodName                = "/cake.CakeService/Categories"
 	CakeService_GetCategoriesByGenderName_FullMethodName = "/cake.CakeService/GetCategoriesByGenderName"
@@ -47,6 +48,7 @@ type CakeServiceClient interface {
 	Fillings(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*FillingsResponse, error)
 	AddCakeColors(ctx context.Context, in *AddCakeColorsReq, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	GetColors(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*CakeColorsRes, error)
+	Add3DModel(ctx context.Context, in *Add3DModelReq, opts ...grpc.CallOption) (*Add3DModelRes, error)
 	CreateCategory(ctx context.Context, in *CreateCategoryRequest, opts ...grpc.CallOption) (*CreateCategoryResponse, error)
 	Categories(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*CategoriesResponse, error)
 	GetCategoriesByGenderName(ctx context.Context, in *GetCategoriesByGenderNameReq, opts ...grpc.CallOption) (*GetCategoriesByGenderNameRes, error)
@@ -140,6 +142,16 @@ func (c *cakeServiceClient) GetColors(ctx context.Context, in *emptypb.Empty, op
 	return out, nil
 }
 
+func (c *cakeServiceClient) Add3DModel(ctx context.Context, in *Add3DModelReq, opts ...grpc.CallOption) (*Add3DModelRes, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Add3DModelRes)
+	err := c.cc.Invoke(ctx, CakeService_Add3DModel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *cakeServiceClient) CreateCategory(ctx context.Context, in *CreateCategoryRequest, opts ...grpc.CallOption) (*CreateCategoryResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateCategoryResponse)
@@ -184,6 +196,7 @@ type CakeServiceServer interface {
 	Fillings(context.Context, *emptypb.Empty) (*FillingsResponse, error)
 	AddCakeColors(context.Context, *AddCakeColorsReq) (*emptypb.Empty, error)
 	GetColors(context.Context, *emptypb.Empty) (*CakeColorsRes, error)
+	Add3DModel(context.Context, *Add3DModelReq) (*Add3DModelRes, error)
 	CreateCategory(context.Context, *CreateCategoryRequest) (*CreateCategoryResponse, error)
 	Categories(context.Context, *emptypb.Empty) (*CategoriesResponse, error)
 	GetCategoriesByGenderName(context.Context, *GetCategoriesByGenderNameReq) (*GetCategoriesByGenderNameRes, error)
@@ -220,6 +233,9 @@ func (UnimplementedCakeServiceServer) AddCakeColors(context.Context, *AddCakeCol
 }
 func (UnimplementedCakeServiceServer) GetColors(context.Context, *emptypb.Empty) (*CakeColorsRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetColors not implemented")
+}
+func (UnimplementedCakeServiceServer) Add3DModel(context.Context, *Add3DModelReq) (*Add3DModelRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Add3DModel not implemented")
 }
 func (UnimplementedCakeServiceServer) CreateCategory(context.Context, *CreateCategoryRequest) (*CreateCategoryResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateCategory not implemented")
@@ -395,6 +411,24 @@ func _CakeService_GetColors_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CakeService_Add3DModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Add3DModelReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CakeServiceServer).Add3DModel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CakeService_Add3DModel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CakeServiceServer).Add3DModel(ctx, req.(*Add3DModelReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _CakeService_CreateCategory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateCategoryRequest)
 	if err := dec(in); err != nil {
@@ -487,6 +521,10 @@ var CakeService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetColors",
 			Handler:    _CakeService_GetColors_Handler,
+		},
+		{
+			MethodName: "Add3DModel",
+			Handler:    _CakeService_Add3DModel_Handler,
 		},
 		{
 			MethodName: "CreateCategory",

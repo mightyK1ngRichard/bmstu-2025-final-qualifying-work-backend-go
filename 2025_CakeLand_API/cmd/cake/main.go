@@ -63,7 +63,7 @@ func run() error {
 	)
 	repository := repo.NewCakeRepository(db)
 	tokenator := jwt.NewTokenator()
-	useCase := usecase.NewCakeUsecase(tokenator, repository, minioProvider, conf.MinIO.Bucket)
+	useCase := usecase.NewCakeUsecase(tokenator, repository, minioProvider)
 	mdProvider := md.NewMetadataProvider()
 	handler := cake.NewCakeHandler(l, useCase, mdProvider)
 	generated.RegisterCakeServiceServer(grpcServer, handler)

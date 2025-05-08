@@ -104,6 +104,16 @@ message CakeColorsRes {
   repeated string colorsHex = 1;
 }
 
+/* ############### Add3DModel ############### */
+message Add3DModelReq {
+  bytes modelFileData = 1;
+  string cakeID = 2;
+}
+
+message Add3DModelRes {
+  string model3DURL = 1;
+}
+
 /* ############### CakeService ############### */
 service CakeService {
   rpc CreateCake (CreateCakeRequest) returns (CreateCakeResponse);
@@ -115,6 +125,7 @@ service CakeService {
   rpc Fillings (google.protobuf.Empty) returns (FillingsResponse);
   rpc AddCakeColors(AddCakeColorsReq) returns (google.protobuf.Empty);
   rpc GetColors(google.protobuf.Empty) returns (CakeColorsRes);
+  rpc Add3DModel(Add3DModelReq) returns (Add3DModelRes);
 
   rpc CreateCategory (CreateCategoryRequest) returns (CreateCategoryResponse);
   rpc Categories (google.protobuf.Empty) returns (CategoriesResponse);
@@ -139,6 +150,7 @@ message Cake {
   google.protobuf.Timestamp date_creation = 14;              // Дата создания торта (ISO 8601)
   repeated CakeImage images = 15;                            // Фотографии торта
   int32 reviewsCount = 16;                                   // Число отзывов
+  optional string model3DURL = 17;                           // 3D model url
 
   message CakeImage {
     string id = 1;
@@ -152,7 +164,6 @@ message User {
   google.protobuf.StringValue fio = 2;             // Полное имя
   string nickname = 3;                             // Никнейм
   string mail = 4;                                 // Электронная почта
-  google.protobuf.StringValue address = 5;         // Адрес
   google.protobuf.StringValue phone = 6;           // Телефон
   google.protobuf.StringValue imageURL = 7;        // Аватарка
   google.protobuf.StringValue headerImageURL = 8;  // Шапка профиля
@@ -198,4 +209,5 @@ message PreviewCake {
   User owner = 12;                                      // Владелец
   int32 reviewsCount = 13;                              // Число отзывов
   repeated string colorsHex = 14;                       // Hex цвета торта
+  optional string model3DURL = 15;                      // 3D model url
 }

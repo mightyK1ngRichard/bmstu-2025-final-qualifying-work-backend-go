@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"2025_CakeLand_API/internal/models"
+	"2025_CakeLand_API/internal/models/errs"
 	dto2 "2025_CakeLand_API/internal/pkg/cake/dto"
 	"2025_CakeLand_API/internal/pkg/minio"
 	"2025_CakeLand_API/internal/pkg/profile"
@@ -10,6 +11,7 @@ import (
 	"2025_CakeLand_API/internal/pkg/utils/jwt"
 	"context"
 	"github.com/google/uuid"
+	"strings"
 	"sync"
 )
 
@@ -161,7 +163,6 @@ func (u *ProfileUseсase) UserInfoByID(ctx context.Context, userID uuid.UUID) (*
 	userInfo := models.UserInfo{
 		ID:             profileInfo.ID.String(),
 		FIO:            profileInfo.FIO,
-		Address:        profileInfo.Address,
 		Nickname:       profileInfo.Nickname,
 		ImageURL:       profileInfo.ImageURL,
 		HeaderImageURL: profileInfo.HeaderImageURL,
@@ -169,6 +170,48 @@ func (u *ProfileUseсase) UserInfoByID(ctx context.Context, userID uuid.UUID) (*
 		Phone:          profileInfo.Phone,
 	}
 	return &userInfo, nil
+}
+
+func (u *ProfileUseсase) UpdateUserImage(ctx context.Context, accessToken string, in *gen.UpdateUserImageReq) (string, error) {
+	// Получаем ID пользователя
+	userUUID, err := u.getUserUUID(accessToken)
+	if err != nil {
+		return "", err
+	}
+
+	// Созхраняем фото в минио
+	imageID := uuid.New()
+	imageURL, err := u.imageProvider.SaveImage(ctx, minio.ImageID(imageID.String()), in.ImageData)
+	if err != nil {
+		return "", err
+	}
+
+	// Обновляем запись в БД
+	switch in.ImageKind {
+	case gen.UpdateUserImageReq_AVATAR:
+		return imageURL, u.repo.UpdateUserAvatar(ctx, userUUID, imageURL)
+	case gen.UpdateUserImageReq_HEADER:
+		return imageURL, u.repo.UpdateUserHeaderImage(ctx, userUUID, imageURL)
+	default:
+		return "", errs.ErrUnknownImageKind
+	}
+}
+
+func (u *ProfileUseсase) UpdateUserData(ctx context.Context, accessToken string, in *gen.UpdateUserDataReq) error {
+	// Получаем UseriD
+	userUUID, err := u.getUserUUID(accessToken)
+	if err != nil {
+		return err
+	}
+
+	// Убираем лишние пробелы в имени и ФИО
+	in.UpdatedUserName = strings.TrimSpace(in.UpdatedUserName)
+	if in.UpdatedFIO != nil {
+		*in.UpdatedFIO = strings.TrimSpace(*in.UpdatedFIO)
+	}
+
+	// Сохраняем данные в БД
+	return u.repo.UpdateUserData(ctx, userUUID, in)
 }
 
 func trySendError(err error, errCh chan<- error, cancel context.CancelFunc) {

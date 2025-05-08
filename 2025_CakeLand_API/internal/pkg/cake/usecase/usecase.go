@@ -4,6 +4,7 @@ import (
 	"2025_CakeLand_API/internal/models"
 	"2025_CakeLand_API/internal/models/errs"
 	"2025_CakeLand_API/internal/pkg/cake"
+	"2025_CakeLand_API/internal/pkg/cake/delivery/grpc/generated"
 	"2025_CakeLand_API/internal/pkg/cake/dto"
 	ms "2025_CakeLand_API/internal/pkg/minio"
 	"2025_CakeLand_API/internal/pkg/utils/jwt"
@@ -15,21 +16,18 @@ import (
 type CakeUseсase struct {
 	tokenator  *jwt.Tokenator
 	repo       cake.ICakeRepository
-	imageStore cake.IImageStorage
-	bucketName string
+	imageStore *ms.MinioProvider
 }
 
 func NewCakeUsecase(
 	tokenator *jwt.Tokenator,
 	repo cake.ICakeRepository,
-	imageStore cake.IImageStorage,
-	bucketName string,
+	imageStore *ms.MinioProvider,
 ) *CakeUseсase {
 	return &CakeUseсase{
 		tokenator:  tokenator,
 		repo:       repo,
 		imageStore: imageStore,
-		bucketName: bucketName,
 	}
 }
 
@@ -225,7 +223,7 @@ func (u *CakeUseсase) CreateCake(ctx context.Context, in dto.CreateCakeReq) (*d
 
 	previewImageID := ms.ImageID(uuid.New().String())
 	images[previewImageID] = in.PreviewImageData
-	res, err := u.imageStore.SaveImages(ctx, u.bucketName, images)
+	res, err := u.imageStore.SaveImages(ctx, images)
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +257,7 @@ func (u *CakeUseсase) CreateFilling(ctx context.Context, in dto.CreateFillingRe
 
 	fillingID := uuid.New()
 	// Добавляем изображение в хранилище
-	imageURL, err := u.imageStore.SaveImage(ctx, u.bucketName, ms.ImageID(fillingID.String()), in.ImageData)
+	imageURL, err := u.imageStore.SaveImage(ctx, ms.ImageID(fillingID.String()), in.ImageData)
 	if err != nil {
 		return nil, err
 	}
@@ -290,7 +288,7 @@ func (u *CakeUseсase) CreateCategory(ctx context.Context, in *dto.CreateCategor
 	}
 
 	categoryUUID := uuid.New()
-	imageURL, err := u.imageStore.SaveImage(ctx, u.bucketName, ms.ImageID(categoryUUID.String()), in.ImageData)
+	imageURL, err := u.imageStore.SaveImage(ctx, ms.ImageID(categoryUUID.String()), in.ImageData)
 	if err != nil {
 		return nil, err
 	}
@@ -452,6 +450,23 @@ func (u *CakeUseсase) CategoryPreviewCakes(ctx context.Context, categoryID uuid
 	return previewCakes, nil
 }
 
+func (u *CakeUseсase) Add3DModel(ctx context.Context, accessToken string, in *generated.Add3DModelReq) (string, error) {
+	// Получаем UseriD
+	userUUID, err := u.getUserUUID(accessToken)
+	if err != nil {
+		return "", err
+	}
+
+	// Сохраняем файл в минио
+	fileURL, err := u.imageStore.SaveFile(ctx, uuid.NewString(), in.ModelFileData, "model/vnd.usdz+zip")
+	if err != nil {
+		return "", err
+	}
+
+	// Запоминаем ссылку в БД
+	return fileURL, u.repo.Save3DModelURL(ctx, userUUID, in.CakeID, fileURL)
+}
+
 // trySendError Вспомогательная функция для безопасной отправки ошибки
 func trySendError(err error, errCh chan<- error, cancel context.CancelFunc) {
 	select {
@@ -460,4 +475,19 @@ func trySendError(err error, errCh chan<- error, cancel context.CancelFunc) {
 	default:
 		// Если ошибка уже есть - игнорируем (сохраняем первую)
 	}
+}
+
+func (u *CakeUseсase) getUserUUID(accessToken string) (uuid.UUID, error) {
+	// Достаём UserID
+	userIDStr, err := u.tokenator.GetUserIDFromToken(accessToken, false)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	return userID, nil
 }

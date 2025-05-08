@@ -3,6 +3,7 @@ package models
 import (
 	gen "2025_CakeLand_API/internal/pkg/notification/delivery/grpc/generated"
 	"github.com/google/uuid"
+	"github.com/guregu/null"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"time"
 )
@@ -24,6 +25,7 @@ type Notification struct {
 	CreatedAt        time.Time
 	SenderID         string
 	RecipientID      string
+	CakeID           null.String
 	NotificationKind NotificationKind
 }
 
@@ -64,12 +66,18 @@ func convertNotificationKindToProto(kind NotificationKind) gen.NotificationKind 
 func (n *Notification) ToProto() *gen.Notification {
 	createdAtTimestamp := timestamppb.New(n.CreatedAt)
 
-	return &gen.Notification{
-		Id:        n.ID.String(), // Преобразуем UUID в строку
+	protoNotif := &gen.Notification{
+		Id:        n.ID.String(),
 		Title:     n.Title,
 		Message:   n.Message,
 		CreatedAt: createdAtTimestamp,
 		SenderID:  n.SenderID,
 		Kind:      convertNotificationKindToProto(n.NotificationKind),
 	}
+
+	if n.CakeID.Valid {
+		protoNotif.CakeID = &n.CakeID.String
+	}
+
+	return protoNotif
 }

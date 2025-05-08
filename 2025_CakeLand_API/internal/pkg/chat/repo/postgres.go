@@ -23,7 +23,6 @@ const (
 	queryUserByID = `
 		SELECT id,
 			   fio,
-			   address,
 			   nickname,
 			   image_url,
 			   mail,
@@ -73,7 +72,6 @@ func (r *ChatRepository) UserByID(ctx context.Context, userID string) (*models.U
 	if err := r.db.QueryRowContext(ctx, queryUserByID, userID).Scan(
 		&user.ID,
 		&user.FIO,
-		&user.Address,
 		&user.Nickname,
 		&user.ImageURL,
 		&user.Mail,
