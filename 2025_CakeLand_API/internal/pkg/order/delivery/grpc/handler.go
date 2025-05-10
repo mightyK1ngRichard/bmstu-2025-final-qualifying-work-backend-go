@@ -58,7 +58,7 @@ func (h *OrderHandler) GetAllOrders(ctx context.Context, _ *emptypb.Empty) (*gen
 
 func (h *OrderHandler) UpdateOrderStatus(ctx context.Context, in *gen.UpdateOrderStateReq) (*emptypb.Empty, error) {
 	// Получаем токен из метаданных
-	_, convertedErr := h.getAccessToken(ctx)
+	accessToken, convertedErr := h.getAccessToken(ctx)
 	if convertedErr != nil {
 		return nil, convertedErr
 	}
@@ -67,17 +67,17 @@ func (h *OrderHandler) UpdateOrderStatus(ctx context.Context, in *gen.UpdateOrde
 	updatedStatus := models.InitFromProtoOrderStatus(in.UpdatedStatus)
 
 	// Бизнес логика
-	customerID, sellerID, err := h.usecase.UpdateOrderStatus(ctx, updatedStatus, in.OrderID)
+	customerID, sellerID, err := h.usecase.UpdateOrderStatus(ctx, accessToken, updatedStatus, in.OrderID)
 	if err != nil {
 		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to update order")
 	}
 
 	// Уведомление
 	go func() {
-		h.sendOrderStatusUpdatedNotification(ctx, customerID, in.OrderID, updatedStatus)
+		h.sendOrderStatusUpdatedNotification(ctx, customerID, in.OrderID, updatedStatus, false)
 	}()
 	go func() {
-		h.sendOrderStatusUpdatedNotification(ctx, sellerID, in.OrderID, updatedStatus)
+		h.sendOrderStatusUpdatedNotification(ctx, sellerID, in.OrderID, updatedStatus, true)
 	}()
 
 	// Ответ
@@ -149,13 +149,13 @@ func (h *OrderHandler) MakeOrder(ctx context.Context, in *gen.MakeOrderReq) (*ge
 	// Отправка уведомления
 	go func() {
 		// Отправка уведомления для продавца
-		h.sendOrderNotification(ctx, createdOrder.SellerID.String(), createdOrder.ID.String(),
+		h.sendOrderNotification(ctx, createdOrder.CustomerID.String(), createdOrder.ID.String(),
 			"Заказ оформлен", "Ваш заказ успешно сформирован и находится в обработке 🎂")
 	}()
 
 	go func() {
 		// Отправка уведомления для покупателя
-		h.sendOrderNotification(ctx, createdOrder.CustomerID.String(), createdOrder.ID.String(),
+		h.sendOrderNotification(ctx, createdOrder.SellerID.String(), createdOrder.ID.String(),
 			"Торт заказан", "У вас заказали торт! 🎂 Ваш заказ находится в обработке.")
 	}()
 
@@ -199,7 +199,7 @@ func (h *OrderHandler) sendOrderNotification(ctx context.Context, userID, orderI
 	}
 }
 
-func (h *OrderHandler) sendOrderStatusUpdatedNotification(ctx context.Context, userID, orderID string, status models.OrderStatus) {
+func (h *OrderHandler) sendOrderStatusUpdatedNotification(ctx context.Context, userID, orderID string, status models.OrderStatus, isSeller bool) {
 	// Извлекаем метаданные из родительского контекста
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
@@ -211,7 +211,7 @@ func (h *OrderHandler) sendOrderStatusUpdatedNotification(ctx context.Context, u
 	newCtx := metadata.NewOutgoingContext(context.Background(), md)
 
 	// Получаем заголовок и сообщение в зависимости от статуса заказа
-	title, message := getStatusNotificationText(status)
+	title, message := getStatusNotificationText(status, isSeller)
 	req := &generated.CreateNotificationRequest{
 		Title:       title,
 		Message:     message,
@@ -226,17 +226,34 @@ func (h *OrderHandler) sendOrderStatusUpdatedNotification(ctx context.Context, u
 	}
 }
 
-func getStatusNotificationText(status models.OrderStatus) (title, message string) {
-	switch status {
-	case models.OrderStatusPending:
-		return "Ожидание обработки", "Ваш заказ ожидает обработки 🍰"
-	case models.OrderStatusShipped:
-		return "Заказ в пути", "Ваш заказ уже в пути к вам 🚚"
-	case models.OrderStatusDelivered:
-		return "Доставка завершена", "Ваш заказ доставлен, приятного аппетита! 🎉"
-	case models.OrderStatusCancelled:
-		return "Заказ отменён", "Ваш заказ был отменён ❌"
-	default:
-		return "Обновление заказа", "Статус вашего заказа обновлён"
+func getStatusNotificationText(status models.OrderStatus, isSeller bool) (title, message string) {
+	if isSeller {
+		// Для продавца
+		switch status {
+		case models.OrderStatusPending:
+			return "Ожидание обработки", "У вас оформили заказ  🍰"
+		case models.OrderStatusShipped:
+			return "Заказ в пути", "Заказ уже в пути к покупателю 🚚"
+		case models.OrderStatusDelivered:
+			return "Доставка завершена", "Заказ доставлен к покупателю! 🎉"
+		case models.OrderStatusCancelled:
+			return "Заказ отменён", "Заказ был отменён ❌"
+		default:
+			return "Обновление заказа", "Статус заказа обновлён"
+		}
+	} else {
+		// Для покупателя
+		switch status {
+		case models.OrderStatusPending:
+			return "Ожидание обработки", "Ваш заказ ожидает обработки 🍰"
+		case models.OrderStatusShipped:
+			return "Заказ в пути", "Ваш заказ уже в пути к вам 🚚"
+		case models.OrderStatusDelivered:
+			return "Доставка завершена", "Ваш заказ доставлен, приятного аппетита! 🎉"
+		case models.OrderStatusCancelled:
+			return "Заказ отменён", "Ваш заказ был отменён ❌"
+		default:
+			return "Обновление заказа", "Статус вашего заказа обновлён"
+		}
 	}
 }

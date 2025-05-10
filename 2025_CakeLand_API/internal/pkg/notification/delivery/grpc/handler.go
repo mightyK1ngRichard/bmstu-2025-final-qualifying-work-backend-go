@@ -91,6 +91,22 @@ func (h *NotificationHandler) StreamNotifications(_ *emptypb.Empty, stream grpc.
 	}
 }
 
+func (h *NotificationHandler) DeleteNotification(ctx context.Context, in *gen.DeleteNotificationReq) (*emptypb.Empty, error) {
+	// Достаём userID из метаданных
+	userID, err := h.extractUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Удаляем из БД
+	if err = h.repo.DeleteNotificationByID(ctx, in.NotificationID, userID); err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to delete notification")
+	}
+
+	// Ответ
+	return &emptypb.Empty{}, nil
+}
+
 func (h *NotificationHandler) GetNotifications(ctx context.Context, _ *emptypb.Empty) (*gen.GetNotificationsResponse, error) {
 	// Достаём userID из метаданных
 	userID, err := h.extractUserIDFromContext(ctx)
@@ -158,17 +174,6 @@ func (h *NotificationHandler) CreateNotification(ctx context.Context, in *gen.Cr
 				// буфер переполнен — можно залогировать или пропустить
 			}
 		}
-
-		// Отправить отправителю (если отличается от получателя)
-		//if notification.SenderID != notification.RecipientID {
-		//	if stream, ok := h.streams[notification.SenderID]; ok {
-		//		select {
-		//		case stream.ch <- response:
-		//		default:
-		//			// буфер переполнен
-		//		}
-		//	}
-		//}
 	}()
 
 	return response, nil

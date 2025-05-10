@@ -25,11 +25,17 @@ message GetNotificationsResponse {
   repeated Notification notifications = 1;
 }
 
+/* ################# GetNotifications ################# */
+message DeleteNotificationReq {
+  string notificationID = 1;
+}
+
 /* ################# NotificationService ################# */
 service NotificationService {
   rpc CreateNotification(CreateNotificationRequest) returns (NotificationResponse);
   rpc GetNotifications(google.protobuf.Empty) returns (GetNotificationsResponse);
   rpc StreamNotifications(google.protobuf.Empty) returns (stream NotificationResponse);
+  rpc DeleteNotification(DeleteNotificationReq) returns (google.protobuf.Empty);
 }
 
 // Тип уведомления

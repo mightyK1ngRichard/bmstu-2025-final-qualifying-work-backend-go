@@ -97,7 +97,16 @@ func (u *OrderUsecase) GetAllOrders(ctx context.Context) ([]models.Order, error)
 	return orders, nil
 }
 
-func (u *OrderUsecase) UpdateOrderStatus(ctx context.Context, status models.OrderStatus, orderID string) (string, string, error) {
+func (u *OrderUsecase) UpdateOrderStatus(ctx context.Context, accessToken string, status models.OrderStatus, orderID string) (string, string, error) {
+	// Проверка истёк ли токен
+	expired, err := u.tokenator.IsTokenExpired(accessToken, false)
+	if err != nil {
+		return "", "", err
+	} else if expired {
+		return "", "", errs.ErrTokenIsExpired
+	}
+
+	// Запись в БД
 	return u.repo.UpdateOrderStatus(ctx, status, orderID)
 }
 

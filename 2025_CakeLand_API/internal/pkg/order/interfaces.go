@@ -9,7 +9,7 @@ import (
 type IOrderUsecase interface {
 	MakeOrder(context.Context, string, models.OrderDB) (*models.OrderDB, error)
 	Orders(context.Context, string) ([]models.Order, error)
-	UpdateOrderStatus(context.Context, models.OrderStatus, string) (string, string, error)
+	UpdateOrderStatus(context.Context, string, models.OrderStatus, string) (string, string, error)
 	GetAllOrders(context.Context) ([]models.Order, error)
 	OrderByID(context.Context, string, string) (*models.Order, error)
 }

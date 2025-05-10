@@ -28,6 +28,7 @@ const (
 		WHERE recipient_id = $1
 		ORDER BY date_creation DESC;
 	`
+	queryDeleteNotificationByID = `DELETE FROM notification WHERE id = $1 AND recipient_id = $2`
 )
 
 type NotificationRepository struct {
@@ -38,6 +39,26 @@ func NewNotificationRepository(db *sql.DB) *NotificationRepository {
 	return &NotificationRepository{
 		db: db,
 	}
+}
+
+func (r *NotificationRepository) DeleteNotificationByID(ctx context.Context, notificationID string, recipientID string) error {
+	const methodName = "[NotificationRepository.DeleteNotificationByID]"
+
+	result, err := r.db.ExecContext(ctx, queryDeleteNotificationByID, notificationID, recipientID)
+	if err != nil {
+		return errs.WrapDBError(methodName, err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return errs.WrapDBError(methodName, err)
+	}
+
+	if rowsAffected == 0 {
+		return errs.ErrNotFound
+	}
+
+	return nil
 }
 
 func (r *NotificationRepository) CreateNotification(ctx context.Context, in models.Notification) error {

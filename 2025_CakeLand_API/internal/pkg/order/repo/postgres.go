@@ -150,8 +150,8 @@ func (r *OrderRepo) GetAllOrders(ctx context.Context) ([]models.OrderDB, error) 
 			&o.DeliveryDate,
 			&o.CustomerID,
 			&o.SellerID,
-			&o.PaymentMethod,
 			&o.CakeID,
+			&o.PaymentMethod,
 			&o.Status,
 		); err != nil {
 			return nil, errs.WrapDBError(methodName, err)
