@@ -25,7 +25,7 @@ type Notification struct {
 	CreatedAt        time.Time
 	SenderID         string
 	RecipientID      string
-	CakeID           null.String
+	OrderID          null.String
 	NotificationKind NotificationKind
 }
 
@@ -75,8 +75,8 @@ func (n *Notification) ToProto() *gen.Notification {
 		Kind:      convertNotificationKindToProto(n.NotificationKind),
 	}
 
-	if n.CakeID.Valid {
-		protoNotif.CakeID = &n.CakeID.String
+	if n.OrderID.Valid {
+		protoNotif.OrderID = &n.OrderID.String
 	}
 
 	return protoNotif

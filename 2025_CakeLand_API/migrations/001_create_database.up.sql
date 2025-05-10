@@ -73,12 +73,12 @@ CREATE TABLE IF NOT EXISTS notification
     date_creation     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     sender_id         UUID              NOT NULL, -- Отправитель
     recipient_id      UUID              NOT NULL, -- Получатель
-    cake_id           UUID,
+    order_id           UUID,
     notification_kind notification_kind NOT NULL,
 
     FOREIGN KEY (sender_id) REFERENCES "user" (id),
     FOREIGN KEY (recipient_id) REFERENCES "user" (id),
-    FOREIGN KEY (cake_id) REFERENCES "cake" (id)
+    FOREIGN KEY (order_id) REFERENCES "order" (id)
 );
 
 -- Пол категории

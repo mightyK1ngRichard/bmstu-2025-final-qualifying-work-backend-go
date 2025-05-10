@@ -97,8 +97,80 @@ func (u *OrderUsecase) GetAllOrders(ctx context.Context) ([]models.Order, error)
 	return orders, nil
 }
 
-func (u *OrderUsecase) UpdateOrderStatus(ctx context.Context, status models.OrderStatus, orderID string) error {
+func (u *OrderUsecase) UpdateOrderStatus(ctx context.Context, status models.OrderStatus, orderID string) (string, string, error) {
 	return u.repo.UpdateOrderStatus(ctx, status, orderID)
+}
+
+func (u *OrderUsecase) OrderByID(ctx context.Context, accessToken, orderID string) (*models.Order, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	userID, err := u.getUserUUID(accessToken)
+	if err != nil {
+		return nil, err
+	}
+
+	// Получаем заказ из БД
+	dbOrder, err := u.repo.OrderByID(ctx, orderID)
+	if err != nil {
+		return nil, err
+	}
+
+	if dbOrder.SellerID != userID && dbOrder.CustomerID != userID {
+		return nil, errs.ErrForbidden
+	}
+
+	orderModel := models.MapOrderFromDB(*dbOrder)
+
+	wg := sync.WaitGroup{}
+	mu := sync.Mutex{}
+	errChan := make(chan error, 1)
+
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		if ctx.Err() != nil {
+			return
+		}
+
+		address, err2 := u.repo.AddressByID(ctx, dbOrder.DeliveryAddressID)
+		if err2 != nil {
+			trySendError(err2, errChan, cancel)
+			return
+		}
+
+		mu.Lock()
+		orderModel.DeliveryAddress = *address
+		mu.Unlock()
+	}()
+
+	go func() {
+		defer wg.Done()
+		if ctx.Err() != nil {
+			return
+		}
+
+		filling, err2 := u.repo.FillingByID(ctx, dbOrder.FillingID)
+		if err2 != nil {
+			trySendError(err2, errChan, cancel)
+			return
+		}
+		mu.Lock()
+		orderModel.Filling = *filling
+		mu.Unlock()
+	}()
+
+	go func() {
+		wg.Wait()
+		close(errChan)
+	}()
+
+	if err = <-errChan; err != nil {
+		return nil, err
+	}
+
+	return &orderModel, nil
 }
 
 func (u *OrderUsecase) Orders(ctx context.Context, accessToken string) ([]models.Order, error) {

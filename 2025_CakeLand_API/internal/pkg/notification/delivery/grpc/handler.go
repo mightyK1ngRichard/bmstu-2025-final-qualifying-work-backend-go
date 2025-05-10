@@ -130,12 +130,12 @@ func (h *NotificationHandler) CreateNotification(ctx context.Context, in *gen.Cr
 		RecipientID:      in.RecipientID,
 		SenderID:         userID,
 		NotificationKind: models.ConvertProtoNotificationKind(in.Kind),
-		CakeID: func(s *string) null.String {
+		OrderID: func(s *string) null.String {
 			if s != nil {
 				return null.StringFrom(*s)
 			}
 			return null.String{}
-		}(in.CakeID),
+		}(in.OrderID),
 	}
 	if err = h.repo.CreateNotification(ctx, notification); err != nil {
 		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to create notification")
@@ -160,15 +160,15 @@ func (h *NotificationHandler) CreateNotification(ctx context.Context, in *gen.Cr
 		}
 
 		// Отправить отправителю (если отличается от получателя)
-		if notification.SenderID != notification.RecipientID {
-			if stream, ok := h.streams[notification.SenderID]; ok {
-				select {
-				case stream.ch <- response:
-				default:
-					// буфер переполнен
-				}
-			}
-		}
+		//if notification.SenderID != notification.RecipientID {
+		//	if stream, ok := h.streams[notification.SenderID]; ok {
+		//		select {
+		//		case stream.ch <- response:
+		//		default:
+		//			// буфер переполнен
+		//		}
+		//	}
+		//}
 	}()
 
 	return response, nil

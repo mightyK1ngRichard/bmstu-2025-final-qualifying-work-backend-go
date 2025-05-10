@@ -18,14 +18,14 @@ const (
 			sender_id,
 			recipient_id,
 			notification_kind,
-		    cake_id
+		    order_id
 		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
 	`
 	queryGetUserNotifications = `
-		SELECT id, title, content, date_creation, sender_id, recipient_id, notification_kind, cake_id
+		SELECT id, title, content, date_creation, sender_id, recipient_id, notification_kind, order_id
 		FROM notification
-		WHERE sender_id = $1 OR recipient_id = $1
+		WHERE recipient_id = $1
 		ORDER BY date_creation DESC;
 	`
 )
@@ -51,7 +51,7 @@ func (r *NotificationRepository) CreateNotification(ctx context.Context, in mode
 		in.SenderID,
 		in.RecipientID,
 		string(in.NotificationKind),
-		in.CakeID,
+		in.OrderID,
 	); err != nil {
 		return errors.Wrap(err, methodName)
 	}
@@ -79,7 +79,7 @@ func (r *NotificationRepository) GetNotifications(ctx context.Context, userID st
 			&notification.SenderID,
 			&notification.RecipientID,
 			&notification.NotificationKind,
-			&notification.CakeID,
+			&notification.OrderID,
 		); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return nil, errs.WrapDBError(methodName, errs.ErrNotFound)

@@ -32,6 +32,7 @@ var (
 	ErrUnknownImageKind       = errors.New("unknown image kind")
 	ErrIncorrectUsername      = errors.New("incorrect username")
 	ErrIncorrectFIO           = errors.New("incorrect fio")
+	ErrForbidden              = errors.New("user not have access")
 )
 
 func ConvertToGrpcError(ctx context.Context, log *slog.Logger, err error, description string) error {

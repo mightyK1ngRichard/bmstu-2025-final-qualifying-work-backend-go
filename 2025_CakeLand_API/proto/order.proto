@@ -41,12 +41,22 @@ message GetAllOrdersRes {
   repeated Order orders = 1;
 }
 
+/* ################# GetAllOrders ################# */
+message OrderByIDReq {
+  string orderID = 1;
+}
+
+message OrderByIDRes {
+  Order order = 1;
+}
+
 /* ################# OrderService ################# */
 service OrderService {
   rpc MakeOrder(MakeOrderReq) returns (MakeOrderRes);
   rpc Orders(google.protobuf.Empty) returns (OrdersRes);
   rpc UpdateOrderStatus(UpdateOrderStateReq) returns (google.protobuf.Empty);
   rpc GetAllOrders(google.protobuf.Empty) returns (GetAllOrdersRes);
+  rpc OrderByID(OrderByIDReq) returns (OrderByIDRes);
 }
 
 message Order {
