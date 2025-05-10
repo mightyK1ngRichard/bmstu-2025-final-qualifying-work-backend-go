@@ -22,6 +22,7 @@ type ICakeUsecase interface {
 	CategoryIDsByGenderName(context.Context, models.CategoryGender) ([]models.Category, error)
 	CategoryPreviewCakes(context.Context, uuid.UUID) ([]*dto.PreviewCake, error)
 	Add3DModel(context.Context, string, *generated.Add3DModelReq) (string, error)
+	SetCakeVisibility(context.Context, string, uuid.UUID, bool) error
 }
 
 type ICakeRepository interface {
@@ -38,6 +39,7 @@ type ICakeRepository interface {
 	GetColors(context.Context) ([]string, error)
 	AddCakeColor(context.Context, models.CakeColor) error
 	Save3DModelURL(context.Context, uuid.UUID, string, string) error
+	UpdateCakeVisibility(context.Context, uuid.UUID, string, bool) error
 
 	GetCakeColorsByCakeID(context.Context, uuid.UUID) ([]models.CakeColor, error)
 	GetUserByID(context.Context, uuid.UUID) (dto.Owner, error)

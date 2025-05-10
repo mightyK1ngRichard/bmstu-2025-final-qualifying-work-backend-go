@@ -10,7 +10,22 @@ import (
 )
 
 const (
-	queryCreateOrder = `
+	queryGetAllOrders = `
+		SELECT id,
+			   total_price,
+			   delivery_address_id,
+			   mass,
+			   filling_id,
+			   delivery_date,
+			   customer_id,
+			   seller_id,
+			   cake_id,
+			   payment_method,
+			   status
+		FROM "order"
+	`
+	queryUpdateOrderStatus = `UPDATE "order" SET status = $1 WHERE id = $2;`
+	queryCreateOrder       = `
 		INSERT INTO "order" (id,
                      total_price,
                      delivery_address_id,
@@ -68,6 +83,53 @@ func NewOrderRepo(db *sql.DB) *OrderRepo {
 	return &OrderRepo{
 		db: db,
 	}
+}
+
+func (r *OrderRepo) GetAllOrders(ctx context.Context) ([]models.OrderDB, error) {
+	const methodName = "[OrderRepo.GetAllOrders]"
+
+	rows, err := r.db.QueryContext(ctx, queryUserOrders)
+	if err != nil {
+		return nil, errs.WrapDBError(methodName, err)
+	}
+	defer rows.Close()
+
+	var orders []models.OrderDB
+	for rows.Next() {
+		var o models.OrderDB
+		if err = rows.Scan(
+			&o.ID,
+			&o.TotalPrice,
+			&o.DeliveryAddressID,
+			&o.Mass,
+			&o.FillingID,
+			&o.DeliveryDate,
+			&o.CustomerID,
+			&o.SellerID,
+			&o.PaymentMethod,
+			&o.CakeID,
+			&o.Status,
+		); err != nil {
+			return nil, errs.WrapDBError(methodName, err)
+		}
+		orders = append(orders, o)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, errs.WrapDBError(methodName, err)
+	}
+
+	return orders, nil
+}
+
+func (r *OrderRepo) UpdateOrderStatus(ctx context.Context, status models.OrderStatus, orderID string) error {
+	const methodName = "[OrderRepo.UpdateOrderStatus]"
+
+	if _, err := r.db.ExecContext(ctx, queryUpdateOrderStatus, status, orderID); err != nil {
+		return errs.WrapDBError(methodName, err)
+	}
+
+	return nil
 }
 
 func (r *OrderRepo) FillingByID(ctx context.Context, fillingID uuid.UUID) (*models.Filling, error) {

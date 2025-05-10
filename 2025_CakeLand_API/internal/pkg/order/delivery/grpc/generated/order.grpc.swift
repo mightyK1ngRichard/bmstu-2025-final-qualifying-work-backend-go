@@ -27,6 +27,16 @@ internal protocol Order_OrderServiceClientProtocol: GRPCClient {
     _ request: SwiftProtobuf.Google_Protobuf_Empty,
     callOptions: CallOptions?
   ) -> UnaryCall<SwiftProtobuf.Google_Protobuf_Empty, Order_OrdersRes>
+
+  func updateOrderStatus(
+    _ request: Order_UpdateOrderStateReq,
+    callOptions: CallOptions?
+  ) -> UnaryCall<Order_UpdateOrderStateReq, SwiftProtobuf.Google_Protobuf_Empty>
+
+  func getAllOrders(
+    _ request: SwiftProtobuf.Google_Protobuf_Empty,
+    callOptions: CallOptions?
+  ) -> UnaryCall<SwiftProtobuf.Google_Protobuf_Empty, Order_GetAllOrdersRes>
 }
 
 extension Order_OrderServiceClientProtocol {
@@ -67,6 +77,42 @@ extension Order_OrderServiceClientProtocol {
       request: request,
       callOptions: callOptions ?? self.defaultCallOptions,
       interceptors: self.interceptors?.makeOrdersInterceptors() ?? []
+    )
+  }
+
+  /// Unary call to UpdateOrderStatus
+  ///
+  /// - Parameters:
+  ///   - request: Request to send to UpdateOrderStatus.
+  ///   - callOptions: Call options.
+  /// - Returns: A `UnaryCall` with futures for the metadata, status and response.
+  internal func updateOrderStatus(
+    _ request: Order_UpdateOrderStateReq,
+    callOptions: CallOptions? = nil
+  ) -> UnaryCall<Order_UpdateOrderStateReq, SwiftProtobuf.Google_Protobuf_Empty> {
+    return self.makeUnaryCall(
+      path: Order_OrderServiceClientMetadata.Methods.updateOrderStatus.path,
+      request: request,
+      callOptions: callOptions ?? self.defaultCallOptions,
+      interceptors: self.interceptors?.makeUpdateOrderStatusInterceptors() ?? []
+    )
+  }
+
+  /// Unary call to GetAllOrders
+  ///
+  /// - Parameters:
+  ///   - request: Request to send to GetAllOrders.
+  ///   - callOptions: Call options.
+  /// - Returns: A `UnaryCall` with futures for the metadata, status and response.
+  internal func getAllOrders(
+    _ request: SwiftProtobuf.Google_Protobuf_Empty,
+    callOptions: CallOptions? = nil
+  ) -> UnaryCall<SwiftProtobuf.Google_Protobuf_Empty, Order_GetAllOrdersRes> {
+    return self.makeUnaryCall(
+      path: Order_OrderServiceClientMetadata.Methods.getAllOrders.path,
+      request: request,
+      callOptions: callOptions ?? self.defaultCallOptions,
+      interceptors: self.interceptors?.makeGetAllOrdersInterceptors() ?? []
     )
   }
 }
@@ -143,6 +189,16 @@ internal protocol Order_OrderServiceAsyncClientProtocol: GRPCClient {
     _ request: SwiftProtobuf.Google_Protobuf_Empty,
     callOptions: CallOptions?
   ) -> GRPCAsyncUnaryCall<SwiftProtobuf.Google_Protobuf_Empty, Order_OrdersRes>
+
+  func makeUpdateOrderStatusCall(
+    _ request: Order_UpdateOrderStateReq,
+    callOptions: CallOptions?
+  ) -> GRPCAsyncUnaryCall<Order_UpdateOrderStateReq, SwiftProtobuf.Google_Protobuf_Empty>
+
+  func makeGetAllOrdersCall(
+    _ request: SwiftProtobuf.Google_Protobuf_Empty,
+    callOptions: CallOptions?
+  ) -> GRPCAsyncUnaryCall<SwiftProtobuf.Google_Protobuf_Empty, Order_GetAllOrdersRes>
 }
 
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
@@ -178,6 +234,30 @@ extension Order_OrderServiceAsyncClientProtocol {
       interceptors: self.interceptors?.makeOrdersInterceptors() ?? []
     )
   }
+
+  internal func makeUpdateOrderStatusCall(
+    _ request: Order_UpdateOrderStateReq,
+    callOptions: CallOptions? = nil
+  ) -> GRPCAsyncUnaryCall<Order_UpdateOrderStateReq, SwiftProtobuf.Google_Protobuf_Empty> {
+    return self.makeAsyncUnaryCall(
+      path: Order_OrderServiceClientMetadata.Methods.updateOrderStatus.path,
+      request: request,
+      callOptions: callOptions ?? self.defaultCallOptions,
+      interceptors: self.interceptors?.makeUpdateOrderStatusInterceptors() ?? []
+    )
+  }
+
+  internal func makeGetAllOrdersCall(
+    _ request: SwiftProtobuf.Google_Protobuf_Empty,
+    callOptions: CallOptions? = nil
+  ) -> GRPCAsyncUnaryCall<SwiftProtobuf.Google_Protobuf_Empty, Order_GetAllOrdersRes> {
+    return self.makeAsyncUnaryCall(
+      path: Order_OrderServiceClientMetadata.Methods.getAllOrders.path,
+      request: request,
+      callOptions: callOptions ?? self.defaultCallOptions,
+      interceptors: self.interceptors?.makeGetAllOrdersInterceptors() ?? []
+    )
+  }
 }
 
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
@@ -203,6 +283,30 @@ extension Order_OrderServiceAsyncClientProtocol {
       request: request,
       callOptions: callOptions ?? self.defaultCallOptions,
       interceptors: self.interceptors?.makeOrdersInterceptors() ?? []
+    )
+  }
+
+  internal func updateOrderStatus(
+    _ request: Order_UpdateOrderStateReq,
+    callOptions: CallOptions? = nil
+  ) async throws -> SwiftProtobuf.Google_Protobuf_Empty {
+    return try await self.performAsyncUnaryCall(
+      path: Order_OrderServiceClientMetadata.Methods.updateOrderStatus.path,
+      request: request,
+      callOptions: callOptions ?? self.defaultCallOptions,
+      interceptors: self.interceptors?.makeUpdateOrderStatusInterceptors() ?? []
+    )
+  }
+
+  internal func getAllOrders(
+    _ request: SwiftProtobuf.Google_Protobuf_Empty,
+    callOptions: CallOptions? = nil
+  ) async throws -> Order_GetAllOrdersRes {
+    return try await self.performAsyncUnaryCall(
+      path: Order_OrderServiceClientMetadata.Methods.getAllOrders.path,
+      request: request,
+      callOptions: callOptions ?? self.defaultCallOptions,
+      interceptors: self.interceptors?.makeGetAllOrdersInterceptors() ?? []
     )
   }
 }
@@ -231,6 +335,12 @@ internal protocol Order_OrderServiceClientInterceptorFactoryProtocol: Sendable {
 
   /// - Returns: Interceptors to use when invoking 'orders'.
   func makeOrdersInterceptors() -> [ClientInterceptor<SwiftProtobuf.Google_Protobuf_Empty, Order_OrdersRes>]
+
+  /// - Returns: Interceptors to use when invoking 'updateOrderStatus'.
+  func makeUpdateOrderStatusInterceptors() -> [ClientInterceptor<Order_UpdateOrderStateReq, SwiftProtobuf.Google_Protobuf_Empty>]
+
+  /// - Returns: Interceptors to use when invoking 'getAllOrders'.
+  func makeGetAllOrdersInterceptors() -> [ClientInterceptor<SwiftProtobuf.Google_Protobuf_Empty, Order_GetAllOrdersRes>]
 }
 
 internal enum Order_OrderServiceClientMetadata {
@@ -240,6 +350,8 @@ internal enum Order_OrderServiceClientMetadata {
     methods: [
       Order_OrderServiceClientMetadata.Methods.makeOrder,
       Order_OrderServiceClientMetadata.Methods.orders,
+      Order_OrderServiceClientMetadata.Methods.updateOrderStatus,
+      Order_OrderServiceClientMetadata.Methods.getAllOrders,
     ]
   )
 
@@ -255,6 +367,18 @@ internal enum Order_OrderServiceClientMetadata {
       path: "/order.OrderService/Orders",
       type: GRPCCallType.unary
     )
+
+    internal static let updateOrderStatus = GRPCMethodDescriptor(
+      name: "UpdateOrderStatus",
+      path: "/order.OrderService/UpdateOrderStatus",
+      type: GRPCCallType.unary
+    )
+
+    internal static let getAllOrders = GRPCMethodDescriptor(
+      name: "GetAllOrders",
+      path: "/order.OrderService/GetAllOrders",
+      type: GRPCCallType.unary
+    )
   }
 }
 
@@ -267,6 +391,10 @@ internal protocol Order_OrderServiceProvider: CallHandlerProvider {
   func makeOrder(request: Order_MakeOrderReq, context: StatusOnlyCallContext) -> EventLoopFuture<Order_MakeOrderRes>
 
   func orders(request: SwiftProtobuf.Google_Protobuf_Empty, context: StatusOnlyCallContext) -> EventLoopFuture<Order_OrdersRes>
+
+  func updateOrderStatus(request: Order_UpdateOrderStateReq, context: StatusOnlyCallContext) -> EventLoopFuture<SwiftProtobuf.Google_Protobuf_Empty>
+
+  func getAllOrders(request: SwiftProtobuf.Google_Protobuf_Empty, context: StatusOnlyCallContext) -> EventLoopFuture<Order_GetAllOrdersRes>
 }
 
 extension Order_OrderServiceProvider {
@@ -299,6 +427,24 @@ extension Order_OrderServiceProvider {
         userFunction: self.orders(request:context:)
       )
 
+    case "UpdateOrderStatus":
+      return UnaryServerHandler(
+        context: context,
+        requestDeserializer: ProtobufDeserializer<Order_UpdateOrderStateReq>(),
+        responseSerializer: ProtobufSerializer<SwiftProtobuf.Google_Protobuf_Empty>(),
+        interceptors: self.interceptors?.makeUpdateOrderStatusInterceptors() ?? [],
+        userFunction: self.updateOrderStatus(request:context:)
+      )
+
+    case "GetAllOrders":
+      return UnaryServerHandler(
+        context: context,
+        requestDeserializer: ProtobufDeserializer<SwiftProtobuf.Google_Protobuf_Empty>(),
+        responseSerializer: ProtobufSerializer<Order_GetAllOrdersRes>(),
+        interceptors: self.interceptors?.makeGetAllOrdersInterceptors() ?? [],
+        userFunction: self.getAllOrders(request:context:)
+      )
+
     default:
       return nil
     }
@@ -322,6 +468,16 @@ internal protocol Order_OrderServiceAsyncProvider: CallHandlerProvider, Sendable
     request: SwiftProtobuf.Google_Protobuf_Empty,
     context: GRPCAsyncServerCallContext
   ) async throws -> Order_OrdersRes
+
+  func updateOrderStatus(
+    request: Order_UpdateOrderStateReq,
+    context: GRPCAsyncServerCallContext
+  ) async throws -> SwiftProtobuf.Google_Protobuf_Empty
+
+  func getAllOrders(
+    request: SwiftProtobuf.Google_Protobuf_Empty,
+    context: GRPCAsyncServerCallContext
+  ) async throws -> Order_GetAllOrdersRes
 }
 
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
@@ -361,6 +517,24 @@ extension Order_OrderServiceAsyncProvider {
         wrapping: { try await self.orders(request: $0, context: $1) }
       )
 
+    case "UpdateOrderStatus":
+      return GRPCAsyncServerHandler(
+        context: context,
+        requestDeserializer: ProtobufDeserializer<Order_UpdateOrderStateReq>(),
+        responseSerializer: ProtobufSerializer<SwiftProtobuf.Google_Protobuf_Empty>(),
+        interceptors: self.interceptors?.makeUpdateOrderStatusInterceptors() ?? [],
+        wrapping: { try await self.updateOrderStatus(request: $0, context: $1) }
+      )
+
+    case "GetAllOrders":
+      return GRPCAsyncServerHandler(
+        context: context,
+        requestDeserializer: ProtobufDeserializer<SwiftProtobuf.Google_Protobuf_Empty>(),
+        responseSerializer: ProtobufSerializer<Order_GetAllOrdersRes>(),
+        interceptors: self.interceptors?.makeGetAllOrdersInterceptors() ?? [],
+        wrapping: { try await self.getAllOrders(request: $0, context: $1) }
+      )
+
     default:
       return nil
     }
@@ -376,6 +550,14 @@ internal protocol Order_OrderServiceServerInterceptorFactoryProtocol: Sendable {
   /// - Returns: Interceptors to use when handling 'orders'.
   ///   Defaults to calling `self.makeInterceptors()`.
   func makeOrdersInterceptors() -> [ServerInterceptor<SwiftProtobuf.Google_Protobuf_Empty, Order_OrdersRes>]
+
+  /// - Returns: Interceptors to use when handling 'updateOrderStatus'.
+  ///   Defaults to calling `self.makeInterceptors()`.
+  func makeUpdateOrderStatusInterceptors() -> [ServerInterceptor<Order_UpdateOrderStateReq, SwiftProtobuf.Google_Protobuf_Empty>]
+
+  /// - Returns: Interceptors to use when handling 'getAllOrders'.
+  ///   Defaults to calling `self.makeInterceptors()`.
+  func makeGetAllOrdersInterceptors() -> [ServerInterceptor<SwiftProtobuf.Google_Protobuf_Empty, Order_GetAllOrdersRes>]
 }
 
 internal enum Order_OrderServiceServerMetadata {
@@ -385,6 +567,8 @@ internal enum Order_OrderServiceServerMetadata {
     methods: [
       Order_OrderServiceServerMetadata.Methods.makeOrder,
       Order_OrderServiceServerMetadata.Methods.orders,
+      Order_OrderServiceServerMetadata.Methods.updateOrderStatus,
+      Order_OrderServiceServerMetadata.Methods.getAllOrders,
     ]
   )
 
@@ -398,6 +582,18 @@ internal enum Order_OrderServiceServerMetadata {
     internal static let orders = GRPCMethodDescriptor(
       name: "Orders",
       path: "/order.OrderService/Orders",
+      type: GRPCCallType.unary
+    )
+
+    internal static let updateOrderStatus = GRPCMethodDescriptor(
+      name: "UpdateOrderStatus",
+      path: "/order.OrderService/UpdateOrderStatus",
+      type: GRPCCallType.unary
+    )
+
+    internal static let getAllOrders = GRPCMethodDescriptor(
+      name: "GetAllOrders",
+      path: "/order.OrderService/GetAllOrders",
       type: GRPCCallType.unary
     )
   }

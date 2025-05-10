@@ -114,6 +114,12 @@ message Add3DModelRes {
   string model3DURL = 1;
 }
 
+/* ############### Add3DModel ############### */
+message SetCakeVisibilityReq {
+  string cakeID = 1;
+  bool isOpenForSale = 2;
+}
+
 /* ############### CakeService ############### */
 service CakeService {
   rpc CreateCake (CreateCakeRequest) returns (CreateCakeResponse);
@@ -126,6 +132,7 @@ service CakeService {
   rpc AddCakeColors(AddCakeColorsReq) returns (google.protobuf.Empty);
   rpc GetColors(google.protobuf.Empty) returns (CakeColorsRes);
   rpc Add3DModel(Add3DModelReq) returns (Add3DModelRes);
+  rpc SetCakeVisibility(SetCakeVisibilityReq) returns (google.protobuf.Empty);
 
   rpc CreateCategory (CreateCategoryRequest) returns (CreateCategoryResponse);
   rpc Categories (google.protobuf.Empty) returns (CategoriesResponse);

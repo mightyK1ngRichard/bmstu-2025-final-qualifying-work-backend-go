@@ -31,6 +31,17 @@ func NewCakeUsecase(
 	}
 }
 
+func (u *CakeUseсase) SetCakeVisibility(ctx context.Context, accessToken string, cakeID uuid.UUID, visible bool) error {
+	// Достаём userID из токена если он не протух
+	userID, err := u.tokenator.GetUserIDFromToken(accessToken, false)
+	if err != nil {
+		return err
+	}
+
+	// Обновляем запись в БД
+	return u.repo.UpdateCakeVisibility(ctx, cakeID, userID, visible)
+}
+
 func (u *CakeUseсase) AddCakeColor(ctx context.Context, cakeID uuid.UUID, hexStrings []string) error {
 	wg := &sync.WaitGroup{}
 	for _, hexString := range hexStrings {

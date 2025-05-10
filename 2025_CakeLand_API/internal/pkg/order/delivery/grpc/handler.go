@@ -38,6 +38,37 @@ func NewOrderHandler(
 	}
 }
 
+func (h *OrderHandler) GetAllOrders(ctx context.Context, _ *emptypb.Empty) (*gen.GetAllOrdersRes, error) {
+	// Бизнес логика
+	orders, err := h.usecase.GetAllOrders(ctx)
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to get all orders")
+	}
+
+	// Ответ
+	res := make([]*gen.Order, len(orders))
+	for i, orderItem := range orders {
+		res[i] = orderItem.ToProto()
+	}
+
+	return &gen.GetAllOrdersRes{
+		Orders: res,
+	}, nil
+}
+
+func (h *OrderHandler) UpdateOrderStatus(ctx context.Context, in *gen.UpdateOrderStateReq) (*emptypb.Empty, error) {
+	// Получаем статус
+	updatedStatus := models.InitFromProtoOrderStatus(in.UpdatedStatus)
+
+	// Бизнес логика
+	if err := h.usecase.UpdateOrderStatus(ctx, updatedStatus, in.OrderID); err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to update order")
+	}
+
+	// Ответ
+	return &emptypb.Empty{}, nil
+}
+
 func (h *OrderHandler) Orders(ctx context.Context, _ *emptypb.Empty) (*gen.OrdersRes, error) {
 	// Получаем токен из метаданных
 	accessToken, convertedErr := h.getAccessToken(ctx)

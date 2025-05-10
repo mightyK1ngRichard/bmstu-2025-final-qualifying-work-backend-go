@@ -25,6 +25,21 @@ func (s OrderStatus) String() string {
 	return string(s)
 }
 
+func InitFromProtoOrderStatus(status gen.OrderStatus) OrderStatus {
+	switch status {
+	case gen.OrderStatus_PENDING:
+		return OrderStatusPending
+	case gen.OrderStatus_SHIPPED:
+		return OrderStatusShipped
+	case gen.OrderStatus_DELIVERED:
+		return OrderStatusDelivered
+	case gen.OrderStatus_CANCELLED:
+		return OrderStatusCancelled
+	default:
+		return OrderStatusPending
+	}
+}
+
 type Order struct {
 	ID              uuid.UUID
 	TotalPrice      float64

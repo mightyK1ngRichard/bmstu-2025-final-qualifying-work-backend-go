@@ -26,6 +26,81 @@ func NewOrderUsecase(
 	}
 }
 
+func (u *OrderUsecase) GetAllOrders(ctx context.Context) ([]models.Order, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// Получаем все заказы
+	dbOrders, err := u.repo.GetAllOrders(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Получаем начинку и адрес доставки
+	wg := sync.WaitGroup{}
+	mu := sync.Mutex{}
+	errChan := make(chan error, 1)
+	orders := make([]models.Order, len(dbOrders))
+
+	for i, dbOrder := range dbOrders {
+		orders[i] = models.MapOrderFromDB(dbOrder)
+		iCopy := i
+		dbOrderCopy := dbOrder
+		wg.Add(2)
+
+		// Получаем данные по адресу
+		go func() {
+			defer wg.Done()
+			if ctx.Err() != nil {
+				return
+			}
+
+			address, err2 := u.repo.AddressByID(ctx, dbOrderCopy.DeliveryAddressID)
+			if err2 != nil {
+				trySendError(err2, errChan, cancel)
+				return
+			}
+
+			mu.Lock()
+			orders[iCopy].DeliveryAddress = *address
+			mu.Unlock()
+		}()
+
+		// Получаем данные по начинке
+		go func() {
+			defer wg.Done()
+			if ctx.Err() != nil {
+				return
+			}
+
+			filling, err2 := u.repo.FillingByID(ctx, dbOrderCopy.FillingID)
+			if err2 != nil {
+				trySendError(err2, errChan, cancel)
+				return
+			}
+
+			mu.Lock()
+			orders[iCopy].Filling = *filling
+			mu.Unlock()
+		}()
+	}
+
+	go func() {
+		wg.Wait()
+		close(errChan)
+	}()
+
+	if err = <-errChan; err != nil {
+		return nil, err
+	}
+
+	return orders, nil
+}
+
+func (u *OrderUsecase) UpdateOrderStatus(ctx context.Context, status models.OrderStatus, orderID string) error {
+	return u.repo.UpdateOrderStatus(ctx, status, orderID)
+}
+
 func (u *OrderUsecase) Orders(ctx context.Context, accessToken string) ([]models.Order, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()

@@ -93,6 +93,7 @@ const (
 			   owner_id,
 			   model_3d_url
 		FROM cake
+		WHERE is_open_for_sale = true
 	`
 	queryGetUser = `
 		SELECT id,
@@ -105,8 +106,14 @@ const (
 		FROM "user"
 		WHERE id = $1
 	`
-	queryGetCakeColors = `SELECT id, cake_id, hex_color FROM cake_color WHERE cake_id = $1`
-	queryUpdate3DModel = `UPDATE cake SET model_3d_url = $1 WHERE id = $2 AND owner_id = $3`
+	queryGetCakeColors        = `SELECT id, cake_id, hex_color FROM cake_color WHERE cake_id = $1`
+	queryUpdate3DModel        = `UPDATE cake SET model_3d_url = $1 WHERE id = $2 AND owner_id = $3`
+	queryUpdateCakeVisibility = `
+		UPDATE cake
+		SET is_open_for_sale = $1
+		WHERE id = $2 AND owner_id = $3
+		RETURNING id;
+	`
 )
 
 type CakeRepository struct {
@@ -117,6 +124,21 @@ func NewCakeRepository(db *sql.DB) *CakeRepository {
 	return &CakeRepository{
 		db: db,
 	}
+}
+
+func (r *CakeRepository) UpdateCakeVisibility(ctx context.Context, cakeID uuid.UUID, userID string, isOpen bool) error {
+	const methodName = "[CakeRepository.UpdateCakeVisibility]"
+
+	var returnedID uuid.UUID
+	err := r.db.QueryRowContext(ctx, queryUpdateCakeVisibility, isOpen, cakeID, userID).Scan(&returnedID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return errs.ErrNotFound
+		}
+		return errs.WrapDBError(methodName, err)
+	}
+
+	return nil
 }
 
 func (r *CakeRepository) GetCakeColorsByCakeID(ctx context.Context, cakeID uuid.UUID) ([]models.CakeColor, error) {

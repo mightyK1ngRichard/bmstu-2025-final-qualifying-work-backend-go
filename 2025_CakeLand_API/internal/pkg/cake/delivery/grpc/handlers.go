@@ -36,16 +36,43 @@ func NewCakeHandler(
 	}
 }
 
+func (h *GrpcCakeHandler) SetCakeVisibility(ctx context.Context, in *gen.SetCakeVisibilityReq) (*emptypb.Empty, error) {
+	// Парсим CakeID
+	cakeID, err := uuid.Parse(in.CakeID)
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, fmt.Errorf("%w: %w", errs.ErrInvalidUUIDFormat, err), "invalid cake id")
+	}
+
+	// Получаем токен из метаданных
+	accessToken, err := h.mdProvider.GetValue(ctx, domains.KeyAuthorization)
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err,
+			fmt.Sprintf("missing required metadata: %s", domains.KeyAuthorization),
+		)
+	}
+
+	// Бизнес логика
+	if err = h.usecase.SetCakeVisibility(ctx, accessToken, cakeID, in.IsOpenForSale); err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "unable to set cake visibility. you must be the owner of the cake to change its visibility")
+	}
+
+	// Ответ
+	return &emptypb.Empty{}, nil
+}
+
 func (h *GrpcCakeHandler) AddCakeColors(ctx context.Context, in *gen.AddCakeColorsReq) (*emptypb.Empty, error) {
+	// Получаем CakeID
 	cakeID, err := uuid.Parse(in.CakeID)
 	if err != nil {
 		return nil, errs.ConvertToGrpcError(ctx, h.log, fmt.Errorf("%w: %w", errs.ErrInvalidUUIDFormat, err), "failed to parse cake id")
 	}
 
+	// Бизнес логика
 	if err = h.usecase.AddCakeColor(ctx, cakeID, in.ColorsHex); err != nil {
 		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to add color")
 	}
 
+	// Ответ
 	return &emptypb.Empty{}, nil
 }
 
