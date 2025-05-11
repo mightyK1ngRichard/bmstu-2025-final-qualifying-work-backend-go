@@ -95,6 +95,24 @@ const (
 		FROM cake
 		WHERE is_open_for_sale = true
 	`
+	queryGetUserCakes = `
+		SELECT id,
+			   name,
+			   image_url,
+			   kg_price,
+			   reviews_count,
+			   stars_sum,
+			   description,
+			   mass,
+			   discount_kg_price,
+			   discount_end_time,
+			   date_creation,
+			   is_open_for_sale,
+			   owner_id,
+			   model_3d_url
+		FROM cake
+		WHERE is_open_for_sale = true AND owner_id = $1
+	`
 	queryGetUser = `
 		SELECT id,
 			   fio,
@@ -124,6 +142,65 @@ func NewCakeRepository(db *sql.DB) *CakeRepository {
 	return &CakeRepository{
 		db: db,
 	}
+}
+
+func (r *CakeRepository) GetUserCakes(ctx context.Context, userID string) ([]dto.PreviewCake, error) {
+	const methodName = "[CakeRepository.GetUserCakes]"
+
+	rows, err := r.db.QueryContext(ctx, queryGetUserCakes, userID)
+	if err != nil {
+		return nil, errs.WrapDBError(methodName, err)
+	}
+	defer rows.Close()
+
+	var cakes []dto.PreviewCake
+	for rows.Next() {
+		var cake dto.PreviewCake
+		var discountKgPrice sql.NullFloat64
+		var discountEndTime sql.NullTime
+		var ownerID uuid.UUID
+
+		if err = rows.Scan(
+			&cake.ID,
+			&cake.Name,
+			&cake.PreviewImageURL,
+			&cake.KgPrice,
+			&cake.ReviewsCount,
+			&cake.StarsSum,
+			&cake.Description,
+			&cake.Mass,
+			&discountKgPrice,
+			&discountEndTime,
+			&cake.DateCreation,
+			&cake.IsOpenForSale,
+			&ownerID,
+			&cake.Model3DURL,
+		); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil, errs.ErrNotFound
+			}
+			return nil, errs.WrapDBError(methodName, err)
+		}
+
+		cake.DiscountKgPrice = null.FloatFromPtr(nil)
+		if discountKgPrice.Valid {
+			cake.DiscountKgPrice = null.FloatFrom(discountKgPrice.Float64)
+		}
+
+		cake.DiscountEndTime = null.TimeFromPtr(nil)
+		if discountEndTime.Valid {
+			cake.DiscountEndTime = null.TimeFrom(discountEndTime.Time)
+		}
+
+		cake.Owner.ID = ownerID
+		cakes = append(cakes, cake)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, errs.WrapDBError(methodName, err)
+	}
+
+	return cakes, nil
 }
 
 func (r *CakeRepository) UpdateCakeVisibility(ctx context.Context, cakeID uuid.UUID, userID string, isOpen bool) error {

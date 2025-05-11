@@ -36,6 +36,25 @@ func NewCakeHandler(
 	}
 }
 
+func (h *GrpcCakeHandler) GetUserCakes(ctx context.Context, in *gen.GetUserCakesReq) (*gen.GetUserCakesRes, error) {
+	// Бизнес логика
+	cakes, err := h.usecase.GetUserCakes(ctx, in.UserID)
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to fetch cakes")
+	}
+
+	// Маппинг
+	cakesGRPC := make([]*gen.PreviewCake, len(cakes))
+	for i, it := range cakes {
+		cakesGRPC[i] = it.ConvertToGrpcModel()
+	}
+
+	// Ответ
+	return &gen.GetUserCakesRes{
+		Cakes: cakesGRPC,
+	}, nil
+}
+
 func (h *GrpcCakeHandler) SetCakeVisibility(ctx context.Context, in *gen.SetCakeVisibilityReq) (*emptypb.Empty, error) {
 	// Парсим CakeID
 	cakeID, err := uuid.Parse(in.CakeID)

@@ -24,6 +24,7 @@ const (
 	CakeService_Cake_FullMethodName                      = "/cake.CakeService/Cake"
 	CakeService_Cakes_FullMethodName                     = "/cake.CakeService/Cakes"
 	CakeService_CategoryPreviewCakes_FullMethodName      = "/cake.CakeService/CategoryPreviewCakes"
+	CakeService_GetUserCakes_FullMethodName              = "/cake.CakeService/GetUserCakes"
 	CakeService_CreateFilling_FullMethodName             = "/cake.CakeService/CreateFilling"
 	CakeService_Fillings_FullMethodName                  = "/cake.CakeService/Fillings"
 	CakeService_AddCakeColors_FullMethodName             = "/cake.CakeService/AddCakeColors"
@@ -45,6 +46,7 @@ type CakeServiceClient interface {
 	Cake(ctx context.Context, in *CakeRequest, opts ...grpc.CallOption) (*CakeResponse, error)
 	Cakes(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*CakesResponse, error)
 	CategoryPreviewCakes(ctx context.Context, in *CategoryPreviewCakesReq, opts ...grpc.CallOption) (*CategoryPreviewCakesRes, error)
+	GetUserCakes(ctx context.Context, in *GetUserCakesReq, opts ...grpc.CallOption) (*GetUserCakesRes, error)
 	CreateFilling(ctx context.Context, in *CreateFillingRequest, opts ...grpc.CallOption) (*CreateFillingResponse, error)
 	Fillings(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*FillingsResponse, error)
 	AddCakeColors(ctx context.Context, in *AddCakeColorsReq, opts ...grpc.CallOption) (*emptypb.Empty, error)
@@ -98,6 +100,16 @@ func (c *cakeServiceClient) CategoryPreviewCakes(ctx context.Context, in *Catego
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CategoryPreviewCakesRes)
 	err := c.cc.Invoke(ctx, CakeService_CategoryPreviewCakes_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cakeServiceClient) GetUserCakes(ctx context.Context, in *GetUserCakesReq, opts ...grpc.CallOption) (*GetUserCakesRes, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUserCakesRes)
+	err := c.cc.Invoke(ctx, CakeService_GetUserCakes_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -204,6 +216,7 @@ type CakeServiceServer interface {
 	Cake(context.Context, *CakeRequest) (*CakeResponse, error)
 	Cakes(context.Context, *emptypb.Empty) (*CakesResponse, error)
 	CategoryPreviewCakes(context.Context, *CategoryPreviewCakesReq) (*CategoryPreviewCakesRes, error)
+	GetUserCakes(context.Context, *GetUserCakesReq) (*GetUserCakesRes, error)
 	CreateFilling(context.Context, *CreateFillingRequest) (*CreateFillingResponse, error)
 	Fillings(context.Context, *emptypb.Empty) (*FillingsResponse, error)
 	AddCakeColors(context.Context, *AddCakeColorsReq) (*emptypb.Empty, error)
@@ -234,6 +247,9 @@ func (UnimplementedCakeServiceServer) Cakes(context.Context, *emptypb.Empty) (*C
 }
 func (UnimplementedCakeServiceServer) CategoryPreviewCakes(context.Context, *CategoryPreviewCakesReq) (*CategoryPreviewCakesRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CategoryPreviewCakes not implemented")
+}
+func (UnimplementedCakeServiceServer) GetUserCakes(context.Context, *GetUserCakesReq) (*GetUserCakesRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserCakes not implemented")
 }
 func (UnimplementedCakeServiceServer) CreateFilling(context.Context, *CreateFillingRequest) (*CreateFillingResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateFilling not implemented")
@@ -351,6 +367,24 @@ func _CakeService_CategoryPreviewCakes_Handler(srv interface{}, ctx context.Cont
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(CakeServiceServer).CategoryPreviewCakes(ctx, req.(*CategoryPreviewCakesReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CakeService_GetUserCakes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserCakesReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CakeServiceServer).GetUserCakes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CakeService_GetUserCakes_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CakeServiceServer).GetUserCakes(ctx, req.(*GetUserCakesReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -539,6 +573,10 @@ var CakeService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CategoryPreviewCakes",
 			Handler:    _CakeService_CategoryPreviewCakes_Handler,
+		},
+		{
+			MethodName: "GetUserCakes",
+			Handler:    _CakeService_GetUserCakes_Handler,
 		},
 		{
 			MethodName: "CreateFilling",

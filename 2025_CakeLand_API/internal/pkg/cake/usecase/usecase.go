@@ -31,6 +31,77 @@ func NewCakeUsecase(
 	}
 }
 
+func (u *CakeUseсase) GetUserCakes(ctx context.Context, userID string) ([]dto.PreviewCake, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// Получение тортов
+	cakes, err := u.repo.GetUserCakes(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	wg := sync.WaitGroup{}
+	mu := sync.Mutex{}
+	errChan := make(chan error, 1)
+
+	for i, cakeInfo := range cakes {
+		wg.Add(2)
+
+		// Получаем данные продавца
+		go func(i int) {
+			defer wg.Done()
+			if ctx.Err() != nil {
+				return
+			}
+
+			user, userErr := u.repo.GetUserByID(ctx, cakeInfo.Owner.ID)
+			if userErr != nil {
+				trySendError(userErr, errChan, cancel)
+				return
+			}
+
+			mu.Lock()
+			cakes[i].Owner = user
+			mu.Unlock()
+		}(i)
+
+		// Получаем цвета тортов
+		go func(i int) {
+			defer wg.Done()
+			if ctx.Err() != nil {
+				return
+			}
+
+			colors, colorsErr := u.repo.GetCakeColorsByCakeID(ctx, cakeInfo.ID)
+			if colorsErr != nil {
+				trySendError(colorsErr, errChan, cancel)
+				return
+			}
+
+			colorsHex := make([]string, len(colors))
+			for ind, color := range colors {
+				colorsHex[ind] = color.HexString
+			}
+
+			mu.Lock()
+			cakes[i].ColorsHex = colorsHex
+			mu.Unlock()
+		}(i)
+	}
+
+	go func() {
+		wg.Wait()
+		close(errChan)
+	}()
+
+	if err = <-errChan; err != nil {
+		return nil, err
+	}
+
+	return cakes, nil
+}
+
 func (u *CakeUseсase) SetCakeVisibility(ctx context.Context, accessToken string, cakeID uuid.UUID, visible bool) error {
 	// Достаём userID из токена если он не протух
 	userID, err := u.tokenator.GetUserIDFromToken(accessToken, false)

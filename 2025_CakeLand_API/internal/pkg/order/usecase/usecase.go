@@ -275,6 +275,11 @@ func (u *OrderUsecase) MakeOrder(ctx context.Context, accessToken string, dbOrde
 		return nil, err
 	}
 
+	// Торт не доступен для продаже
+	if !cake.IsOpenForSale {
+		return nil, errs.ErrNotAvailable
+	}
+
 	// Получаем актуальную цену торта
 	kgPrice := cake.KgPrice
 	if cake.DiscountKgPrice.Valid && cake.DiscountEndTime.Valid {

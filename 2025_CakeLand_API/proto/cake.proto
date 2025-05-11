@@ -120,12 +120,22 @@ message SetCakeVisibilityReq {
   bool isOpenForSale = 2;
 }
 
+/* ############### GetUserCakes ############### */
+message GetUserCakesReq {
+  string userID = 1;
+}
+
+message GetUserCakesRes {
+  repeated PreviewCake cakes = 1;
+}
+
 /* ############### CakeService ############### */
 service CakeService {
   rpc CreateCake (CreateCakeRequest) returns (CreateCakeResponse);
   rpc Cake (CakeRequest) returns (CakeResponse);
   rpc Cakes (google.protobuf.Empty) returns (CakesResponse);
   rpc CategoryPreviewCakes (CategoryPreviewCakesReq) returns (CategoryPreviewCakesRes);
+  rpc GetUserCakes(GetUserCakesReq) returns (GetUserCakesRes);
 
   rpc CreateFilling (CreateFillingRequest) returns (CreateFillingResponse);
   rpc Fillings (google.protobuf.Empty) returns (FillingsResponse);

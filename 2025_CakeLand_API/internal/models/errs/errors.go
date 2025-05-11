@@ -33,6 +33,7 @@ var (
 	ErrIncorrectUsername      = errors.New("incorrect username")
 	ErrIncorrectFIO           = errors.New("incorrect fio")
 	ErrForbidden              = errors.New("user not have access")
+	ErrNotAvailable           = errors.New("cake not available for sale")
 )
 
 func ConvertToGrpcError(ctx context.Context, log *slog.Logger, err error, description string) error {
@@ -48,6 +49,12 @@ func ConvertToGrpcError(ctx context.Context, log *slog.Logger, err error, descri
 
 	case errors.Is(err, ErrNoMessage):
 		return status.Error(codes.InvalidArgument, fmt.Sprintf("%v: %s", err, description))
+
+	case errors.Is(err, ErrNotAvailable):
+		return status.Error(codes.ResourceExhausted, fmt.Sprintf("%v: %s", err, description))
+
+	case errors.Is(err, ErrForbidden):
+		return status.Error(codes.PermissionDenied, fmt.Sprintf("%v: %s", err, description))
 
 	case errors.Is(err, ErrPreviewImageNotFound):
 		return status.Error(codes.Internal, fmt.Sprintf("%v: %s", err, description))

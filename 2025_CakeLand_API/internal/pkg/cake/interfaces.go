@@ -23,6 +23,7 @@ type ICakeUsecase interface {
 	CategoryPreviewCakes(context.Context, uuid.UUID) ([]*dto.PreviewCake, error)
 	Add3DModel(context.Context, string, *generated.Add3DModelReq) (string, error)
 	SetCakeVisibility(context.Context, string, uuid.UUID, bool) error
+	GetUserCakes(context.Context, string) ([]dto.PreviewCake, error)
 }
 
 type ICakeRepository interface {
@@ -32,6 +33,7 @@ type ICakeRepository interface {
 	FillingByID(context.Context, uuid.UUID) (*models.Filling, error)
 	CategoryByID(context.Context, uuid.UUID) (*models.Category, error)
 	CakeImages(context.Context, uuid.UUID) ([]models.CakeImage, error)
+	GetUserCakes(context.Context, string) ([]dto.PreviewCake, error)
 
 	CreateCake(context.Context, dto.CreateCakeDBReq) error
 	CreateFilling(context.Context, models.Filling) error
