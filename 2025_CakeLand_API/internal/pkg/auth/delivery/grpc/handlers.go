@@ -89,7 +89,7 @@ func (h *GrpcAuthHandler) Login(ctx context.Context, req *gen.LoginRequest) (*ge
 		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "invalid password format")
 	}
 
-	// Сохраняем пользователя в бд
+	// Отправляем пользователя в бд
 	res, loginErr := h.usecase.Login(ctx, dto.LoginReq{
 		Email:       req.Email,
 		Password:    req.Password,

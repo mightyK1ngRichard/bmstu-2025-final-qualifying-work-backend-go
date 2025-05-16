@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 )
 
 const (
@@ -16,6 +17,7 @@ const (
 	getUserByEmailCommand          = `SELECT id, mail, refresh_tokens_map, password_hash FROM "user" WHERE mail = $1;`
 	updateUserRefreshTokensCommand = `UPDATE "user" SET refresh_tokens_map = $1 WHERE id = $2;`
 	getUserRefreshTokensCommand    = `SELECT refresh_tokens_map FROM "user" where id = $1`
+	queryCheckUserIsAdmin          = `SELECT EXISTS (SELECT 1 FROM admin WHERE user_id = $1) AS is_admin;`
 )
 
 type AuthRepository struct {
@@ -116,4 +118,14 @@ func (r *AuthRepository) GetUserRefreshTokens(ctx context.Context, in dto.GetUse
 	return &dto.GetUserRefreshTokensRes{
 		RefreshTokensMap: refreshTokensMap,
 	}, nil
+}
+func (r *AuthRepository) IsUserAdmin(ctx context.Context, userID uuid.UUID) (bool, error) {
+	const methodName = "[AuthRepository.IsUserAdmin]"
+
+	var isAdmin bool
+	if err := r.db.QueryRowContext(ctx, queryCheckUserIsAdmin, userID).Scan(&isAdmin); err != nil {
+		return false, errs.WrapDBError(methodName, err)
+	}
+
+	return isAdmin, nil
 }

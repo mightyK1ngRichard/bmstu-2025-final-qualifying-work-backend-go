@@ -20,20 +20,21 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CakeService_CreateCake_FullMethodName                = "/cake.CakeService/CreateCake"
-	CakeService_Cake_FullMethodName                      = "/cake.CakeService/Cake"
-	CakeService_Cakes_FullMethodName                     = "/cake.CakeService/Cakes"
-	CakeService_CategoryPreviewCakes_FullMethodName      = "/cake.CakeService/CategoryPreviewCakes"
-	CakeService_GetUserCakes_FullMethodName              = "/cake.CakeService/GetUserCakes"
-	CakeService_CreateFilling_FullMethodName             = "/cake.CakeService/CreateFilling"
-	CakeService_Fillings_FullMethodName                  = "/cake.CakeService/Fillings"
-	CakeService_AddCakeColors_FullMethodName             = "/cake.CakeService/AddCakeColors"
-	CakeService_GetColors_FullMethodName                 = "/cake.CakeService/GetColors"
-	CakeService_Add3DModel_FullMethodName                = "/cake.CakeService/Add3DModel"
-	CakeService_SetCakeVisibility_FullMethodName         = "/cake.CakeService/SetCakeVisibility"
-	CakeService_CreateCategory_FullMethodName            = "/cake.CakeService/CreateCategory"
-	CakeService_Categories_FullMethodName                = "/cake.CakeService/Categories"
-	CakeService_GetCategoriesByGenderName_FullMethodName = "/cake.CakeService/GetCategoriesByGenderName"
+	CakeService_CreateCake_FullMethodName                 = "/cake.CakeService/CreateCake"
+	CakeService_Cake_FullMethodName                       = "/cake.CakeService/Cake"
+	CakeService_Cakes_FullMethodName                      = "/cake.CakeService/Cakes"
+	CakeService_GetUserCakes_FullMethodName               = "/cake.CakeService/GetUserCakes"
+	CakeService_Add3DModel_FullMethodName                 = "/cake.CakeService/Add3DModel"
+	CakeService_SetCakeVisibility_FullMethodName          = "/cake.CakeService/SetCakeVisibility"
+	CakeService_GetAllCakesWithAllStatuses_FullMethodName = "/cake.CakeService/GetAllCakesWithAllStatuses"
+	CakeService_CreateFilling_FullMethodName              = "/cake.CakeService/CreateFilling"
+	CakeService_Fillings_FullMethodName                   = "/cake.CakeService/Fillings"
+	CakeService_AddCakeColors_FullMethodName              = "/cake.CakeService/AddCakeColors"
+	CakeService_GetColors_FullMethodName                  = "/cake.CakeService/GetColors"
+	CakeService_CategoryPreviewCakes_FullMethodName       = "/cake.CakeService/CategoryPreviewCakes"
+	CakeService_CreateCategory_FullMethodName             = "/cake.CakeService/CreateCategory"
+	CakeService_Categories_FullMethodName                 = "/cake.CakeService/Categories"
+	CakeService_GetCategoriesByGenderName_FullMethodName  = "/cake.CakeService/GetCategoriesByGenderName"
 )
 
 // CakeServiceClient is the client API for CakeService service.
@@ -45,14 +46,15 @@ type CakeServiceClient interface {
 	CreateCake(ctx context.Context, in *CreateCakeRequest, opts ...grpc.CallOption) (*CreateCakeResponse, error)
 	Cake(ctx context.Context, in *CakeRequest, opts ...grpc.CallOption) (*CakeResponse, error)
 	Cakes(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*CakesResponse, error)
-	CategoryPreviewCakes(ctx context.Context, in *CategoryPreviewCakesReq, opts ...grpc.CallOption) (*CategoryPreviewCakesRes, error)
 	GetUserCakes(ctx context.Context, in *GetUserCakesReq, opts ...grpc.CallOption) (*GetUserCakesRes, error)
+	Add3DModel(ctx context.Context, in *Add3DModelReq, opts ...grpc.CallOption) (*Add3DModelRes, error)
+	SetCakeVisibility(ctx context.Context, in *SetCakeVisibilityReq, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	GetAllCakesWithAllStatuses(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetAllCakesWithAllStatusesRes, error)
 	CreateFilling(ctx context.Context, in *CreateFillingRequest, opts ...grpc.CallOption) (*CreateFillingResponse, error)
 	Fillings(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*FillingsResponse, error)
 	AddCakeColors(ctx context.Context, in *AddCakeColorsReq, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	GetColors(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*CakeColorsRes, error)
-	Add3DModel(ctx context.Context, in *Add3DModelReq, opts ...grpc.CallOption) (*Add3DModelRes, error)
-	SetCakeVisibility(ctx context.Context, in *SetCakeVisibilityReq, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	CategoryPreviewCakes(ctx context.Context, in *CategoryPreviewCakesReq, opts ...grpc.CallOption) (*CategoryPreviewCakesRes, error)
 	CreateCategory(ctx context.Context, in *CreateCategoryRequest, opts ...grpc.CallOption) (*CreateCategoryResponse, error)
 	Categories(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*CategoriesResponse, error)
 	GetCategoriesByGenderName(ctx context.Context, in *GetCategoriesByGenderNameReq, opts ...grpc.CallOption) (*GetCategoriesByGenderNameRes, error)
@@ -96,20 +98,40 @@ func (c *cakeServiceClient) Cakes(ctx context.Context, in *emptypb.Empty, opts .
 	return out, nil
 }
 
-func (c *cakeServiceClient) CategoryPreviewCakes(ctx context.Context, in *CategoryPreviewCakesReq, opts ...grpc.CallOption) (*CategoryPreviewCakesRes, error) {
+func (c *cakeServiceClient) GetUserCakes(ctx context.Context, in *GetUserCakesReq, opts ...grpc.CallOption) (*GetUserCakesRes, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CategoryPreviewCakesRes)
-	err := c.cc.Invoke(ctx, CakeService_CategoryPreviewCakes_FullMethodName, in, out, cOpts...)
+	out := new(GetUserCakesRes)
+	err := c.cc.Invoke(ctx, CakeService_GetUserCakes_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *cakeServiceClient) GetUserCakes(ctx context.Context, in *GetUserCakesReq, opts ...grpc.CallOption) (*GetUserCakesRes, error) {
+func (c *cakeServiceClient) Add3DModel(ctx context.Context, in *Add3DModelReq, opts ...grpc.CallOption) (*Add3DModelRes, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetUserCakesRes)
-	err := c.cc.Invoke(ctx, CakeService_GetUserCakes_FullMethodName, in, out, cOpts...)
+	out := new(Add3DModelRes)
+	err := c.cc.Invoke(ctx, CakeService_Add3DModel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cakeServiceClient) SetCakeVisibility(ctx context.Context, in *SetCakeVisibilityReq, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, CakeService_SetCakeVisibility_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cakeServiceClient) GetAllCakesWithAllStatuses(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetAllCakesWithAllStatusesRes, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAllCakesWithAllStatusesRes)
+	err := c.cc.Invoke(ctx, CakeService_GetAllCakesWithAllStatuses_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -156,20 +178,10 @@ func (c *cakeServiceClient) GetColors(ctx context.Context, in *emptypb.Empty, op
 	return out, nil
 }
 
-func (c *cakeServiceClient) Add3DModel(ctx context.Context, in *Add3DModelReq, opts ...grpc.CallOption) (*Add3DModelRes, error) {
+func (c *cakeServiceClient) CategoryPreviewCakes(ctx context.Context, in *CategoryPreviewCakesReq, opts ...grpc.CallOption) (*CategoryPreviewCakesRes, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Add3DModelRes)
-	err := c.cc.Invoke(ctx, CakeService_Add3DModel_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *cakeServiceClient) SetCakeVisibility(ctx context.Context, in *SetCakeVisibilityReq, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, CakeService_SetCakeVisibility_FullMethodName, in, out, cOpts...)
+	out := new(CategoryPreviewCakesRes)
+	err := c.cc.Invoke(ctx, CakeService_CategoryPreviewCakes_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -215,14 +227,15 @@ type CakeServiceServer interface {
 	CreateCake(context.Context, *CreateCakeRequest) (*CreateCakeResponse, error)
 	Cake(context.Context, *CakeRequest) (*CakeResponse, error)
 	Cakes(context.Context, *emptypb.Empty) (*CakesResponse, error)
-	CategoryPreviewCakes(context.Context, *CategoryPreviewCakesReq) (*CategoryPreviewCakesRes, error)
 	GetUserCakes(context.Context, *GetUserCakesReq) (*GetUserCakesRes, error)
+	Add3DModel(context.Context, *Add3DModelReq) (*Add3DModelRes, error)
+	SetCakeVisibility(context.Context, *SetCakeVisibilityReq) (*emptypb.Empty, error)
+	GetAllCakesWithAllStatuses(context.Context, *emptypb.Empty) (*GetAllCakesWithAllStatusesRes, error)
 	CreateFilling(context.Context, *CreateFillingRequest) (*CreateFillingResponse, error)
 	Fillings(context.Context, *emptypb.Empty) (*FillingsResponse, error)
 	AddCakeColors(context.Context, *AddCakeColorsReq) (*emptypb.Empty, error)
 	GetColors(context.Context, *emptypb.Empty) (*CakeColorsRes, error)
-	Add3DModel(context.Context, *Add3DModelReq) (*Add3DModelRes, error)
-	SetCakeVisibility(context.Context, *SetCakeVisibilityReq) (*emptypb.Empty, error)
+	CategoryPreviewCakes(context.Context, *CategoryPreviewCakesReq) (*CategoryPreviewCakesRes, error)
 	CreateCategory(context.Context, *CreateCategoryRequest) (*CreateCategoryResponse, error)
 	Categories(context.Context, *emptypb.Empty) (*CategoriesResponse, error)
 	GetCategoriesByGenderName(context.Context, *GetCategoriesByGenderNameReq) (*GetCategoriesByGenderNameRes, error)
@@ -245,11 +258,17 @@ func (UnimplementedCakeServiceServer) Cake(context.Context, *CakeRequest) (*Cake
 func (UnimplementedCakeServiceServer) Cakes(context.Context, *emptypb.Empty) (*CakesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Cakes not implemented")
 }
-func (UnimplementedCakeServiceServer) CategoryPreviewCakes(context.Context, *CategoryPreviewCakesReq) (*CategoryPreviewCakesRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CategoryPreviewCakes not implemented")
-}
 func (UnimplementedCakeServiceServer) GetUserCakes(context.Context, *GetUserCakesReq) (*GetUserCakesRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserCakes not implemented")
+}
+func (UnimplementedCakeServiceServer) Add3DModel(context.Context, *Add3DModelReq) (*Add3DModelRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Add3DModel not implemented")
+}
+func (UnimplementedCakeServiceServer) SetCakeVisibility(context.Context, *SetCakeVisibilityReq) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetCakeVisibility not implemented")
+}
+func (UnimplementedCakeServiceServer) GetAllCakesWithAllStatuses(context.Context, *emptypb.Empty) (*GetAllCakesWithAllStatusesRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAllCakesWithAllStatuses not implemented")
 }
 func (UnimplementedCakeServiceServer) CreateFilling(context.Context, *CreateFillingRequest) (*CreateFillingResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateFilling not implemented")
@@ -263,11 +282,8 @@ func (UnimplementedCakeServiceServer) AddCakeColors(context.Context, *AddCakeCol
 func (UnimplementedCakeServiceServer) GetColors(context.Context, *emptypb.Empty) (*CakeColorsRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetColors not implemented")
 }
-func (UnimplementedCakeServiceServer) Add3DModel(context.Context, *Add3DModelReq) (*Add3DModelRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Add3DModel not implemented")
-}
-func (UnimplementedCakeServiceServer) SetCakeVisibility(context.Context, *SetCakeVisibilityReq) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetCakeVisibility not implemented")
+func (UnimplementedCakeServiceServer) CategoryPreviewCakes(context.Context, *CategoryPreviewCakesReq) (*CategoryPreviewCakesRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CategoryPreviewCakes not implemented")
 }
 func (UnimplementedCakeServiceServer) CreateCategory(context.Context, *CreateCategoryRequest) (*CreateCategoryResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateCategory not implemented")
@@ -353,24 +369,6 @@ func _CakeService_Cakes_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CakeService_CategoryPreviewCakes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CategoryPreviewCakesReq)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(CakeServiceServer).CategoryPreviewCakes(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: CakeService_CategoryPreviewCakes_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CakeServiceServer).CategoryPreviewCakes(ctx, req.(*CategoryPreviewCakesReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _CakeService_GetUserCakes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetUserCakesReq)
 	if err := dec(in); err != nil {
@@ -385,6 +383,60 @@ func _CakeService_GetUserCakes_Handler(srv interface{}, ctx context.Context, dec
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(CakeServiceServer).GetUserCakes(ctx, req.(*GetUserCakesReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CakeService_Add3DModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Add3DModelReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CakeServiceServer).Add3DModel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CakeService_Add3DModel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CakeServiceServer).Add3DModel(ctx, req.(*Add3DModelReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CakeService_SetCakeVisibility_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetCakeVisibilityReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CakeServiceServer).SetCakeVisibility(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CakeService_SetCakeVisibility_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CakeServiceServer).SetCakeVisibility(ctx, req.(*SetCakeVisibilityReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CakeService_GetAllCakesWithAllStatuses_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CakeServiceServer).GetAllCakesWithAllStatuses(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CakeService_GetAllCakesWithAllStatuses_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CakeServiceServer).GetAllCakesWithAllStatuses(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -461,38 +513,20 @@ func _CakeService_GetColors_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CakeService_Add3DModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Add3DModelReq)
+func _CakeService_CategoryPreviewCakes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CategoryPreviewCakesReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CakeServiceServer).Add3DModel(ctx, in)
+		return srv.(CakeServiceServer).CategoryPreviewCakes(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: CakeService_Add3DModel_FullMethodName,
+		FullMethod: CakeService_CategoryPreviewCakes_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CakeServiceServer).Add3DModel(ctx, req.(*Add3DModelReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _CakeService_SetCakeVisibility_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetCakeVisibilityReq)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(CakeServiceServer).SetCakeVisibility(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: CakeService_SetCakeVisibility_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CakeServiceServer).SetCakeVisibility(ctx, req.(*SetCakeVisibilityReq))
+		return srv.(CakeServiceServer).CategoryPreviewCakes(ctx, req.(*CategoryPreviewCakesReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -571,12 +605,20 @@ var CakeService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _CakeService_Cakes_Handler,
 		},
 		{
-			MethodName: "CategoryPreviewCakes",
-			Handler:    _CakeService_CategoryPreviewCakes_Handler,
-		},
-		{
 			MethodName: "GetUserCakes",
 			Handler:    _CakeService_GetUserCakes_Handler,
+		},
+		{
+			MethodName: "Add3DModel",
+			Handler:    _CakeService_Add3DModel_Handler,
+		},
+		{
+			MethodName: "SetCakeVisibility",
+			Handler:    _CakeService_SetCakeVisibility_Handler,
+		},
+		{
+			MethodName: "GetAllCakesWithAllStatuses",
+			Handler:    _CakeService_GetAllCakesWithAllStatuses_Handler,
 		},
 		{
 			MethodName: "CreateFilling",
@@ -595,12 +637,8 @@ var CakeService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _CakeService_GetColors_Handler,
 		},
 		{
-			MethodName: "Add3DModel",
-			Handler:    _CakeService_Add3DModel_Handler,
-		},
-		{
-			MethodName: "SetCakeVisibility",
-			Handler:    _CakeService_SetCakeVisibility_Handler,
+			MethodName: "CategoryPreviewCakes",
+			Handler:    _CakeService_CategoryPreviewCakes_Handler,
 		},
 		{
 			MethodName: "CreateCategory",

@@ -40,8 +40,14 @@ func (u *AuthUseсase) Login(ctx context.Context, in dto.LoginReq) (*dto.LoginRe
 		return nil, errs.ErrInvalidPassword
 	}
 
+	// Смотри, адим ли пользователь
+	isAdmin, err := u.repo.IsUserAdmin(ctx, res.ID)
+	if err != nil {
+		return nil, err
+	}
+
 	// Создаём новый access токен
-	accessToken, err := u.tokenator.GenerateAccessToken(res.ID.String())
+	accessToken, err := u.tokenator.GenerateAccessToken(res.ID.String(), isAdmin)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +69,7 @@ func (u *AuthUseсase) Login(ctx context.Context, in dto.LoginReq) (*dto.LoginRe
 	}
 
 	// Создаём новый refresh токен
-	newRefreshToken, err := u.tokenator.GenerateRefreshToken(res.ID.String())
+	newRefreshToken, err := u.tokenator.GenerateRefreshToken(res.ID.String(), isAdmin)
 	if err != nil {
 		return nil, err
 	}
@@ -93,8 +99,8 @@ func (u *AuthUseсase) Register(ctx context.Context, in dto.RegisterReq) (*dto.R
 
 	// Создаём токены
 	userID := uuid.New()
-	accessToken, errAccess := u.tokenator.GenerateAccessToken(userID.String())
-	refreshToken, errRefresh := u.tokenator.GenerateRefreshToken(userID.String())
+	accessToken, errAccess := u.tokenator.GenerateAccessToken(userID.String(), false)
+	refreshToken, errRefresh := u.tokenator.GenerateRefreshToken(userID.String(), false)
 	if errAccess != nil {
 		return nil, errAccess
 	} else if errRefresh != nil {
@@ -147,8 +153,14 @@ func (u *AuthUseсase) UpdateAccessToken(ctx context.Context, in dto.UpdateAcces
 		return nil, errs.ErrInvalidRefreshToken
 	}
 
+	// Достаём роль из рефреш токена
+	isAdmin, err := u.tokenator.GetIsAdminFromToken(oldRefreshToken, true)
+	if err != nil {
+		return nil, err
+	}
+
 	// Генерируем новый access токен
-	accessToken, err := u.tokenator.GenerateAccessToken(userID)
+	accessToken, err := u.tokenator.GenerateAccessToken(userID, isAdmin)
 	if err != nil {
 		return nil, err
 	}

@@ -10,7 +10,7 @@ type IOrderUsecase interface {
 	MakeOrder(context.Context, string, models.OrderDB) (*models.OrderDB, error)
 	Orders(context.Context, string) ([]models.Order, error)
 	UpdateOrderStatus(context.Context, string, models.OrderStatus, string) (string, string, error)
-	GetAllOrders(context.Context) ([]models.Order, error)
+	GetAllOrders(context.Context, string) ([]models.Order, error)
 	OrderByID(context.Context, string, string) (*models.Order, error)
 }
 

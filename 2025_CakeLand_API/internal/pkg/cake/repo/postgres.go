@@ -21,7 +21,7 @@ const (
 	queryGetCakeImages        = `SELECT id, image_url FROM cake_images WHERE cake_id = $1`
 	queryGetCakeByID          = `
 		SELECT c.id, c.name, c.image_url, c.kg_price, c.reviews_count, c.stars_sum,
-			   c.description, c.mass, c.is_open_for_sale, c.date_creation, c.discount_kg_price, c.discount_end_time,
+			   c.description, c.mass, c.status, c.date_creation, c.discount_kg_price, c.discount_end_time,
 			   c.model_3d_url,
 			   u.id AS owner_id, u.fio, u.nickname, u.image_url, u.mail, u.phone, u.header_image_url
 		FROM "cake" c
@@ -32,10 +32,10 @@ const (
 		INSERT INTO "filling" (id, name, image_url, content, kg_price, description)
 		VALUES ($1, $2, $3, $4, $5, $6);
 	`
-	queryCreateCategory = `INSERT INTO "category" (id, name, image_url) VALUES ($1, $2, $3);`
+	queryCreateCategory = `INSERT INTO "category" (id, name, image_url, gender_tags) VALUES ($1, $2, $3, $4);`
 	queryCreateCake     = `
-		INSERT INTO "cake" (id, name, image_url, kg_price, discount_kg_price, discount_end_time, description, mass, is_open_for_sale, owner_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
+		INSERT INTO "cake" (id, name, image_url, kg_price, discount_kg_price, discount_end_time, description, mass, owner_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
 	`
 	queryAddCakeImages   = `INSERT INTO "cake_images" (id, cake_id, image_url) VALUES ($1, $2, $3);`
 	queryAddCateCategory = `
@@ -63,7 +63,7 @@ const (
 			   c.discount_end_time,
 			   c.date_creation,
 			   c.model_3d_url,
-			   c.is_open_for_sale,
+			   c.status,
 			   u.id,
 			   u.fio,
 			   u.nickname,
@@ -89,11 +89,11 @@ const (
 			   discount_kg_price,
 			   discount_end_time,
 			   date_creation,
-			   is_open_for_sale,
+			   status,
 			   owner_id,
 			   model_3d_url
 		FROM cake
-		WHERE is_open_for_sale = true
+		WHERE ($1 OR status = 'approved')
 	`
 	queryGetUserCakes = `
 		SELECT id,
@@ -107,11 +107,11 @@ const (
 			   discount_kg_price,
 			   discount_end_time,
 			   date_creation,
-			   is_open_for_sale,
+			   status,
 			   owner_id,
 			   model_3d_url
 		FROM cake
-		WHERE is_open_for_sale = true AND owner_id = $1
+		WHERE status = 'approved' AND owner_id = $1
 	`
 	queryGetUser = `
 		SELECT id,
@@ -128,9 +128,27 @@ const (
 	queryUpdate3DModel        = `UPDATE cake SET model_3d_url = $1 WHERE id = $2 AND owner_id = $3`
 	queryUpdateCakeVisibility = `
 		UPDATE cake
-		SET is_open_for_sale = $1
-		WHERE id = $2 AND owner_id = $3
-		RETURNING id;
+		SET status = $1
+		WHERE id = $2 AND ($3 = owner_id OR $4 = TRUE)
+		RETURNING name, owner_id;
+	`
+	queryUserOrders = `
+		SELECT id,
+			   total_price,
+			   delivery_address_id,
+			   mass,
+			   filling_id,
+			   delivery_date,
+			   customer_id,
+			   seller_id,
+			   payment_method,
+			   cake_id,
+			   status,
+			   created_at,
+			   updated_at
+		FROM "order"
+		WHERE customer_id = $1
+		ORDER BY delivery_date DESC
 	`
 )
 
@@ -172,7 +190,7 @@ func (r *CakeRepository) GetUserCakes(ctx context.Context, userID string) ([]dto
 			&discountKgPrice,
 			&discountEndTime,
 			&cake.DateCreation,
-			&cake.IsOpenForSale,
+			&cake.Status,
 			&ownerID,
 			&cake.Model3DURL,
 		); err != nil {
@@ -203,19 +221,20 @@ func (r *CakeRepository) GetUserCakes(ctx context.Context, userID string) ([]dto
 	return cakes, nil
 }
 
-func (r *CakeRepository) UpdateCakeVisibility(ctx context.Context, cakeID uuid.UUID, userID string, isOpen bool) error {
+func (r *CakeRepository) UpdateCakeVisibility(ctx context.Context, cakeID uuid.UUID, userID string, status models.CakeStatus, isAdmin bool) (string, string, error) {
 	const methodName = "[CakeRepository.UpdateCakeVisibility]"
 
-	var returnedID uuid.UUID
-	err := r.db.QueryRowContext(ctx, queryUpdateCakeVisibility, isOpen, cakeID, userID).Scan(&returnedID)
+	var cakeName string
+	var ownerID string
+	err := r.db.QueryRowContext(ctx, queryUpdateCakeVisibility, status, cakeID, userID, isAdmin).Scan(&cakeName, &ownerID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return errs.ErrNotFound
+			return "", "", errs.ErrNotFound
 		}
-		return errs.WrapDBError(methodName, err)
+		return "", "", errs.WrapDBError(methodName, err)
 	}
 
-	return nil
+	return ownerID, cakeName, nil
 }
 
 func (r *CakeRepository) GetCakeColorsByCakeID(ctx context.Context, cakeID uuid.UUID) ([]models.CakeColor, error) {
@@ -268,10 +287,10 @@ func (r *CakeRepository) GetUserByID(ctx context.Context, userID uuid.UUID) (dto
 	return user, nil
 }
 
-func (r *CakeRepository) GetCakesPreview(ctx context.Context) ([]dto.PreviewCake, error) {
+func (r *CakeRepository) GetCakesPreview(ctx context.Context, showAll bool) ([]dto.PreviewCake, error) {
 	const methodName = "[CakeRepository.GetCakes]"
 
-	rows, err := r.db.QueryContext(ctx, queryGetAllCakes)
+	rows, err := r.db.QueryContext(ctx, queryGetAllCakes, showAll)
 	if err != nil {
 		return nil, errs.WrapDBError(methodName, err)
 	}
@@ -296,7 +315,7 @@ func (r *CakeRepository) GetCakesPreview(ctx context.Context) ([]dto.PreviewCake
 			&discountKgPrice,
 			&discountEndTime,
 			&cake.DateCreation,
-			&cake.IsOpenForSale,
+			&cake.Status,
 			&ownerID,
 			&cake.Model3DURL,
 		); err != nil {
@@ -340,7 +359,7 @@ func (r *CakeRepository) CakeByID(ctx context.Context, in dto.GetCakeReq) (*dto.
 	var cake models.Cake
 	if err := r.db.QueryRowContext(ctx, queryGetCakeByID, in.CakeID).Scan(
 		&cake.ID, &cake.Name, &cake.PreviewImageURL, &cake.KgPrice, &cake.ReviewsCount, &cake.StarsSum, &cake.Description,
-		&cake.Mass, &cake.IsOpenForSale, &cake.DateCreation, &cake.DiscountKgPrice, &cake.DiscountEndTime, &cake.Model3DURL,
+		&cake.Mass, &cake.Status, &cake.DateCreation, &cake.DiscountKgPrice, &cake.DiscountEndTime, &cake.Model3DURL,
 		&cake.Owner.ID, &cake.Owner.FIO,
 		&cake.Owner.Nickname, &cake.Owner.ImageURL, &cake.Owner.Mail, &cake.Owner.Phone,
 		&cake.Owner.HeaderImageURL,
@@ -511,7 +530,7 @@ func (r *CakeRepository) CreateCake(ctx context.Context, in dto.CreateCakeDBReq)
 	// Создаём торт
 	if _, err = tx.ExecContext(ctx, queryCreateCake,
 		in.ID, in.Name, in.PreviewImageURL, in.KgPrice, in.DiscountedKgPrice, in.DiscountedPriceEndDate,
-		in.Description, in.Mass, in.IsOpenForSale, in.OwnerID,
+		in.Description, in.Mass, in.OwnerID,
 	); err != nil {
 		_ = tx.Rollback()
 		return errs.WrapDBError(methodName, err)
@@ -597,8 +616,13 @@ func (r *CakeRepository) CreateFilling(ctx context.Context, in models.Filling) e
 func (r *CakeRepository) CreateCategory(ctx context.Context, in *models.Category) error {
 	const methodName = "[Repo.CreateCategory]"
 
-	// TODO: Сделать добавление тегов
-	if _, err := r.db.ExecContext(ctx, queryCreateCategory, in.ID, in.Name, in.ImageURL); err != nil {
+	// Преобразуем []CategoryGender (string) → []string
+	tags := make([]string, len(in.CategoryGenders))
+	for i, tag := range in.CategoryGenders {
+		tags[i] = string(tag)
+	}
+
+	if _, err := r.db.ExecContext(ctx, queryCreateCategory, in.ID, in.Name, in.ImageURL, pq.Array(tags)); err != nil {
 		return errs.WrapDBError(methodName, err)
 	}
 
@@ -752,7 +776,7 @@ func (r *CakeRepository) PreviewCakeByID(ctx context.Context, cakeID uuid.UUID) 
 		&previewCake.DiscountEndTime,
 		&previewCake.DateCreation,
 		&previewCake.Model3DURL,
-		&previewCake.IsOpenForSale,
+		&previewCake.Status,
 		&previewCake.Owner.ID,
 		&previewCake.Owner.FIO,
 		&previewCake.Owner.Nickname,
@@ -778,4 +802,43 @@ func (r *CakeRepository) Save3DModelURL(ctx context.Context, userID uuid.UUID, c
 	}
 
 	return nil
+}
+
+func (r *CakeRepository) UserOrders(ctx context.Context, userID string) ([]models.OrderDB, error) {
+	const methodName = "[CakeRepository.UserOrders]"
+
+	rows, err := r.db.QueryContext(ctx, queryUserOrders, userID)
+	if err != nil {
+		return nil, errs.WrapDBError(methodName, err)
+	}
+	defer rows.Close()
+
+	var orders []models.OrderDB
+	for rows.Next() {
+		var o models.OrderDB
+		if err = rows.Scan(
+			&o.ID,
+			&o.TotalPrice,
+			&o.DeliveryAddressID,
+			&o.Mass,
+			&o.FillingID,
+			&o.DeliveryDate,
+			&o.CustomerID,
+			&o.SellerID,
+			&o.PaymentMethod,
+			&o.CakeID,
+			&o.Status,
+			&o.CreatedAt,
+			&o.UpdatedAt,
+		); err != nil {
+			return nil, errs.WrapDBError(methodName, err)
+		}
+		orders = append(orders, o)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, errs.WrapDBError(methodName, err)
+	}
+
+	return orders, nil
 }

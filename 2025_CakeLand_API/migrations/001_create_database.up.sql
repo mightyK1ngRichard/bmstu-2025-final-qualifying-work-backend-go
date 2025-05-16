@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
 -- Пользователь
 CREATE TABLE IF NOT EXISTS "user"
 (
@@ -13,23 +15,40 @@ CREATE TABLE IF NOT EXISTS "user"
     refresh_tokens_map JSONB
 );
 
+-- Администратор
+CREATE TABLE IF NOT EXISTS "admin"
+(
+    id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL UNIQUE,
+    FOREIGN KEY (user_id) REFERENCES "user" (id)
+);
+
+-- Статус торта
+CREATE TYPE cake_status AS ENUM (
+    'pending', -- Ожидает проверки
+    'approved', -- Одобрено и открыто для продажи
+    'rejected', -- Отказано
+    'hidden' -- Скрыто (временно недоступен)
+    );
+
 -- Торт
 CREATE TABLE IF NOT EXISTS cake
 (
     id                UUID PRIMARY KEY,
-    name              VARCHAR(150)                        NOT NULL,
+    name              VARCHAR(150)                          NOT NULL,
     image_url         VARCHAR(500),
-    kg_price          DOUBLE PRECISION                    NOT NULL,
-    reviews_count     INT       DEFAULT 0 CHECK (reviews_count >= 0),
-    stars_sum         INT       DEFAULT 0 CHECK (stars_sum >= 0),
-    description       TEXT                                NOT NULL,
-    mass              DOUBLE PRECISION                    NOT NULL,
+    kg_price          DOUBLE PRECISION                      NOT NULL,
+    reviews_count     INT         DEFAULT 0 CHECK (reviews_count >= 0),
+    stars_sum         INT         DEFAULT 0 CHECK (stars_sum >= 0),
+    description       TEXT                                  NOT NULL,
+    mass              DOUBLE PRECISION                      NOT NULL,
     discount_kg_price DOUBLE PRECISION CHECK (discount_kg_price >= 0),
     discount_end_time TIMESTAMP,
-    date_creation     TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    is_open_for_sale  BOOL      DEFAULT true,
-    owner_id          UUID                                NOT NULL,
+    date_creation     TIMESTAMP   DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    is_open_for_sale  BOOL        DEFAULT true,
+    owner_id          UUID                                  NOT NULL,
     model_3d_url      VARCHAR(300),
+    status            cake_status DEFAULT 'pending'         NOT NULL,
     FOREIGN KEY (owner_id) REFERENCES "user" (id)
 );
 
@@ -73,7 +92,7 @@ CREATE TABLE IF NOT EXISTS notification
     date_creation     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     sender_id         UUID              NOT NULL, -- Отправитель
     recipient_id      UUID              NOT NULL, -- Получатель
-    order_id           UUID,
+    order_id          UUID,
     notification_kind notification_kind NOT NULL,
 
     FOREIGN KEY (sender_id) REFERENCES "user" (id),
@@ -183,6 +202,8 @@ CREATE TABLE IF NOT EXISTS "order"
     cake_id             UUID                                     NOT NULL,
     payment_method      payment_method                           NOT NULL DEFAULT 'cash',
     status              order_status                             NOT NULL DEFAULT 'pending',
+    created_at          TIMESTAMP WITH TIME ZONE                          DEFAULT now(),
+    updated_at          TIMESTAMP WITH TIME ZONE                          DEFAULT now(),
 
     FOREIGN KEY (delivery_address_id) REFERENCES "address" (id),
     FOREIGN KEY (cake_id) REFERENCES "cake" (id),
@@ -222,3 +243,19 @@ CREATE TRIGGER trigger_update_cake_reviews
     ON feedback
     FOR EACH ROW
 EXECUTE FUNCTION update_cake_review_stats();
+
+-- Функция обновления заказа
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+    RETURNS TRIGGER AS
+$$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Связываем с функцию таблицой
+CREATE TRIGGER set_updated_at
+    BEFORE UPDATE ON "order"
+    FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column();

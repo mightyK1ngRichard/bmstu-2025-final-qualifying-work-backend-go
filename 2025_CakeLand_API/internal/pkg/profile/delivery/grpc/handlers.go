@@ -119,6 +119,7 @@ func (h *GrpcProfileHandler) GetUserInfo(ctx context.Context, _ *emptypb.Empty) 
 	if convertedErr != nil {
 		return nil, convertedErr
 	}
+	h.log.Info(accessToken)
 
 	// Бизнес-логика
 	userInfo, err := h.usecase.UserInfo(ctx, accessToken)

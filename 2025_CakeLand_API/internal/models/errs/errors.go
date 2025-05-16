@@ -22,6 +22,7 @@ var (
 	ErrNoMetadata             = errors.New("no metadata")
 	ErrTokenIsExpired         = errors.New("token is expired")
 	ErrClaimIsMissing         = errors.New("claim is missing")
+	ErrClaimTypeInvalid       = errors.New("claim type is invalid")
 	ErrPreviewImageNotFound   = errors.New("preview image not found")
 	ErrDB                     = errors.New("database error")
 	ErrNoMessage              = errors.New("no message")
@@ -34,6 +35,7 @@ var (
 	ErrIncorrectFIO           = errors.New("incorrect fio")
 	ErrForbidden              = errors.New("user not have access")
 	ErrNotAvailable           = errors.New("cake not available for sale")
+	ErrUnknownCakeStatus      = errors.New("unknown cake status")
 )
 
 func ConvertToGrpcError(ctx context.Context, log *slog.Logger, err error, description string) error {
@@ -62,7 +64,8 @@ func ConvertToGrpcError(ctx context.Context, log *slog.Logger, err error, descri
 	case errors.Is(err, ErrTokenIsExpired):
 		return status.Error(codes.Unauthenticated, fmt.Sprintf("%v: %s", err, description))
 
-	case errors.Is(err, ErrClaimIsMissing):
+	case errors.Is(err, ErrClaimIsMissing),
+		errors.Is(err, ErrClaimTypeInvalid):
 		return status.Error(codes.Internal, fmt.Sprintf("%v: %s", err, description))
 
 	case errors.Is(err, ErrNotFound):
@@ -84,6 +87,7 @@ func ConvertToGrpcError(ctx context.Context, log *slog.Logger, err error, descri
 		errors.Is(err, ErrInvalidInput),
 		errors.Is(err, ErrTotalPriceIncorrect),
 		errors.Is(err, ErrMassNotExists),
+		errors.Is(err, ErrUnknownCakeStatus),
 		errors.Is(err, ErrIncorrectFIO),
 		errors.Is(err, ErrIncorrectUsername),
 		errors.Is(err, ErrUnknownImageKind),

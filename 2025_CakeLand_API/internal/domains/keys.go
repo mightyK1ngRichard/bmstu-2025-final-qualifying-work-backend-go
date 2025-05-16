@@ -4,8 +4,9 @@ type JWTClaimsKeys string
 type MetadataKey string
 
 const (
-	KeyUserIDClaim JWTClaimsKeys = "userID"
-	KeyExpClaim    JWTClaimsKeys = "exp"
+	KeyUserIDClaim  JWTClaimsKeys = "userID"
+	KeyExpClaim     JWTClaimsKeys = "exp"
+	KeyIsAdminClaim JWTClaimsKeys = "isAdmin"
 
 	KeyFingerprint   MetadataKey = "fingerprint"
 	KeyAuthorization MetadataKey = "authorization"

@@ -39,8 +39,14 @@ func NewOrderHandler(
 }
 
 func (h *OrderHandler) GetAllOrders(ctx context.Context, _ *emptypb.Empty) (*gen.GetAllOrdersRes, error) {
+	// Получаем токен из метаданных
+	accessToken, convertedErr := h.getAccessToken(ctx)
+	if convertedErr != nil {
+		return nil, convertedErr
+	}
+
 	// Бизнес логика
-	orders, err := h.usecase.GetAllOrders(ctx)
+	orders, err := h.usecase.GetAllOrders(ctx, accessToken)
 	if err != nil {
 		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to get all orders")
 	}

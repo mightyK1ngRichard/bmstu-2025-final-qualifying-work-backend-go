@@ -7,9 +7,11 @@ import (
 	"2025_CakeLand_API/internal/pkg/cake"
 	gen "2025_CakeLand_API/internal/pkg/cake/delivery/grpc/generated"
 	"2025_CakeLand_API/internal/pkg/cake/dto"
+	"2025_CakeLand_API/internal/pkg/notification/delivery/grpc/generated"
 	md "2025_CakeLand_API/internal/pkg/utils/metadata"
 	"context"
 	"fmt"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"log/slog"
 
@@ -22,18 +24,40 @@ type GrpcCakeHandler struct {
 	log        *slog.Logger
 	usecase    cake.ICakeUsecase
 	mdProvider *md.MetadataProvider
+	nc         generated.NotificationServiceClient
 }
 
 func NewCakeHandler(
 	logger *slog.Logger,
 	uc cake.ICakeUsecase,
 	mdProvider *md.MetadataProvider,
+	nc generated.NotificationServiceClient,
 ) *GrpcCakeHandler {
 	return &GrpcCakeHandler{
 		log:        logger,
 		usecase:    uc,
 		mdProvider: mdProvider,
+		nc:         nc,
 	}
+}
+
+func (h *GrpcCakeHandler) GetAllCakesWithAllStatuses(ctx context.Context, _ *emptypb.Empty) (*gen.GetAllCakesWithAllStatusesRes, error) {
+	// Бизнес логика
+	cakes, err := h.usecase.GetCakesPreview(ctx, true)
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to fetch cakes")
+	}
+
+	// Маппинг
+	cakesGRPC := make([]*gen.PreviewCake, len(cakes))
+	for i, it := range cakes {
+		cakesGRPC[i] = it.ConvertToGrpcModel()
+	}
+
+	// Ответ
+	return &gen.GetAllCakesWithAllStatusesRes{
+		Cakes: cakesGRPC,
+	}, nil
 }
 
 func (h *GrpcCakeHandler) GetUserCakes(ctx context.Context, in *gen.GetUserCakesReq) (*gen.GetUserCakesRes, error) {
@@ -71,9 +95,20 @@ func (h *GrpcCakeHandler) SetCakeVisibility(ctx context.Context, in *gen.SetCake
 	}
 
 	// Бизнес логика
-	if err = h.usecase.SetCakeVisibility(ctx, accessToken, cakeID, in.IsOpenForSale); err != nil {
+	cakeStatus, err := models.FromProtoCakeStatus(in.Status)
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to parse cake status")
+	}
+
+	ownerID, cakeName, err := h.usecase.SetCakeVisibility(ctx, accessToken, cakeID, cakeStatus)
+	if err != nil {
 		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "unable to set cake visibility. you must be the owner of the cake to change its visibility")
 	}
+
+	// Отправка уведомления
+	go func(ownerID, cakeName string, cakeStatus models.CakeStatus) {
+		h.sendOrderStatusUpdatedNotification(ctx, cakeName, ownerID, cakeStatus)
+	}(ownerID, cakeName, cakeStatus)
 
 	// Ответ
 	return &emptypb.Empty{}, nil
@@ -114,10 +149,17 @@ func (h *GrpcCakeHandler) Cake(ctx context.Context, in *gen.CakeRequest) (*gen.C
 	if err != nil {
 		return nil, errs.ConvertToGrpcError(ctx, h.log, errs.ErrInvalidUUIDFormat, "'cake_id' must be a valid UUID")
 	}
+	accessToken, err := h.mdProvider.GetValue(ctx, domains.KeyAuthorization)
+	if err != nil {
+		return nil, errs.ConvertToGrpcError(ctx, h.log, err,
+			fmt.Sprintf("missing required metadata: %s", domains.KeyAuthorization),
+		)
+	}
 
 	// Бизнес логика
 	res, err := h.usecase.Cake(ctx, dto.GetCakeReq{
-		CakeID: cakeID,
+		CakeID:      cakeID,
+		AccessToken: accessToken,
 	})
 	if err != nil {
 		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to fetch cake")
@@ -125,7 +167,8 @@ func (h *GrpcCakeHandler) Cake(ctx context.Context, in *gen.CakeRequest) (*gen.C
 
 	// Ответ
 	return &gen.CakeResponse{
-		Cake: res.Cake.ConvertToCakeGRPC(),
+		Cake:                 res.Cake.ConvertToCakeGRPC(),
+		UserCanWriteFeedback: res.CanWriteFeedbacks,
 	}, nil
 }
 
@@ -188,10 +231,19 @@ func (h *GrpcCakeHandler) CreateCategory(ctx context.Context, in *gen.CreateCate
 	}
 
 	// Бизнес логика
+	var categoryGenders []models.CategoryGender
+	for _, tag := range in.GenderTags {
+		gender, err2 := models.ConvertToCategoryGenderFromGrpc(tag)
+		if err2 != nil {
+			continue
+		}
+		categoryGenders = append(categoryGenders, gender)
+	}
 	res, err := h.usecase.CreateCategory(ctx, &dto.CreateCategoryReq{
-		Name:        in.Name,
-		ImageData:   in.ImageData,
-		AccessToken: accessToken,
+		Name:            in.Name,
+		ImageData:       in.ImageData,
+		AccessToken:     accessToken,
+		CategoryGenders: categoryGenders,
 	})
 	if err != nil {
 		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to create category")
@@ -243,7 +295,7 @@ func (h *GrpcCakeHandler) Fillings(ctx context.Context, _ *emptypb.Empty) (*gen.
 
 func (h *GrpcCakeHandler) Cakes(ctx context.Context, _ *emptypb.Empty) (*gen.CakesResponse, error) {
 	// Бизнес логика
-	cakes, err := h.usecase.GetCakesPreview(ctx)
+	cakes, err := h.usecase.GetCakesPreview(ctx, false)
 	if err != nil {
 		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "failed to fetch cakes")
 	}
@@ -289,7 +341,7 @@ func (h *GrpcCakeHandler) CategoryPreviewCakes(ctx context.Context, in *gen.Cate
 	// Параметры
 	categoryID, err := uuid.Parse(in.CategoryID)
 	if err != nil {
-		return nil, errs.ConvertToGrpcError(ctx, h.log, err, "parsing category id")
+		return nil, errs.ConvertToGrpcError(ctx, h.log, fmt.Errorf("%w: %w", errs.ErrInvalidUUIDFormat, err), "parsing category id")
 	}
 
 	// Бизнес логика
@@ -336,4 +388,50 @@ func (h *GrpcCakeHandler) getAccessToken(ctx context.Context) (string, error) {
 	}
 
 	return accessToken, nil
+}
+
+// Helpers
+
+func (h *GrpcCakeHandler) sendOrderStatusUpdatedNotification(ctx context.Context, cakeName string, userID string, status models.CakeStatus) {
+	// Извлекаем метаданные из родительского контекста
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		h.log.Error("не удалось получить метаданные из контекста")
+		return
+	}
+
+	// Создаём новый контекст с метаданными из родительского контекста
+	newCtx := metadata.NewOutgoingContext(context.Background(), md)
+
+	// Формируем заголовок и сообщение
+	title := fmt.Sprintf("Статус торта изменён")
+	message := fmt.Sprintf("Статус торта \"%s\" изменён на \"%s\".", cakeName, statusToText(status))
+
+	// Формируем запрос
+	req := &generated.CreateNotificationRequest{
+		Title:       title,
+		Message:     message,
+		RecipientID: userID,
+		Kind:        generated.NotificationKind_ORDER_UPDATE,
+	}
+
+	_, err := h.nc.CreateNotification(newCtx, req)
+	if err != nil {
+		h.log.Error("не удалось отправить уведомление об изменении статуса", "error", err)
+	}
+}
+
+func statusToText(status models.CakeStatus) string {
+	switch status {
+	case models.CakeStatusPending:
+		return "на рассмотрении"
+	case models.CakeStatusApproved:
+		return "одобрен"
+	case models.CakeStatusRejected:
+		return "отклонён"
+	case models.CakeStatusHidden:
+		return "скрыт"
+	default:
+		return string(status)
+	}
 }

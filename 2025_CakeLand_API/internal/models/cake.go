@@ -1,11 +1,23 @@
 package models
 
 import (
+	"2025_CakeLand_API/internal/models/errs"
 	gen "2025_CakeLand_API/internal/pkg/cake/delivery/grpc/generated"
+	"database/sql/driver"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/guregu/null"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"time"
+)
+
+type CakeStatus string
+
+const (
+	CakeStatusPending  CakeStatus = "pending"
+	CakeStatusApproved CakeStatus = "approved"
+	CakeStatusRejected CakeStatus = "rejected"
+	CakeStatusHidden   CakeStatus = "hidden"
 )
 
 // Cake Модель торта
@@ -18,7 +30,7 @@ type Cake struct {
 	StarsSum        int32       // Сумма звёзд
 	Description     string      // Описание
 	Mass            float64     // Масса торта
-	IsOpenForSale   bool        // Флаг возможности продажи торта
+	Status          CakeStatus  // Статус торта
 	Model3DURL      null.String // Ссылка на 3D модель
 	DateCreation    time.Time   // Дата создания торта
 	DiscountKgPrice null.Float  // Скидочная цена за кг
@@ -39,6 +51,23 @@ type CakeColor struct {
 type CakeImage struct {
 	ID       uuid.UUID
 	ImageURL null.String
+}
+
+// Model -> Proto
+
+func (s CakeStatus) ToProto() gen.CakeStatus {
+	switch s {
+	case CakeStatusPending:
+		return gen.CakeStatus_PENDING
+	case CakeStatusApproved:
+		return gen.CakeStatus_APPROVED
+	case CakeStatusRejected:
+		return gen.CakeStatus_REJECTED
+	case CakeStatusHidden:
+		return gen.CakeStatus_HIDDEN
+	default:
+		return gen.CakeStatus_CAKE_STATUS_UNSPECIFIED
+	}
 }
 
 func (c *CakeImage) ConvertToCakeImageGRPC() *gen.Cake_CakeImage {
@@ -94,7 +123,7 @@ func (c *Cake) ConvertToCakeGRPC() *gen.Cake {
 		Rating:          rating,
 		Description:     c.Description,
 		Mass:            c.Mass,
-		IsOpenForSale:   c.IsOpenForSale,
+		Status:          c.Status.ToProto(),
 		Owner:           c.Owner.ConvertToUserGRPC(),
 		Fillings:        grpcFillings,
 		Categories:      grpcCategories,
@@ -104,5 +133,56 @@ func (c *Cake) ConvertToCakeGRPC() *gen.Cake {
 		Images:          cakeImages,
 		ReviewsCount:    c.ReviewsCount,
 		Model3DURL:      model3DURL,
+	}
+}
+
+// Proto -> Model
+
+func FromProtoCakeStatus(status gen.CakeStatus) (CakeStatus, error) {
+	switch status {
+	case gen.CakeStatus_CAKE_STATUS_UNSPECIFIED:
+		return "", errs.ErrUnknownCakeStatus
+	case gen.CakeStatus_APPROVED:
+		return CakeStatusApproved, nil
+	case gen.CakeStatus_REJECTED:
+		return CakeStatusRejected, nil
+	case gen.CakeStatus_HIDDEN:
+		return CakeStatusHidden, nil
+	case gen.CakeStatus_PENDING:
+		return CakeStatusPending, nil
+	default:
+		return "", errs.ErrUnknownCakeStatus
+	}
+}
+
+// SQL
+
+func (s *CakeStatus) Scan(value interface{}) error {
+	var str string
+
+	switch v := value.(type) {
+	case string:
+		str = v
+	case []byte:
+		str = string(v)
+	default:
+		return fmt.Errorf("cannot scan type %T into CakeStatus", value)
+	}
+
+	switch CakeStatus(str) {
+	case CakeStatusPending, CakeStatusApproved, CakeStatusRejected, CakeStatusHidden:
+		*s = CakeStatus(str)
+		return nil
+	default:
+		return fmt.Errorf("invalid CakeStatus: %s", str)
+	}
+}
+
+func (s CakeStatus) Value() (driver.Value, error) {
+	switch s {
+	case CakeStatusPending, CakeStatusApproved, CakeStatusRejected, CakeStatusHidden:
+		return string(s), nil
+	default:
+		return nil, fmt.Errorf("invalid CakeStatus: %s", s)
 	}
 }

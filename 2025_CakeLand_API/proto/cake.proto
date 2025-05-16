@@ -14,6 +14,7 @@ message CakeRequest {
 
 message CakeResponse {
   Cake cake = 1; // Информация о торте
+  bool userCanWriteFeedback = 2; // Флаг, может ли пользователь оставить отзыв
 }
 
 /* ############### CreateCake ############### */
@@ -23,7 +24,6 @@ message CreateCakeRequest {
   double kg_price = 3;                                            // Цена за кг
   string description = 4;                                         // Описание торта
   double mass = 5;                                                // Масса торта
-  bool is_open_for_sale = 6;                                      // Доступен ли для продажи
   repeated string filling_ids = 7;                                // Список ID начинок
   repeated string category_ids = 8;                               // Список ID категорий
   repeated bytes images = 9;                                      // Все фотографии торта
@@ -52,6 +52,7 @@ message CreateFillingResponse {
 message CreateCategoryRequest {
   string name = 1;
   bytes image_data = 2;
+  repeated CategoryGender gender_tags = 3;
 }
 
 message CreateCategoryResponse {
@@ -117,7 +118,7 @@ message Add3DModelRes {
 /* ############### Add3DModel ############### */
 message SetCakeVisibilityReq {
   string cakeID = 1;
-  bool isOpenForSale = 2;
+  CakeStatus status = 2;
 }
 
 /* ############### GetUserCakes ############### */
@@ -129,23 +130,30 @@ message GetUserCakesRes {
   repeated PreviewCake cakes = 1;
 }
 
+/* ############### GetAllCakesWithAllStatusesRes ############### */
+message GetAllCakesWithAllStatusesRes {
+  repeated PreviewCake cakes = 1;
+}
+
 /* ############### CakeService ############### */
 service CakeService {
-  rpc CreateCake (CreateCakeRequest) returns (CreateCakeResponse);
-  rpc Cake (CakeRequest) returns (CakeResponse);
-  rpc Cakes (google.protobuf.Empty) returns (CakesResponse);
-  rpc CategoryPreviewCakes (CategoryPreviewCakesReq) returns (CategoryPreviewCakesRes);
+  rpc CreateCake(CreateCakeRequest) returns (CreateCakeResponse);
+  rpc Cake(CakeRequest) returns (CakeResponse);
+  rpc Cakes(google.protobuf.Empty) returns (CakesResponse);
   rpc GetUserCakes(GetUserCakesReq) returns (GetUserCakesRes);
-
-  rpc CreateFilling (CreateFillingRequest) returns (CreateFillingResponse);
-  rpc Fillings (google.protobuf.Empty) returns (FillingsResponse);
-  rpc AddCakeColors(AddCakeColorsReq) returns (google.protobuf.Empty);
-  rpc GetColors(google.protobuf.Empty) returns (CakeColorsRes);
   rpc Add3DModel(Add3DModelReq) returns (Add3DModelRes);
   rpc SetCakeVisibility(SetCakeVisibilityReq) returns (google.protobuf.Empty);
+  rpc GetAllCakesWithAllStatuses(google.protobuf.Empty) returns (GetAllCakesWithAllStatusesRes);
 
-  rpc CreateCategory (CreateCategoryRequest) returns (CreateCategoryResponse);
-  rpc Categories (google.protobuf.Empty) returns (CategoriesResponse);
+  rpc CreateFilling(CreateFillingRequest) returns (CreateFillingResponse);
+  rpc Fillings(google.protobuf.Empty) returns (FillingsResponse);
+
+  rpc AddCakeColors(AddCakeColorsReq) returns (google.protobuf.Empty);
+  rpc GetColors(google.protobuf.Empty) returns (CakeColorsRes);
+
+  rpc CategoryPreviewCakes (CategoryPreviewCakesReq) returns (CategoryPreviewCakesRes);
+  rpc CreateCategory(CreateCategoryRequest) returns (CreateCategoryResponse);
+  rpc Categories(google.protobuf.Empty) returns (CategoriesResponse);
   rpc GetCategoriesByGenderName(GetCategoriesByGenderNameReq) returns (GetCategoriesByGenderNameRes);
 }
 
@@ -158,7 +166,7 @@ message Cake {
   int32 rating = 5;                                          // Рейтинг (0-5)
   string description = 6;                                    // Описание торта
   double mass = 7;                                           // Масса торта
-  bool is_open_for_sale = 8;                                 // Доступен ли для продажи
+  CakeStatus status = 8;                                     // Статус торта
   User owner = 9;                                            // Информация о владельце
   repeated Filling fillings = 10;                            // Список начинок
   repeated Category categories = 11;                         // Список категорий
@@ -173,6 +181,14 @@ message Cake {
     string id = 1;
     string image_url = 2;
   }
+}
+
+enum CakeStatus {
+  CAKE_STATUS_UNSPECIFIED = 0; // Не указано
+  PENDING = 1;                 // Ожидает
+  APPROVED = 2;                // Одобрено и открыто для продажи
+  REJECTED = 3;                // Отказано
+  HIDDEN = 4;                  // Скрыто
 }
 
 // Информация о владельце
@@ -222,7 +238,7 @@ message PreviewCake {
   google.protobuf.DoubleValue discount_kg_price = 8;    // Скидочная цена за кг (nullable)
   google.protobuf.Timestamp discount_end_time = 9;      // Время окончания скидки (nullable)
   google.protobuf.Timestamp date_creation = 10;         // Время создания
-  bool is_open_for_sale = 11;                           // Продается ли
+  CakeStatus status = 11;                               // Статус торта
   User owner = 12;                                      // Владелец
   int32 reviewsCount = 13;                              // Число отзывов
   repeated string colorsHex = 14;                       // Hex цвета торта

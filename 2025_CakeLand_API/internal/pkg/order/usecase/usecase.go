@@ -26,9 +26,18 @@ func NewOrderUsecase(
 	}
 }
 
-func (u *OrderUsecase) GetAllOrders(ctx context.Context) ([]models.Order, error) {
+func (u *OrderUsecase) GetAllOrders(ctx context.Context, accessToken string) ([]models.Order, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+
+	// Проверка на админа
+	isAdmin, err := u.tokenator.GetIsAdminFromToken(accessToken, false)
+	if err != nil {
+		return nil, err
+	}
+	if !isAdmin {
+		return nil, errs.ErrForbidden
+	}
 
 	// Получаем все заказы
 	dbOrders, err := u.repo.GetAllOrders(ctx)
@@ -276,7 +285,7 @@ func (u *OrderUsecase) MakeOrder(ctx context.Context, accessToken string, dbOrde
 	}
 
 	// Торт не доступен для продаже
-	if !cake.IsOpenForSale {
+	if cake.Status != models.CakeStatusApproved {
 		return nil, errs.ErrNotAvailable
 	}
 

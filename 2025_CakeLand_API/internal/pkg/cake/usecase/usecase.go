@@ -102,15 +102,19 @@ func (u *CakeUseсase) GetUserCakes(ctx context.Context, userID string) ([]dto.P
 	return cakes, nil
 }
 
-func (u *CakeUseсase) SetCakeVisibility(ctx context.Context, accessToken string, cakeID uuid.UUID, visible bool) error {
+func (u *CakeUseсase) SetCakeVisibility(ctx context.Context, accessToken string, cakeID uuid.UUID, status models.CakeStatus) (string, string, error) {
 	// Достаём userID из токена если он не протух
 	userID, err := u.tokenator.GetUserIDFromToken(accessToken, false)
 	if err != nil {
-		return err
+		return "", "", err
+	}
+	isAdmin, err := u.tokenator.GetIsAdminFromToken(accessToken, false)
+	if err != nil {
+		return "", "", err
 	}
 
 	// Обновляем запись в БД
-	return u.repo.UpdateCakeVisibility(ctx, cakeID, userID, visible)
+	return u.repo.UpdateCakeVisibility(ctx, cakeID, userID, status, isAdmin)
 }
 
 func (u *CakeUseсase) AddCakeColor(ctx context.Context, cakeID uuid.UUID, hexStrings []string) error {
@@ -145,18 +149,25 @@ func (u *CakeUseсase) Cake(ctx context.Context, in dto.GetCakeReq) (*dto.GetCak
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	// Получаем userID
+	userID, err2 := u.tokenator.GetUserIDFromToken(in.AccessToken, false)
+	if err2 != nil {
+		return nil, err2
+	}
+
 	// Получаем информацию торта
 	res, err := u.repo.CakeByID(ctx, in)
 	if err != nil {
 		return nil, err
 	}
 	cakeInfo := res.Cake
+	canWriteFeedbacks := false
 
 	wg := sync.WaitGroup{}
 	mu := sync.Mutex{}
 	errChan := make(chan error, 1)
 
-	wg.Add(3)
+	wg.Add(4)
 
 	// Получаем категории торта
 	go func() {
@@ -275,6 +286,30 @@ func (u *CakeUseсase) Cake(ctx context.Context, in dto.GetCakeReq) (*dto.GetCak
 		mu.Unlock()
 	}()
 
+	// Получаем флаг, может ли пользователь оставлять фидбэк
+	go func() {
+		defer wg.Done()
+		if ctx.Err() != nil {
+			return
+		}
+
+		orders, err3 := u.repo.UserOrders(ctx, userID)
+		if err3 != nil {
+			trySendError(err3, errChan, cancel)
+			return
+		}
+
+		// Если в заказах пользователя есть торт, может писать
+		for _, order := range orders {
+			if order.CakeID == in.CakeID {
+				mu.Lock()
+				canWriteFeedbacks = true
+				mu.Unlock()
+				return
+			}
+		}
+	}()
+
 	go func() {
 		wg.Wait()
 		close(errChan)
@@ -285,7 +320,8 @@ func (u *CakeUseсase) Cake(ctx context.Context, in dto.GetCakeReq) (*dto.GetCak
 	}
 
 	return &dto.GetCakeRes{
-		Cake: cakeInfo,
+		Cake:              cakeInfo,
+		CanWriteFeedbacks: canWriteFeedbacks,
 	}, nil
 }
 
@@ -376,9 +412,10 @@ func (u *CakeUseсase) CreateCategory(ctx context.Context, in *dto.CreateCategor
 	}
 
 	newCategory := models.Category{
-		ID:       categoryUUID,
-		Name:     in.Name,
-		ImageURL: imageURL,
+		ID:              categoryUUID,
+		Name:            in.Name,
+		ImageURL:        imageURL,
+		CategoryGenders: in.CategoryGenders,
 	}
 	if err = u.repo.CreateCategory(ctx, &newCategory); err != nil {
 		return nil, err
@@ -397,12 +434,12 @@ func (u *CakeUseсase) Fillings(ctx context.Context) (*[]models.Filling, error) 
 	return u.repo.Fillings(ctx)
 }
 
-func (u *CakeUseсase) GetCakesPreview(ctx context.Context) ([]dto.PreviewCake, error) {
+func (u *CakeUseсase) GetCakesPreview(ctx context.Context, showAll bool) ([]dto.PreviewCake, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	// Получение тортов
-	cakes, err := u.repo.GetCakesPreview(ctx)
+	cakes, err := u.repo.GetCakesPreview(ctx, showAll)
 	if err != nil {
 		return nil, err
 	}
@@ -498,12 +535,13 @@ func (u *CakeUseсase) CategoryPreviewCakes(ctx context.Context, categoryID uuid
 	errCh := make(chan error, 1)
 	for i, cakeID := range cakeIDs {
 		wg.Add(1)
-		go func() {
+		go func(i int, cakeID uuid.UUID) {
 			defer wg.Done()
 			if ctx.Err() != nil {
 				return
 			}
 
+			// Получаем подробную информацию торта
 			previewCake, prevErr := u.repo.PreviewCakeByID(ctx, cakeID)
 			if prevErr != nil {
 				trySendError(prevErr, errCh, cancel)
@@ -514,10 +552,23 @@ func (u *CakeUseсase) CategoryPreviewCakes(ctx context.Context, categoryID uuid
 				return
 			}
 
+			// Получаем цвета торта
+			colors, colorsErr := u.repo.GetCakeColorsByCakeID(ctx, cakeID)
+			if colorsErr != nil {
+				trySendError(colorsErr, errCh, cancel)
+				return
+			}
+
+			colorsHex := make([]string, len(colors))
+			for ind, color := range colors {
+				colorsHex[ind] = color.HexString
+			}
+
+			previewCake.ColorsHex = colorsHex
 			mu.Lock()
 			previewCakes[i] = previewCake
 			mu.Unlock()
-		}()
+		}(i, cakeID)
 	}
 
 	go func() {

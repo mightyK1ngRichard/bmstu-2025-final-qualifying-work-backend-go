@@ -28,13 +28,13 @@ func NewTokenator() *Tokenator {
 }
 
 // GenerateAccessToken генерирует access токен
-func (t *Tokenator) GenerateAccessToken(userUID string) (*models.JWTTokenPayload, error) {
-	return generateToken(userUID, accessTokenLifeSpan, t.accessSign)
+func (t *Tokenator) GenerateAccessToken(userUID string, isAdmin bool) (*models.JWTTokenPayload, error) {
+	return generateToken(userUID, isAdmin, accessTokenLifeSpan, t.accessSign)
 }
 
 // GenerateRefreshToken генерирует refresh токен
-func (t *Tokenator) GenerateRefreshToken(userUID string) (*models.JWTTokenPayload, error) {
-	return generateToken(userUID, refreshTokenLifeSpan, t.refreshSign)
+func (t *Tokenator) GenerateRefreshToken(userUID string, isAdmin bool) (*models.JWTTokenPayload, error) {
+	return generateToken(userUID, isAdmin, refreshTokenLifeSpan, t.refreshSign)
 }
 
 // IsTokenExpired проверяет, истёк ли срок действия токена
@@ -100,11 +100,40 @@ func (t *Tokenator) GetUserIDFromToken(tokenString string, isRefresh bool) (stri
 	return userID, nil
 }
 
-func generateToken(userUID string, duration time.Duration, sign []byte) (*models.JWTTokenPayload, error) {
+// GetIsAdminFromToken возвращает флаг isAdmin, если токен валиден и не истёк
+func (t *Tokenator) GetIsAdminFromToken(tokenString string, isRefresh bool) (bool, error) {
+	var sign []byte
+	if isRefresh {
+		sign = t.refreshSign
+	} else {
+		sign = t.accessSign
+	}
+
+	claims, err := getTokenClaims(tokenString, sign)
+	if err != nil {
+		return false, err
+	}
+
+	isAdminRaw, ok := claims[domains.KeyIsAdminClaim.String()]
+	if !ok {
+		// Старый токен без поля - считаем, что не админ
+		return false, nil
+	}
+
+	isAdmin, ok := isAdminRaw.(bool)
+	if !ok {
+		return false, fmt.Errorf("%v: %s has wrong type", errs.ErrClaimTypeInvalid, domains.KeyIsAdminClaim.String())
+	}
+
+	return isAdmin, nil
+}
+
+func generateToken(userUID string, isAdmin bool, duration time.Duration, sign []byte) (*models.JWTTokenPayload, error) {
 	tokenExpiryTime := time.Now().Add(duration)
 	claims := jwt.MapClaims{
-		domains.KeyUserIDClaim.String(): userUID,
-		domains.KeyExpClaim.String():    tokenExpiryTime.Unix(),
+		domains.KeyUserIDClaim.String():  userUID,
+		domains.KeyExpClaim.String():     tokenExpiryTime.Unix(),
+		domains.KeyIsAdminClaim.String(): isAdmin,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(sign)

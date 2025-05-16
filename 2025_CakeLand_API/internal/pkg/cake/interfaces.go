@@ -12,18 +12,21 @@ import (
 type ICakeUsecase interface {
 	Cake(context.Context, dto.GetCakeReq) (*dto.GetCakeRes, error)
 	CreateCake(context.Context, dto.CreateCakeReq) (*dto.CreateCakeRes, error)
-	CreateFilling(context.Context, dto.CreateFillingReq) (*dto.CreateFillingRes, error)
+	GetCakesPreview(context.Context, bool) ([]dto.PreviewCake, error)
+	CategoryPreviewCakes(context.Context, uuid.UUID) ([]*dto.PreviewCake, error)
+	AddCakeColor(context.Context, uuid.UUID, []string) error
+	Add3DModel(context.Context, string, *generated.Add3DModelReq) (string, error)
+	SetCakeVisibility(context.Context, string, uuid.UUID, models.CakeStatus) (string, string, error)
+	GetUserCakes(context.Context, string) ([]dto.PreviewCake, error)
+
 	CreateCategory(context.Context, *dto.CreateCategoryReq) (*dto.CreateCategoryRes, error)
 	Categories(context.Context) (*[]models.Category, error)
-	Fillings(context.Context) (*[]models.Filling, error)
-	AddCakeColor(context.Context, uuid.UUID, []string) error
-	GetColors(context.Context) ([]string, error)
-	GetCakesPreview(context.Context) ([]dto.PreviewCake, error)
 	CategoryIDsByGenderName(context.Context, models.CategoryGender) ([]models.Category, error)
-	CategoryPreviewCakes(context.Context, uuid.UUID) ([]*dto.PreviewCake, error)
-	Add3DModel(context.Context, string, *generated.Add3DModelReq) (string, error)
-	SetCakeVisibility(context.Context, string, uuid.UUID, bool) error
-	GetUserCakes(context.Context, string) ([]dto.PreviewCake, error)
+
+	CreateFilling(context.Context, dto.CreateFillingReq) (*dto.CreateFillingRes, error)
+	Fillings(context.Context) (*[]models.Filling, error)
+
+	GetColors(context.Context) ([]string, error)
 }
 
 type ICakeRepository interface {
@@ -41,16 +44,18 @@ type ICakeRepository interface {
 	GetColors(context.Context) ([]string, error)
 	AddCakeColor(context.Context, models.CakeColor) error
 	Save3DModelURL(context.Context, uuid.UUID, string, string) error
-	UpdateCakeVisibility(context.Context, uuid.UUID, string, bool) error
+	UpdateCakeVisibility(context.Context, uuid.UUID, string, models.CakeStatus, bool) (string, string, error)
 
 	GetCakeColorsByCakeID(context.Context, uuid.UUID) ([]models.CakeColor, error)
 	GetUserByID(context.Context, uuid.UUID) (dto.Owner, error)
-	GetCakesPreview(context.Context) ([]dto.PreviewCake, error)
+	GetCakesPreview(context.Context, bool) ([]dto.PreviewCake, error)
 	Categories(context.Context) (*[]models.Category, error)
 	Fillings(context.Context) (*[]models.Filling, error)
 	CategoryIDsByGenderName(context.Context, models.CategoryGender) ([]dto.DBCategory, error)
 	CategoryCakesIDs(context.Context, uuid.UUID) ([]uuid.UUID, error)
 	PreviewCakeByID(context.Context, uuid.UUID) (*dto.PreviewCake, error)
+
+	UserOrders(context.Context, string) ([]models.OrderDB, error)
 }
 
 type IImageStorage interface {

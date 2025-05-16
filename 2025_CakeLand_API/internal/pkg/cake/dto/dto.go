@@ -12,11 +12,13 @@ import (
 // GetCake
 
 type GetCakeReq struct {
-	CakeID uuid.UUID
+	CakeID      uuid.UUID
+	AccessToken string
 }
 
 type GetCakeRes struct {
-	Cake models.Cake
+	Cake              models.Cake
+	CanWriteFeedbacks bool
 }
 
 // CreateCake
@@ -29,7 +31,6 @@ type CreateCakeReq struct {
 	DiscountedPriceEndDate null.Time  // Дата окончания скидки
 	Description            string     // Описание торта
 	Mass                   float64    // Масса торта
-	IsOpenForSale          bool       // Доступен ли для продажи
 	FillingIDs             []string   // Список ID начинок
 	CategoryIDs            []string   // Список ID категорий
 	AccessToken            string     // Токен пользователя
@@ -55,7 +56,6 @@ func NewCreateCakeReq(in *gen.CreateCakeRequest, accessToken string) CreateCakeR
 		DiscountedKgPrice:      discountKgPrice,
 		DiscountedPriceEndDate: discountEndDate,
 		Mass:                   in.Mass,
-		IsOpenForSale:          in.IsOpenForSale,
 		FillingIDs:             in.FillingIds,
 		CategoryIDs:            in.CategoryIds,
 		AccessToken:            accessToken,
@@ -76,7 +76,6 @@ func (req *CreateCakeReq) ConvertToCreateCakeDBReq(
 		KgPrice:                req.KgPrice,
 		Description:            req.Description,
 		Mass:                   req.Mass,
-		IsOpenForSale:          req.IsOpenForSale,
 		OwnerID:                ownerID,
 		FillingIDs:             req.FillingIDs,
 		CategoryIDs:            req.CategoryIDs,
@@ -95,7 +94,6 @@ type CreateCakeDBReq struct {
 	DiscountedPriceEndDate null.Time             // Дата окончания скидки
 	Description            string                // Описание торта
 	Mass                   float64               // Масса торта
-	IsOpenForSale          bool                  // Доступен ли для продажи
 	OwnerID                string                // ID владельца
 	FillingIDs             []string              // Список ID начинок
 	CategoryIDs            []string              // Список ID категорий
@@ -124,9 +122,10 @@ type CreateFillingRes struct {
 // Create Category
 
 type CreateCategoryReq struct {
-	Name        string // Название категории
-	ImageData   []byte // Фотография категории
-	AccessToken string // Токен пользователя
+	Name            string // Название категории
+	ImageData       []byte // Фотография категории
+	AccessToken     string // Токен
+	CategoryGenders []models.CategoryGender
 }
 
 type CreateCategoryRes struct {

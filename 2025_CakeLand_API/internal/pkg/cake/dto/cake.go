@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"2025_CakeLand_API/internal/models"
 	"2025_CakeLand_API/internal/pkg/cake/delivery/grpc/generated"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -22,7 +23,7 @@ type PreviewCake struct {
 	DiscountKgPrice null.Float
 	DiscountEndTime null.Time
 	DateCreation    time.Time
-	IsOpenForSale   bool
+	Status          models.CakeStatus
 	Owner           Owner
 	ColorsHex       []string
 	Model3DURL      null.String
@@ -40,7 +41,7 @@ type PreviewCakeDB struct {
 	DiscountKgPrice null.Float
 	DiscountEndTime null.Time
 	DateCreation    time.Time
-	IsOpenForSale   bool
+	Status          models.CakeStatus
 	OwnerID         uuid.UUID
 	Model3DURL      null.String
 }
@@ -83,7 +84,7 @@ func (pc PreviewCake) ConvertToGrpcModel() *generated.PreviewCake {
 		DiscountKgPrice: discountKgPrice,
 		DiscountEndTime: discountEndTime,
 		DateCreation:    timestamppb.New(pc.DateCreation),
-		IsOpenForSale:   pc.IsOpenForSale,
+		Status:          pc.Status.ToProto(),
 		Owner:           pc.Owner.ConvertToGrpcUser(),
 		ColorsHex:       pc.ColorsHex,
 		Model3DURL:      model3DURL,
@@ -103,7 +104,7 @@ func (pc *PreviewCakeDB) ConvertToPreviewCake(owner Owner) PreviewCake {
 		DiscountKgPrice: pc.DiscountKgPrice,
 		DiscountEndTime: pc.DiscountEndTime,
 		DateCreation:    pc.DateCreation,
-		IsOpenForSale:   pc.IsOpenForSale,
+		Status:          pc.Status,
 		Owner:           owner,
 		Model3DURL:      pc.Model3DURL,
 	}

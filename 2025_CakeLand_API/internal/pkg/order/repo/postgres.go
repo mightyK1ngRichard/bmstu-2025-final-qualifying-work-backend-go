@@ -21,7 +21,9 @@ const (
 			   seller_id,
 			   cake_id,
 			   payment_method,
-			   status
+			   status,
+			   created_at,
+			   updated_at
 		FROM "order"
 	`
 	queryUpdateOrderStatus = `UPDATE "order" SET status = $1 WHERE id = $2 RETURNING customer_id, seller_id;`
@@ -39,7 +41,7 @@ const (
 		VALUES ($1, $2, $3, $4, $5, $6 , $7, $8, $9, $10) 
 	`
 	queryCakeInfo = `
-		SELECT kg_price, mass, discount_kg_price, discount_end_time, is_open_for_sale
+		SELECT kg_price, mass, discount_kg_price, discount_end_time, status
 		FROM cake
 		WHERE id = $1
 	`
@@ -54,7 +56,9 @@ const (
 			   seller_id,
 			   payment_method,
 			   cake_id,
-			   status
+			   status,
+			   created_at,
+			   updated_at
 		FROM "order"
 		WHERE customer_id = $1
 		ORDER BY delivery_date DESC
@@ -70,7 +74,9 @@ const (
 		   seller_id,
 		   payment_method,
 		   cake_id,
-		   status
+		   status,
+		   created_at,
+		   updated_at
 		FROM "order"
 		WHERE id = $1
 		LIMIT 1
@@ -119,6 +125,8 @@ func (r *OrderRepo) OrderByID(ctx context.Context, orderID string) (*models.Orde
 		&o.PaymentMethod,
 		&o.CakeID,
 		&o.Status,
+		&o.CreatedAt,
+		&o.UpdatedAt,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errs.ErrNotFound
@@ -153,6 +161,8 @@ func (r *OrderRepo) GetAllOrders(ctx context.Context) ([]models.OrderDB, error) 
 			&o.CakeID,
 			&o.PaymentMethod,
 			&o.Status,
+			&o.CreatedAt,
+			&o.UpdatedAt,
 		); err != nil {
 			return nil, errs.WrapDBError(methodName, err)
 		}
@@ -253,6 +263,8 @@ func (r *OrderRepo) UserOrders(ctx context.Context, userID uuid.UUID) ([]models.
 			&o.PaymentMethod,
 			&o.CakeID,
 			&o.Status,
+			&o.CreatedAt,
+			&o.UpdatedAt,
 		); err != nil {
 			return nil, errs.WrapDBError(methodName, err)
 		}
@@ -296,7 +308,7 @@ func (r *OrderRepo) CakeInfo(ctx context.Context, cakeID uuid.UUID) (models.Cake
 		&cake.Mass,
 		&cake.DiscountKgPrice,
 		&cake.DiscountEndTime,
-		&cake.IsOpenForSale,
+		&cake.Status,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return models.Cake{}, errs.ErrNotFound

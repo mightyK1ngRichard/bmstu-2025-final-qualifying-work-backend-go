@@ -8,38 +8,6 @@ import (
 	"time"
 )
 
-type PaymentMethod string
-type OrderStatus string
-
-const (
-	OrderStatusPending   OrderStatus = "pending"
-	OrderStatusShipped   OrderStatus = "shipped"
-	OrderStatusDelivered OrderStatus = "delivered"
-	OrderStatusCancelled OrderStatus = "cancelled"
-
-	Cash    PaymentMethod = "cash"
-	IoMoney PaymentMethod = "io_money"
-)
-
-func (s OrderStatus) String() string {
-	return string(s)
-}
-
-func InitFromProtoOrderStatus(status gen.OrderStatus) OrderStatus {
-	switch status {
-	case gen.OrderStatus_PENDING:
-		return OrderStatusPending
-	case gen.OrderStatus_SHIPPED:
-		return OrderStatusShipped
-	case gen.OrderStatus_DELIVERED:
-		return OrderStatusDelivered
-	case gen.OrderStatus_CANCELLED:
-		return OrderStatusCancelled
-	default:
-		return OrderStatusPending
-	}
-}
-
 type Order struct {
 	ID              uuid.UUID
 	TotalPrice      float64
@@ -67,6 +35,8 @@ type OrderDB struct {
 	CakeID            uuid.UUID
 	DeliveryAddressID uuid.UUID
 	DeliveryDate      time.Time
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 func MapOrderFromDB(dbOrder OrderDB) Order {
@@ -79,9 +49,12 @@ func MapOrderFromDB(dbOrder OrderDB) Order {
 		PaymentMethod: dbOrder.PaymentMethod,
 		Status:        dbOrder.Status,
 		CakeID:        dbOrder.CakeID,
+		CreatedAt:     dbOrder.CreatedAt,
+		UpdatedAt:     dbOrder.UpdatedAt,
 	}
 }
 
+// Proto -> Go
 func Init(from *gen.MakeOrderReq) (OrderDB, error) {
 	deliveryDate := time.Time{}
 	if from.DeliveryDate != nil {
@@ -131,6 +104,7 @@ func Init(from *gen.MakeOrderReq) (OrderDB, error) {
 	}, nil
 }
 
+// Go -> Proto
 func (o *Order) ToProto() *gen.Order {
 	return &gen.Order{
 		Id:              o.ID.String(),
@@ -145,31 +119,5 @@ func (o *Order) ToProto() *gen.Order {
 		Status:          toProtoOrderStatus(o.Status),
 		CreatedAt:       timestamppb.New(o.CreatedAt),
 		UpdatedAt:       timestamppb.New(o.UpdatedAt),
-	}
-}
-
-func toProtoPaymentMethod(pm PaymentMethod) gen.PaymentMethod {
-	switch pm {
-	case Cash:
-		return gen.PaymentMethod_CASH
-	case IoMoney:
-		return gen.PaymentMethod_IOMoney
-	default:
-		return gen.PaymentMethod_CASH
-	}
-}
-
-func toProtoOrderStatus(status OrderStatus) gen.OrderStatus {
-	switch status {
-	case OrderStatusPending:
-		return gen.OrderStatus_PENDING
-	case OrderStatusShipped:
-		return gen.OrderStatus_SHIPPED
-	case OrderStatusDelivered:
-		return gen.OrderStatus_DELIVERED
-	case OrderStatusCancelled:
-		return gen.OrderStatus_CANCELLED
-	default:
-		return gen.OrderStatus_PENDING
 	}
 }

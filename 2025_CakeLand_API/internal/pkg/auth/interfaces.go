@@ -3,6 +3,7 @@ package auth
 import (
 	"2025_CakeLand_API/internal/pkg/auth/dto"
 	"context"
+	"github.com/google/uuid"
 )
 
 // mockgen -source=internal/pkg/auth/interfaces.go -destination=internal/pkg/auth/mocks/mock_auth.go -package=mocks
@@ -19,4 +20,5 @@ type IAuthRepository interface {
 	GetUserByEmail(context.Context, dto.GetUserByEmailReq) (*dto.GetUserByEmailRes, error)
 	UpdateUserRefreshTokens(context.Context, dto.UpdateUserRefreshTokensReq) error
 	GetUserRefreshTokens(context.Context, dto.GetUserRefreshTokensReq) (*dto.GetUserRefreshTokensRes, error)
+	IsUserAdmin(context.Context, uuid.UUID) (bool, error)
 }

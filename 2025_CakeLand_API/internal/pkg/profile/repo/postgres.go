@@ -28,7 +28,7 @@ const (
 			   discount_kg_price,
 			   discount_end_time,
 			   date_creation,
-			   is_open_for_sale,
+			   status,
 			   owner_id,
 			   model_3d_url
 		FROM cake
@@ -205,7 +205,7 @@ func (r *ProfileRepository) CakesByUserID(ctx context.Context, userID uuid.UUID)
 			&previewCake.DiscountKgPrice,
 			&previewCake.DiscountEndTime,
 			&previewCake.DateCreation,
-			&previewCake.IsOpenForSale,
+			&previewCake.Status,
 			&previewCake.OwnerID,
 			&previewCake.Model3DURL,
 		); err != nil {
